@@ -102,11 +102,11 @@
   .jump-btn:active{background:var(--accent-soft);color:var(--accent);transform:scale(.96);}
 
   .calc-btn{
-    border:none;border-radius:100px;background:var(--accent);color:#fff;
+    border:none;border-radius:100px;background:var(--ink);color:#fff;
     font-size:14px;font-weight:800;cursor:pointer;transition:all .15s ease;
-    box-shadow:0 8px 16px -6px rgba(31,157,100,.5);
+    box-shadow:0 8px 16px -6px rgba(32,38,33,.45);
   }
-  .calc-btn:active{transform:scale(.97);box-shadow:0 4px 10px -4px rgba(31,157,100,.5);}
+  .calc-btn:active{transform:scale(.97);box-shadow:0 4px 10px -4px rgba(32,38,33,.45);}
   .calc-btn:disabled{opacity:.6;}
 
   /* Bus result list (plain card style) */
@@ -312,13 +312,8 @@
           </div>
           <span class="stepper-label">분</span>
         </div>
-        <div class="time-select-row jump-row">
-          <button class="jump-btn" id="subwayMinuteJumpMinus">−10분</button>
-          <button class="jump-btn" id="subwayMinuteJumpPlus">+10분</button>
-          <button class="jump-btn" id="subwayResetToNow">지금으로</button>
-        </div>
       </div>
-      <button class="calc-btn" id="calcSubwayBtn" style="width:100%;margin-top:14px;padding:13px 0;">🚇 금호역 도착 시간 계산하기</button>
+      <button class="calc-btn" id="calcSubwayBtn" style="display:block;margin:14px auto 0;padding:12px 24px;">🚇 금호역 도착 시간 계산하기</button>
       <div id="subwayResult" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;"></div>
     </div>
 
@@ -815,14 +810,6 @@ document.querySelectorAll('.time-preset-btn').forEach(b => {
     subwayTime = b.dataset.time;
     syncSubwayUI();
   });
-});
-
-bindHoldRepeat($('subwayMinuteJumpMinus'), () => adjustSubwayTime(-10));
-bindHoldRepeat($('subwayMinuteJumpPlus'), () => adjustSubwayTime(10));
-$('subwayResetToNow').addEventListener('click', () => {
-  const now = getKSTNow();
-  subwayTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  syncSubwayUI();
 });
 
 $('subwayToggle').addEventListener('click', () => {
