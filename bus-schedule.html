@@ -400,7 +400,8 @@ let state = {
   day: 'weekday',
   mode: 'now',
   customTime: '',
-  showMore: false
+  showMore: false,
+  fromSubway: false
 };
 
 let subwayTime = '08:00';
@@ -537,6 +538,9 @@ function renderBoard(){
   const now = getKSTNow();
   if(state.mode === 'now'){
     $('boardClock').textContent = toKoreanTime(now.getHours(), now.getMinutes(), now.getSeconds());
+  } else if(state.fromSubway){
+    const [ch, cm] = state.customTime.split(':').map(Number);
+    $('boardClock').textContent = `🚇 ${toKoreanTime(ch, cm)} 도착 예상`;
   } else {
     const [ch, cm] = state.customTime.split(':').map(Number);
     $('boardClock').textContent = `🕐 ${toKoreanTime(ch, cm)} 기준`;
@@ -577,7 +581,7 @@ function renderBoard(){
   function rowHtml(t, i){
     const diff = t.mins - refMin;
     const isTop = i === 0;
-    const status = statusFor(diff, isTop, state.stop);
+    const status = state.fromSubway ? { cls:'ok', tag:'' } : statusFor(diff, isTop, state.stop);
     return `
       <div class="bus-row status-${status.cls}">
         <div class="bus-row-inner">
@@ -656,13 +660,13 @@ function renderAll(){
 }
 
 document.querySelectorAll('#stopPills .pill').forEach(p=>{
-  p.addEventListener('click', ()=>{ state.stop = p.dataset.stop; state.showMore=false; renderAll(); });
+  p.addEventListener('click', ()=>{ state.stop = p.dataset.stop; state.showMore=false; state.fromSubway=false; renderAll(); });
 });
 document.querySelectorAll('#dayPills .pill').forEach(p=>{
-  p.addEventListener('click', ()=>{ state.day = p.dataset.day; state.showMore=false; renderAll(); });
+  p.addEventListener('click', ()=>{ state.day = p.dataset.day; state.showMore=false; state.fromSubway=false; renderAll(); });
 });
 document.querySelectorAll('#modePills .pill').forEach(p=>{
-  p.addEventListener('click', ()=>{ state.mode = p.dataset.mode; state.showMore=false; renderAll(); });
+  p.addEventListener('click', ()=>{ state.mode = p.dataset.mode; state.showMore=false; state.fromSubway=false; renderAll(); });
 });
 function adjustTime(deltaMinutes){
   const [h, m] = state.customTime.split(':').map(Number);
@@ -671,6 +675,7 @@ function adjustTime(deltaMinutes){
   const newH = Math.floor(total / 60);
   const newM = total % 60;
   state.customTime = `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}`;
+  state.fromSubway = false;
   renderAll();
 }
 
@@ -705,6 +710,7 @@ $('minuteJumpPlus').addEventListener('click', () => adjustTime(10));
 $('resetToNow').addEventListener('click', () => {
   const now = getKSTNow();
   state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  state.fromSubway = false;
   renderAll();
 });
 
@@ -841,6 +847,7 @@ async function calcSubwayArrival(){
     state.mode = 'custom';
     state.customTime = arriveStr;
     state.showMore = false;
+    state.fromSubway = true;
     renderAll();
   }catch(err){
     resultEl.innerHTML = `<span style="color:var(--red);">계산에 실패했어요: ${err.message}</span>`;
