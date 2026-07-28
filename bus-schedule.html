@@ -101,6 +101,14 @@
   }
   .jump-btn:active{background:var(--accent-soft);color:var(--accent);transform:scale(.96);}
 
+  .calc-btn{
+    border:none;border-radius:100px;background:var(--accent);color:#fff;
+    font-size:14px;font-weight:800;cursor:pointer;transition:all .15s ease;
+    box-shadow:0 8px 16px -6px rgba(31,157,100,.5);
+  }
+  .calc-btn:active{transform:scale(.97);box-shadow:0 4px 10px -4px rgba(31,157,100,.5);}
+  .calc-btn:disabled{opacity:.6;}
+
   /* Bus result list (plain card style) */
   .board-wrap{margin-top:12px;}
   .board-header{
@@ -283,12 +291,12 @@
       <div class="field-group">
         <div class="label">몇 시에 탈까요?</div>
         <div class="pill-row" id="subwayTimePresets" style="flex-wrap:wrap;margin-bottom:10px;">
-          <button class="jump-btn time-preset-btn" data-time="07:00">07시</button>
           <button class="jump-btn time-preset-btn" data-time="08:00">08시</button>
           <button class="jump-btn time-preset-btn" data-time="09:00">09시</button>
-          <button class="jump-btn time-preset-btn" data-time="12:00">12시</button>
-          <button class="jump-btn time-preset-btn" data-time="18:00">18시</button>
+          <button class="jump-btn time-preset-btn" data-time="10:00">10시</button>
+          <button class="jump-btn time-preset-btn" data-time="20:00">20시</button>
           <button class="jump-btn time-preset-btn" data-time="21:00">21시</button>
+          <button class="jump-btn time-preset-btn" data-time="22:00">22시</button>
         </div>
         <div class="time-select-row">
           <div class="stepper">
@@ -310,7 +318,7 @@
           <button class="jump-btn" id="subwayResetToNow">지금으로</button>
         </div>
       </div>
-      <button class="jump-btn" id="calcSubwayBtn" style="width:100%;margin-top:12px;padding:11px 0;">🚇 금호역 도착 시간 계산하기</button>
+      <button class="calc-btn" id="calcSubwayBtn" style="width:100%;margin-top:14px;padding:13px 0;">🚇 금호역 도착 시간 계산하기</button>
       <div id="subwayResult" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;"></div>
     </div>
 
@@ -736,6 +744,16 @@ bindHoldRepeat($('subwayHourPlus'), () => adjustSubwayTime(60));
 bindHoldRepeat($('subwayMinuteMinus'), () => adjustSubwayTime(-1));
 bindHoldRepeat($('subwayMinutePlus'), () => adjustSubwayTime(1));
 
+async function fetchStationSearch(query){
+  const url = `https://api.odsay.com/v1/api/searchStation?stationName=${encodeURIComponent(query)}&CID=1000&stationClass=2&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if(data.error){
+    throw new Error(data.error[0] && data.error[0].message ? data.error[0].message : 'API 오류');
+  }
+  return (data.result && data.result.station) ? data.result.station : [];
+}
+
 async function searchDepartureStation(){
   const btn = $('stationSearchBtn');
   const input = $('stationSearchInput');
@@ -750,13 +768,11 @@ async function searchDepartureStation(){
   btn.textContent = '검색 중...';
   resultsEl.innerHTML = '';
   try{
-    const url = `https://api.odsay.com/v1/api/searchStation?stationName=${encodeURIComponent(query)}&CID=1000&stationClass=2&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.error){
-      throw new Error(data.error[0] && data.error[0].message ? data.error[0].message : 'API 오류');
+    let stations = await fetchStationSearch(query);
+    // "역"으로 끝나는데 결과가 없으면 "역"을 뗀 이름으로 재시도
+    if(stations.length === 0 && query.endsWith('역') && query.length > 2){
+      stations = await fetchStationSearch(query.slice(0, -1));
     }
-    const stations = (data.result && data.result.station) ? data.result.station : [];
     if(stations.length === 0){
       resultsEl.innerHTML = `<div style="color:var(--red);font-size:12px;">검색 결과가 없어요</div>`;
       return;
