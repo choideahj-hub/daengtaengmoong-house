@@ -75,6 +75,7 @@
   }
   .chapter-icon.c1{background:var(--accent-soft);}
   .chapter-icon.c2{background:var(--green-soft);}
+  .chapter-icon.c3{background:var(--accent2-soft);}
   .chapter-body{flex:1;min-width:0;}
   .chapter-title{font-size:16.5px;font-weight:800;margin:0 0 4px;}
   .chapter-desc{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.5;}
@@ -83,6 +84,42 @@
   .footer-note{
     text-align:center;font-size:11.5px;color:var(--muted);margin-top:36px;line-height:1.7;
   }
+
+  .section-label{margin:26px 0 12px;}
+  .section-label h2{font-size:14.5px;font-weight:800;margin:0;color:var(--ink);}
+  .section-label h2::before{content:"🎉 ";font-size:12px;}
+
+  .page-divider{
+    border:none;border-top:1.5px dashed var(--line);margin:30px 0 0;
+  }
+
+  .anniv-widget{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:8px;display:flex;flex-direction:column;gap:2px;
+  }
+  .anniv-row{
+    display:flex;align-items:center;gap:12px;padding:12px 12px;
+    border-radius:14px;
+  }
+  .anniv-row:not(:last-child){border-bottom:1px dashed var(--line);border-radius:0;}
+  .anniv-emoji{font-size:22px;flex-shrink:0;}
+  .anniv-body{flex:1;min-width:0;}
+  .anniv-name{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;}
+  .anniv-meta{font-size:11px;color:var(--ink-soft);}
+  .anniv-owner{
+    display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;
+    border-radius:100px;flex-shrink:0;
+  }
+  .anniv-owner.o-댕{background:#EAF0FF;color:#4C6FD6;}
+  .anniv-owner.o-탱{background:#FFE7F3;color:#E0568F;}
+  .anniv-owner.o-뭉{background:#F1EAE3;color:#8A6D4E;}
+  .anniv-owner.o-우리{background:#FBF0DC;color:#D9A441;}
+  .anniv-dday{
+    font-size:13.5px;font-weight:800;color:var(--accent);flex-shrink:0;
+    background:var(--accent-soft);padding:6px 11px;border-radius:100px;
+    font-variant-numeric:tabular-nums;
+  }
+  .anniv-dday.today{background:#FBF0DC;color:#D9A441;}
 </style>
 </head>
 <body>
@@ -120,8 +157,82 @@
     </a>
   </div>
 
+  <hr class="page-divider">
+  <div class="section-label"><h2>다가오는 기념일</h2></div>
+  <div class="anniv-widget" id="annivWidget"></div>
+
   <p class="footer-note">챕터는 계속 추가될 예정이에요 🐾</p>
 </div>
+
+<script>
+const EVENTS = [
+  { name: '결혼기념일', owner: '우리', date: '2025-05-25', type: 'anniversary', emoji: '💍' },
+  { name: '댕 생일', owner: '댕', date: '1994-03-01', type: 'birthday', emoji: '🎂' },
+  { name: '탱 생일', owner: '탱', date: '1993-08-04', type: 'birthday', emoji: '🎂' },
+  { name: '뭉 생일', owner: '뭉', date: '2018-09-19', type: 'birthday', emoji: '🐾' },
+  { name: '댕탱 사귄 날', owner: '우리', date: '2018-12-21', type: 'dating', emoji: '💕' },
+];
+
+function getKSTToday(){
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function computeEvent(ev, today){
+  const [origY, origM, origD] = ev.date.split('-').map(Number);
+  let year = today.getFullYear();
+  let next = new Date(year, origM - 1, origD);
+  next.setHours(0,0,0,0);
+  if(next < today){
+    year += 1;
+    next = new Date(year, origM - 1, origD);
+    next.setHours(0,0,0,0);
+  }
+  const diffDays = Math.round((next - today) / (1000*60*60*24));
+  const count = year - origY;
+
+  let countLabel = '';
+  if(ev.type === 'birthday') countLabel = `${count}번째 생일`;
+  else if(ev.type === 'anniversary') countLabel = `${count}주년`;
+  else if(ev.type === 'dating') countLabel = `사귄 지 ${count}년`;
+
+  return { ...ev, diffDays, countLabel, dateLabel: `${next.getMonth()+1}월 ${next.getDate()}일` };
+}
+
+function ddayLabel(diff){
+  return diff === 0 ? 'D-DAY' : 'D-' + diff;
+}
+
+function renderAnnivWidget(){
+  try{
+    const today = getKSTToday();
+    const computed = EVENTS.map(ev => computeEvent(ev, today)).sort((a,b)=> a.diffDays - b.diffDays);
+    const top = computed.slice(0, 3);
+    document.getElementById('annivWidget').innerHTML = top.map(ev => `
+      <div class="anniv-row">
+        <span class="anniv-emoji">${ev.emoji}</span>
+        <div class="anniv-body">
+          <div class="anniv-name">
+            <span class="anniv-owner o-${ev.owner}">${ev.owner}</span>
+            ${ev.name}
+          </div>
+          <div class="anniv-meta">${ev.dateLabel} · ${ev.countLabel}</div>
+        </div>
+        <span class="anniv-dday ${ev.diffDays===0?'today':''}">${ddayLabel(ev.diffDays)}</span>
+      </div>
+    `).join('');
+  }catch(err){
+    document.getElementById('annivWidget').innerHTML = '<div style="padding:16px;color:#C23B32;font-size:12.5px;">기념일을 불러오지 못했어요.</div>';
+  }
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', renderAnnivWidget);
+} else {
+  renderAnnivWidget();
+}
+</script>
 
 </body>
 </html>
