@@ -52,10 +52,13 @@
   }
   .now-clock-label{font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-bottom:4px;}
   .now-clock-time{
-    font-size:38px;font-weight:800;color:var(--ink);letter-spacing:.01em;
-    font-variant-numeric:tabular-nums;line-height:1.2;
+    font-size:26px;font-weight:800;color:var(--ink);letter-spacing:0;
+    font-variant-numeric:tabular-nums;line-height:1.3;
   }
-  .now-clock-date{font-size:12.5px;color:var(--ink-soft);margin-top:4px;font-weight:600;}
+  .now-clock-date{font-size:12px;color:var(--ink-soft);margin-top:5px;font-weight:600;}
+  .now-clock-row{display:flex;align-items:center;justify-content:center;gap:18px;}
+  .now-clock-text{text-align:left;}
+  .analog-clock{width:88px;height:88px;flex-shrink:0;}
 
   .selector-card{
     background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
@@ -75,21 +78,33 @@
     border:none;border-top:1.5px dashed var(--line);margin:16px 0;
   }
   .time-input-row{margin-top:12px;}
-  .time-select-row{display:flex;align-items:center;gap:8px;}
-  .time-select-row select{
-    flex:1;padding:11px 10px;border:1.5px solid var(--line);border-radius:12px;
-    font-size:16px;font-family:inherit;background:#FBFCFD;color:var(--ink);
-    font-variant-numeric:tabular-nums;text-align:center;
-    -webkit-appearance:none;appearance:none;
+  .time-select-row{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .stepper{display:flex;align-items:center;gap:10px;}
+  .stepper-btn{
+    width:34px;height:34px;border-radius:10px;border:1.5px solid var(--line);
+    background:#FBFCFD;color:var(--accent);font-size:18px;font-weight:800;
+    cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    line-height:1;padding:0;user-select:none;
   }
-  .time-select-row select:focus{outline:none;border-color:var(--accent);}
-  .time-select-row span{font-size:13px;font-weight:700;color:var(--ink-soft);flex-shrink:0;}
+  .stepper-btn:active{background:var(--accent-soft);transform:scale(.95);}
+  .stepper-value{
+    font-size:19px;font-weight:800;color:var(--ink);min-width:34px;text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  .stepper-label{font-size:12.5px;font-weight:700;color:var(--ink-soft);}
+  .jump-row{margin-top:10px;gap:8px;}
+  .jump-btn{
+    flex:1;padding:9px 0;border-radius:100px;border:1.5px solid var(--line);
+    background:#FBFCFD;color:var(--ink-soft);font-size:12.5px;font-weight:700;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .jump-btn:active{background:var(--accent-soft);color:var(--accent);transform:scale(.96);}
 
   /* Bus result list (plain card style) */
   .board-wrap{margin-top:20px;}
   .board-header{
     display:flex;align-items:baseline;justify-content:space-between;
-    margin-bottom:10px;padding:0 4px;
+    margin-bottom:10px;padding:0 4px;flex-wrap:wrap;row-gap:4px;
   }
   .board-title{font-size:13px;font-weight:800;color:var(--ink-soft);}
   .board-clock{
@@ -98,25 +113,42 @@
   }
   .bus-row{
     background:var(--surface);border-radius:16px;box-shadow:var(--shadow);
-    padding:14px 16px;margin-bottom:10px;
+    padding:16px;margin-bottom:10px;
     border-left:5px solid var(--gray-soft);
   }
   .bus-row.status-ok{border-left-color:var(--accent);}
   .bus-row.status-hurry{border-left-color:var(--red);background:var(--red-soft);}
   .bus-row.status-skip{border-left-color:var(--muted);background:var(--gray-soft);}
-  .bus-row.status-now{border-left-color:var(--red);background:var(--red-soft);}
-  .bus-rank{font-size:11px;font-weight:800;color:var(--muted);margin-bottom:5px;}
-  .bus-row:first-child .bus-rank{color:var(--accent);}
-  .bus-sentence{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px;line-height:1.4;}
-  .bus-sentence b{font-variant-numeric:tabular-nums;color:var(--accent);}
-  .bus-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .bus-eta{font-size:12.5px;font-weight:700;color:var(--ink-soft);}
-  .urgent-tag{
-    font-size:12px;font-weight:800;padding:4px 10px;border-radius:100px;
+  .bus-row.status-now{border-left-color:var(--red);background:#F8D9D6;}
+  .bus-row.status-hurry .bus-time, .bus-row.status-now .bus-time{color:var(--red);}
+  .bus-row.status-skip .bus-time{color:var(--gray-fg);}
+  .bus-row.status-hurry .bus-stop, .bus-row.status-now .bus-stop{color:var(--red);opacity:.85;}
+  .bus-row.departed{border-left-color:var(--muted);opacity:.6;}
+  .bus-row-inner{display:flex;align-items:center;gap:14px;}
+  .bus-rank{flex-shrink:0;line-height:0;}
+  .bus-content{flex:1;min-width:0;}
+  .bus-time{
+    font-size:20px;font-weight:800;color:var(--ink);
+    font-variant-numeric:tabular-nums;letter-spacing:-0.01em;margin-bottom:3px;
   }
-  .urgent-tag.status-hurry{background:#fff;color:var(--red);border:1.5px solid var(--red);}
-  .urgent-tag.status-skip{background:#fff;color:var(--gray-fg);border:1.5px solid var(--muted);}
-  .urgent-tag.status-now{background:#fff;color:var(--red);border:1.5px solid var(--red);}
+  .bus-stop{font-size:12px;color:var(--ink-soft);}
+  .bus-eta-pill{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:14px;font-weight:800;flex-shrink:0;text-align:center;
+    padding:9px 14px;border-radius:14px;line-height:1.3;min-width:74px;
+  }
+  .bus-eta-pill .eta-icon{font-size:16px;margin-bottom:1px;}
+  .bus-eta-pill.status-ok{background:var(--accent-soft);color:var(--accent);}
+  .bus-eta-pill.status-hurry, .bus-eta-pill.status-now{background:var(--red-soft);color:var(--red);}
+  .bus-eta-pill.status-skip{background:var(--gray-soft);color:var(--gray-fg);}
+  .urgent-tag{
+    display:block;font-size:12.5px;font-weight:700;line-height:1.5;
+    margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  }
+  .urgent-tag.status-hurry, .urgent-tag.status-now{color:var(--red);}
+  .urgent-tag.status-skip{color:var(--gray-fg);}
+  .bus-row.departed .bus-time{color:var(--ink-soft);}
+  .bus-row.departed .bus-eta-pill{background:var(--gray-soft);color:var(--gray-fg);}
 
   .board-more-btn{
     width:100%;padding:11px;border-radius:100px;
@@ -172,14 +204,29 @@
   </header>
 
   <div class="now-clock">
-    <div class="now-clock-label">⏰ 현재 시각</div>
-    <div class="now-clock-time" id="liveClock">--:--:--</div>
-    <div class="now-clock-date" id="liveDate"></div>
+    <div class="now-clock-row">
+      <svg class="analog-clock" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" fill="#FFFCFA" stroke="var(--accent)" stroke-width="4"/>
+        <line x1="50" y1="9" x2="50" y2="16" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="50" y1="91" x2="50" y2="84" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="9" y1="50" x2="16" y2="50" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="91" y1="50" x2="84" y2="50" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line id="hourHand" x1="50" y1="50" x2="50" y2="30" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round"/>
+        <line id="minuteHand" x1="50" y1="50" x2="50" y2="18" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+        <line id="secondHand" x1="50" y1="50" x2="50" y2="14" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="3.5" fill="var(--accent)"/>
+      </svg>
+      <div class="now-clock-text">
+        <div class="now-clock-label">⏰ 현재 시각</div>
+        <div class="now-clock-time" id="liveClock">--:--:--</div>
+        <div class="now-clock-date" id="liveDate"></div>
+      </div>
+    </div>
   </div>
 
   <div class="selector-card">
     <div class="field-group">
-      <div class="label">🚏 출발 정류장 (여기서 타요)</div>
+      <div class="label">출발 정류장</div>
       <div class="pill-row" id="stopPills">
         <button class="pill" data-stop="daewoo">🏢 금호대우아파트</button>
         <button class="pill" data-stop="station">🚇 금호역</button>
@@ -202,14 +249,27 @@
       <div class="label">기준 시간</div>
       <div class="pill-row" id="modePills">
         <button class="pill" data-mode="now">⏱️ 지금</button>
-        <button class="pill" data-mode="custom">🕐 시간 선택</button>
+        <button class="pill" data-mode="custom">👆 시간 선택</button>
       </div>
       <div class="time-input-row" id="timeInputRow" style="display:none;">
         <div class="time-select-row">
-          <select id="customHour"></select>
-          <span>시</span>
-          <select id="customMinute"></select>
-          <span>분</span>
+          <div class="stepper">
+            <button class="stepper-btn" id="hourMinus">−</button>
+            <span class="stepper-value" id="hourValue">00</span>
+            <button class="stepper-btn" id="hourPlus">+</button>
+          </div>
+          <span class="stepper-label">시</span>
+          <div class="stepper">
+            <button class="stepper-btn" id="minuteMinus">−</button>
+            <span class="stepper-value" id="minuteValue">00</span>
+            <button class="stepper-btn" id="minutePlus">+</button>
+          </div>
+          <span class="stepper-label">분</span>
+        </div>
+        <div class="time-select-row jump-row">
+          <button class="jump-btn" id="minuteJumpMinus">−10분</button>
+          <button class="jump-btn" id="minuteJumpPlus">+10분</button>
+          <button class="jump-btn" id="resetToNow">지금으로</button>
         </div>
       </div>
     </div>
@@ -240,14 +300,14 @@ const SCHEDULE = {
   daewoo: {
     label: '금호대우아파트',
     emoji: '🏢',
-    routeEmoji: '🏢→🚇',
+    routeEmoji: '🚌',
     weekday: ["6:20","6:33","6:46","6:59","7:12","7:24","7:36","7:48","8:00","8:12","8:24","8:36","8:48","9:00","9:13","9:25","9:50","10:15","10:40","11:05","11:30","11:43","11:56","12:09","12:22","12:35","12:48","13:01","13:14","13:27","13:40","13:53","14:06","14:19","14:32","14:45","14:58","15:10","15:35","16:00","16:25","16:50","17:15","17:28","17:41","17:54","18:07","18:20","18:33","18:46","18:59","19:12","19:25","19:38","19:51","20:04","20:17","20:30","20:45","21:00","21:15","21:30","21:45","22:00","22:15","22:30","22:45","23:00"],
     holiday: ["5:55","6:20","6:45","7:10","7:35","8:00","8:25","8:50","9:15","9:40","10:05","10:30","10:55","11:08","11:21","11:34","11:47","12:00","12:13","12:26","12:39","12:52","13:05","13:18","13:31","13:44","13:57","14:10","14:23","14:36","14:49","15:02","15:15","15:40","16:05","16:25","16:50","17:15","17:28","17:41","17:54","18:07","18:20","18:33","18:46","18:59","19:12","19:25","19:38","19:51","20:04","20:30","20:45","21:20","21:45","22:10","22:35","23:00"]
   },
   station: {
     label: '금호역',
     emoji: '🚇',
-    routeEmoji: '🚇→🏢',
+    routeEmoji: '🚌',
     weekday: ["6:10","6:36","6:49","7:02","7:15","7:28","7:40","7:52","8:04","8:16","8:28","8:40","8:52","9:04","9:16","9:29","9:41","10:05","10:30","10:55","11:20","11:46","11:59","12:12","12:25","12:38","12:51","13:04","13:17","13:30","13:43","13:56","14:09","14:22","14:35","14:48","15:01","15:14","15:26","15:50","16:15","16:40","17:05","17:31","17:44","17:57","18:10","18:23","18:36","18:49","19:02","19:15","19:28","19:41","19:54","20:07","20:20","20:33","20:45","21:00","21:15","21:30","21:45","22:00","22:15","22:30","22:45","22:55","23:10"],
     holiday: ["6:10","6:35","7:00","7:25","7:50","8:15","8:40","9:05","9:30","9:55","10:20","10:45","11:10","11:24","11:37","11:50","12:03","12:16","12:29","12:42","12:55","13:08","13:21","13:34","13:47","14:00","14:13","14:26","14:39","14:52","15:05","15:18","15:30","15:55","16:20","16:40","17:05","17:31","17:44","17:57","18:10","18:23","18:36","18:49","19:02","19:15","19:28","19:41","19:54","20:07","20:20","20:45","21:10","21:35","22:00","22:25","22:50","23:10"]
   }
@@ -272,6 +332,21 @@ function isKSTWeekend(){
   return d === 0 || d === 6;
 }
 
+function toKoreanTime(hh, mm, ss){
+  const period = hh < 12 ? '오전' : '오후';
+  let h12 = hh % 12;
+  if(h12 === 0) h12 = 12;
+  let str = `${period} ${h12}시 ${String(mm).padStart(2,'0')}분`;
+  if(ss !== undefined) str += ` ${String(ss).padStart(2,'0')}초`;
+  return str;
+}
+
+function minutesToKorean(mins){
+  const hh = Math.floor(mins / 60) % 24;
+  const mm = mins % 60;
+  return toKoreanTime(hh, mm);
+}
+
 function parseHM(str){
   const [h, m] = str.split(':').map(Number);
   return h * 60 + m;
@@ -292,23 +367,6 @@ function initDefaults(){
   state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-function populateTimeSelects(){
-  const hourSel = $('customHour');
-  const minSel = $('customMinute');
-  hourSel.innerHTML = '';
-  for(let h=0; h<24; h++){
-    const opt = document.createElement('option');
-    opt.value = h; opt.textContent = String(h).padStart(2,'0');
-    hourSel.appendChild(opt);
-  }
-  minSel.innerHTML = '';
-  for(let m=0; m<60; m++){
-    const opt = document.createElement('option');
-    opt.value = m; opt.textContent = String(m).padStart(2,'0');
-    minSel.appendChild(opt);
-  }
-}
-
 function syncPillUI(){
   document.querySelectorAll('#stopPills .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.stop === state.stop);
@@ -322,28 +380,46 @@ function syncPillUI(){
   $('timeInputRow').style.display = state.mode === 'custom' ? 'block' : 'none';
   if(state.customTime){
     const [h, m] = state.customTime.split(':').map(Number);
-    $('customHour').value = h;
-    $('customMinute').value = m;
+    $('hourValue').textContent = String(h).padStart(2,'0');
+    $('minuteValue').textContent = String(m).padStart(2,'0');
   }
 }
 
 function computeUpcoming(){
   const times = SCHEDULE[state.stop][state.day];
   const refMin = getReferenceMinutes();
-  const upcoming = times
-    .map(t => ({ label: t.length === 4 ? '0'+t : t, mins: parseHM(t) }))
+  const all = times.map(t => ({ label: t.length === 4 ? '0'+t : t, mins: parseHM(t) }));
+  const upcoming = all
     .filter(t => t.mins >= refMin)
     .sort((a,b)=> a.mins - b.mins);
-  return { upcoming, refMin };
+  const recentlyDeparted = all
+    .filter(t => refMin - t.mins > 0 && refMin - t.mins <= 3)
+    .sort((a,b)=> a.mins - b.mins);
+  return { upcoming, recentlyDeparted, refMin };
 }
 
-const RANK_LABELS = ['가장 빠른 버스','두 번째로 빠른 버스','세 번째로 빠른 버스','네 번째로 빠른 버스','다섯 번째로 빠른 버스'];
+function rankBadge(n, isTop){
+  const bg = isTop ? 'var(--accent)' : '#FFFFFF';
+  const fg = isTop ? '#FFFFFF' : 'var(--ink-soft)';
+  const stroke = isTop ? 'var(--accent)' : 'var(--line)';
+  return `<svg width="26" height="26" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${bg}" stroke="${stroke}" stroke-width="2"/><text x="16" y="21" text-anchor="middle" font-size="14" font-weight="800" fill="${fg}" font-family="Pretendard, sans-serif">${n}</text></svg>`;
+}
 
-function statusFor(diff, isTop){
+function departedBadge(){
+  return `<svg width="26" height="26" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#FFFFFF" stroke="var(--muted)" stroke-width="2"/><path d="M11 16h10" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+}
+
+const STATUS_THRESHOLDS = {
+  daewoo: { skipMax: 4, hurryMax: 10 },
+  station: { skipMax: 3, hurryMax: 10 }
+};
+
+function statusFor(diff, isTop, stopKey){
   if(!isTop) return { cls:'ok', tag:'' };
-  if(diff <= 0) return { cls:'now', tag:'🚨 지금 바로 타야 해요!!' };
-  if(diff <= 4) return { cls:'skip', tag:'🐢 이건 놓칠 것 같아요, 다음 버스가 더 여유로워요' };
-  if(diff <= 7) return { cls:'hurry', tag:'⚡ 지금 출발하면 탈 수 있어요!' };
+  if(diff <= 0) return { cls:'now', tag:'😮 지금 출발이라 놓쳤을 수 있어요, 다음 버스를 확인해보세요' };
+  const th = STATUS_THRESHOLDS[stopKey] || STATUS_THRESHOLDS.daewoo;
+  if(diff <= th.skipMax) return { cls:'skip', tag:'🐢 이건 놓칠 것 같아요, 다음 버스가 더 여유로워요' };
+  if(diff <= th.hurryMax) return { cls:'hurry', tag:'⚡ 지금 출발하면 탈 수 있어요!' };
   return { cls:'ok', tag:'' };
 }
 
@@ -354,40 +430,64 @@ function renderBoard(){
 
   const now = getKSTNow();
   if(state.mode === 'now'){
-    const hh = String(now.getHours()).padStart(2,'0');
-    const mm = String(now.getMinutes()).padStart(2,'0');
-    const ss = String(now.getSeconds()).padStart(2,'0');
-    $('boardClock').textContent = `${hh}:${mm}:${ss}`;
+    $('boardClock').textContent = toKoreanTime(now.getHours(), now.getMinutes(), now.getSeconds());
   } else {
-    $('boardClock').textContent = `🕐 ${state.customTime} 기준`;
+    const [ch, cm] = state.customTime.split(':').map(Number);
+    $('boardClock').textContent = `🕐 ${toKoreanTime(ch, cm)} 기준`;
   }
 
-  const { upcoming, refMin } = computeUpcoming();
+  const { upcoming, recentlyDeparted, refMin } = computeUpcoming();
   const body = $('boardBody');
 
+  function departedRowHtml(t){
+    const agoMin = refMin - t.mins;
+    return `
+      <div class="bus-row departed">
+        <div class="bus-row-inner">
+          <div class="bus-rank">${departedBadge()}</div>
+          <div class="bus-content">
+            <div class="bus-time">${minutesToKorean(t.mins)}</div>
+            <div class="bus-stop">${meta.routeEmoji} ${meta.label} 출발</div>
+          </div>
+          <div class="bus-eta-pill"><span style="font-size:11px;">${agoMin === 0 ? '방금' : agoMin+'분 전'}</span><span style="font-size:10.5px;">지나감</span></div>
+        </div>
+      </div>
+    `;
+  }
+  const departedHtml = recentlyDeparted.map(departedRowHtml).join('');
+
   if(upcoming.length === 0){
-    body.innerHTML = `<div class="board-end"><span class="emoji">🚌</span><span class="msg">오늘 운행 종료</span></div>`;
+    body.innerHTML = departedHtml + `<div class="board-end"><span class="emoji">🚌</span><span class="msg">오늘 운행 종료</span></div>`;
     return;
   }
 
   const shown = state.showMore ? upcoming.slice(0,5) : upcoming.slice(0,3);
-  let html = '';
-  shown.forEach((t, i)=>{
+
+  function etaPillHtml(diff, cls){
+    if(diff <= 0) return `<div class="bus-eta-pill status-${cls}"><span class="eta-icon">⏰</span><span>곧</span><span style="font-size:10.5px;">도착</span></div>`;
+    return `<div class="bus-eta-pill status-${cls}"><span class="eta-icon">⏳</span><span>${diff}분</span><span style="font-size:10.5px;">후 도착</span></div>`;
+  }
+
+  function rowHtml(t, i){
     const diff = t.mins - refMin;
     const isTop = i === 0;
-    const status = statusFor(diff, isTop);
-    const etaText = diff <= 0 ? '곧 출발' : `${diff}분 후`;
-    html += `
+    const status = statusFor(diff, isTop, state.stop);
+    return `
       <div class="bus-row status-${status.cls}">
-        <div class="bus-rank">${RANK_LABELS[i]}</div>
-        <div class="bus-sentence">${meta.routeEmoji} ${meta.label}에서 <b>${t.label}</b> 출발합니다</div>
-        <div class="bus-meta-row">
-          <span class="bus-eta">⏳ ${etaText}</span>
-          ${status.tag ? `<span class="urgent-tag status-${status.cls}">${status.tag}</span>` : ''}
+        <div class="bus-row-inner">
+          <div class="bus-rank">${rankBadge(i+1, isTop)}</div>
+          <div class="bus-content">
+            <div class="bus-time">${minutesToKorean(t.mins)}</div>
+            <div class="bus-stop">${meta.routeEmoji} ${meta.label} 출발</div>
+          </div>
+          ${etaPillHtml(diff, status.cls)}
         </div>
+        ${status.tag ? `<div class="urgent-tag status-${status.cls}">${status.tag}</div>` : ''}
       </div>
     `;
-  });
+  }
+
+  let html = departedHtml + shown.map((t, i) => rowHtml(t, i)).join('');
 
   if(upcoming.length > 3){
     html += state.showMore
@@ -427,13 +527,20 @@ function renderFullTable(){
 
 function renderLiveClock(){
   const now = getKSTNow();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  const ss = String(now.getSeconds()).padStart(2,'0');
-  $('liveClock').textContent = `${hh}:${mm}:${ss}`;
+  $('liveClock').textContent = toKoreanTime(now.getHours(), now.getMinutes(), now.getSeconds());
   const days = ['일','월','화','수','목','금','토'];
   const dayLabel = isKSTWeekend() ? '휴일' : '평일';
   $('liveDate').textContent = `${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]}) · 오늘은 ${dayLabel}이에요`;
+
+  const h = now.getHours() % 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hourDeg = (h + m/60) * 30;
+  const minuteDeg = (m + s/60) * 6;
+  const secondDeg = s * 6;
+  $('hourHand').setAttribute('transform', `rotate(${hourDeg} 50 50)`);
+  $('minuteHand').setAttribute('transform', `rotate(${minuteDeg} 50 50)`);
+  $('secondHand').setAttribute('transform', `rotate(${secondDeg} 50 50)`);
 }
 
 function renderAll(){
@@ -451,14 +558,49 @@ document.querySelectorAll('#dayPills .pill').forEach(p=>{
 document.querySelectorAll('#modePills .pill').forEach(p=>{
   p.addEventListener('click', ()=>{ state.mode = p.dataset.mode; state.showMore=false; renderAll(); });
 });
-function updateCustomTimeFromSelects(){
-  const h = $('customHour').value;
-  const m = $('customMinute').value;
-  state.customTime = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+function adjustTime(deltaMinutes){
+  const [h, m] = state.customTime.split(':').map(Number);
+  let total = (h * 60 + m + deltaMinutes) % 1440;
+  if(total < 0) total += 1440;
+  const newH = Math.floor(total / 60);
+  const newM = total % 60;
+  state.customTime = `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}`;
   renderAll();
 }
-$('customHour').addEventListener('change', updateCustomTimeFromSelects);
-$('customMinute').addEventListener('change', updateCustomTimeFromSelects);
+
+function bindHoldRepeat(el, fn){
+  let timer = null;
+  function start(e){
+    if(e) e.preventDefault();
+    fn();
+    let delay = 380;
+    const tick = () => {
+      fn();
+      delay = Math.max(60, delay * 0.72);
+      timer = setTimeout(tick, delay);
+    };
+    timer = setTimeout(tick, delay);
+  }
+  function stop(){
+    clearTimeout(timer);
+    timer = null;
+  }
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, {passive:false});
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => el.addEventListener(ev, stop));
+}
+
+bindHoldRepeat($('hourMinus'), () => adjustTime(-60));
+bindHoldRepeat($('hourPlus'), () => adjustTime(60));
+bindHoldRepeat($('minuteMinus'), () => adjustTime(-1));
+bindHoldRepeat($('minutePlus'), () => adjustTime(1));
+$('minuteJumpMinus').addEventListener('click', () => adjustTime(-10));
+$('minuteJumpPlus').addEventListener('click', () => adjustTime(10));
+$('resetToNow').addEventListener('click', () => {
+  const now = getKSTNow();
+  state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  renderAll();
+});
 $('fullTableToggle').addEventListener('click', ()=>{
   const wrap = $('fullTableWrap');
   const icon = $('fullTableIcon');
@@ -468,7 +610,6 @@ $('fullTableToggle').addEventListener('click', ()=>{
 
 function init(){
   try{
-    populateTimeSelects();
     initDefaults();
     renderAll();
     renderLiveClock();
