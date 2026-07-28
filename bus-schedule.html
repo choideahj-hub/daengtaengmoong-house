@@ -275,6 +275,29 @@
     </div>
   </div>
 
+  <div class="section-label"><h2>🚇 서울역에서 환승</h2></div>
+  <div class="selector-card">
+    <div class="field-group">
+      <div class="label">몇 시에 서울역에서 지하철을 탈까요?</div>
+      <div class="time-select-row">
+        <div class="stepper">
+          <button class="stepper-btn" id="subwayHourMinus">−</button>
+          <span class="stepper-value" id="subwayHourValue">08</span>
+          <button class="stepper-btn" id="subwayHourPlus">+</button>
+        </div>
+        <span class="stepper-label">시</span>
+        <div class="stepper">
+          <button class="stepper-btn" id="subwayMinuteMinus">−</button>
+          <span class="stepper-value" id="subwayMinuteValue">00</span>
+          <button class="stepper-btn" id="subwayMinutePlus">+</button>
+        </div>
+        <span class="stepper-label">분</span>
+      </div>
+    </div>
+    <button class="jump-btn" id="calcSubwayBtn" style="width:100%;margin-top:12px;padding:11px 0;">🚇 금호역 도착 시간 계산하기</button>
+    <div id="subwayResult" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;"></div>
+  </div>
+
   <div class="board-wrap">
     <div class="board-header">
       <span class="board-title" id="boardTitle">금호대우아파트 · 평일</span>
@@ -323,6 +346,11 @@ let state = {
   showMore: false
 };
 
+let subwayTime = '08:00';
+const ODSAY_API_KEY = 'yRxMzeDGppDHxUYG68lsFg';
+const SEOUL_STATION = { x: 126.969652, y: 37.553836 };
+const GEUMHO_STATION = { x: 127.016, y: 37.548 };
+
 function getKSTNow(){
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
 }
@@ -365,6 +393,7 @@ function initDefaults(){
   state.day = isKSTWeekend() ? 'holiday' : 'weekday';
   const now = getKSTNow();
   state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  subwayTime = state.customTime;
 }
 
 function syncPillUI(){
@@ -601,6 +630,68 @@ $('resetToNow').addEventListener('click', () => {
   state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   renderAll();
 });
+
+function syncSubwayUI(){
+  const [h, m] = subwayTime.split(':').map(Number);
+  $('subwayHourValue').textContent = String(h).padStart(2,'0');
+  $('subwayMinuteValue').textContent = String(m).padStart(2,'0');
+}
+
+function adjustSubwayTime(deltaMinutes){
+  const [h, m] = subwayTime.split(':').map(Number);
+  let total = (h * 60 + m + deltaMinutes) % 1440;
+  if(total < 0) total += 1440;
+  const newH = Math.floor(total / 60);
+  const newM = total % 60;
+  subwayTime = `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}`;
+  syncSubwayUI();
+}
+
+bindHoldRepeat($('subwayHourMinus'), () => adjustSubwayTime(-60));
+bindHoldRepeat($('subwayHourPlus'), () => adjustSubwayTime(60));
+bindHoldRepeat($('subwayMinuteMinus'), () => adjustSubwayTime(-1));
+bindHoldRepeat($('subwayMinutePlus'), () => adjustSubwayTime(1));
+
+async function calcSubwayArrival(){
+  const btn = $('calcSubwayBtn');
+  const resultEl = $('subwayResult');
+  btn.disabled = true;
+  btn.textContent = '계산 중...';
+  resultEl.innerHTML = '';
+  try{
+    const url = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${SEOUL_STATION.x}&SY=${SEOUL_STATION.y}&EX=${GEUMHO_STATION.x}&EY=${GEUMHO_STATION.y}&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error){
+      throw new Error(data.error[0] && data.error[0].message ? data.error[0].message : 'API 오류');
+    }
+    if(!data.result || !data.result.path || !data.result.path.length){
+      throw new Error('경로를 찾지 못했어요');
+    }
+    const totalTime = data.result.path[0].info.totalTime;
+    const [h, m] = subwayTime.split(':').map(Number);
+    let arriveMin = h * 60 + m + totalTime;
+    arriveMin = ((arriveMin % 1440) + 1440) % 1440;
+    const arriveH = Math.floor(arriveMin / 60);
+    const arriveM = arriveMin % 60;
+    const arriveStr = `${String(arriveH).padStart(2,'0')}:${String(arriveM).padStart(2,'0')}`;
+
+    resultEl.innerHTML = `🚇 금호역 도착 예정: <b style="color:var(--accent);">${toKoreanTime(arriveH, arriveM)}</b> (환승 포함 약 ${totalTime}분)<br>아래 결과가 이 시각·금호역 기준으로 바뀌었어요.`;
+
+    state.stop = 'station';
+    state.mode = 'custom';
+    state.customTime = arriveStr;
+    state.showMore = false;
+    renderAll();
+  }catch(err){
+    resultEl.innerHTML = `<span style="color:var(--red);">계산에 실패했어요: ${err.message}</span>`;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '🚇 금호역 도착 시간 계산하기';
+  }
+}
+$('calcSubwayBtn').addEventListener('click', calcSubwayArrival);
+
 $('fullTableToggle').addEventListener('click', ()=>{
   const wrap = $('fullTableWrap');
   const icon = $('fullTableIcon');
@@ -612,6 +703,7 @@ function init(){
   try{
     initDefaults();
     renderAll();
+    syncSubwayUI();
     renderLiveClock();
     setInterval(()=>{
       renderLiveClock();
