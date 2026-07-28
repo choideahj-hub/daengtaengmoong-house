@@ -120,9 +120,11 @@
   /* Upcoming strip */
   .upcoming-scroll{
     display:flex;gap:11px;overflow-x:auto;padding:4px 4px 10px;
-    scrollbar-width:none;
+    scrollbar-width:none;cursor:grab;
   }
   .upcoming-scroll::-webkit-scrollbar{display:none;}
+  .upcoming-scroll.dragging{cursor:grabbing;user-select:none;}
+  .upcoming-scroll.dragging .dday-card{pointer-events:none;}
   .dday-card{
     flex:0 0 auto;min-width:156px;
     background:var(--surface);
@@ -215,10 +217,11 @@
   .acct-btn:hover{color:var(--accent);}
 
   .check-btn{
-    width:24px;height:24px;border-radius:50%;border:2px solid var(--line);
+    width:24px;height:24px;border-radius:7px;border:2px solid var(--line);
     background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    font-size:13px;color:transparent;padding:0;transition:all .15s ease;
+    font-size:13px;color:var(--line);padding:0;transition:all .15s ease;flex-shrink:0;
   }
+  .check-btn:hover{border-color:var(--accent2);color:var(--accent2);}
   .check-btn.checked{
     background:var(--accent2);border-color:var(--accent2);color:#fff;
     box-shadow:0 3px 8px -2px rgba(111,207,192,.6);
@@ -578,6 +581,16 @@ function restoreEntry(id){
   showToast('다시 활성화했어요');
 }
 
+function deleteEntryPermanently(id){
+  const entry = entries.find(e=>e.id===id);
+  if(!entry) return;
+  if(!confirm(`'${entry.name}' 항목을 완전히 삭제할까요? 이 작업은 되돌릴 수 없어요.`)) return;
+  entries = entries.filter(e=>e.id!==id);
+  saveEntries();
+  render();
+  showToast('완전히 삭제했어요');
+}
+
 function currentPeriodKey(){
   const t = todayInfo();
   return `${t.y}-${String(t.m).padStart(2,'0')}`;
@@ -709,7 +722,8 @@ function copySetupLink(){
 function toggleComplete(entry){
   const period = currentPeriodKey();
   const key = completionKey(entry.id, period);
-  if(completions[key]){
+  const wasDone = !!completions[key];
+  if(wasDone){
     delete completions[key];
   } else {
     completions[key] = {
@@ -725,6 +739,7 @@ function toggleComplete(entry){
   }
   saveCompletions();
   render();
+  if(!wasDone) showToast('✓ 완료 히스토리로 이동했어요');
 }
 
 function showToast(msg){
@@ -837,14 +852,14 @@ function renderLedger(){
       <div class="row-main" data-toggle="${e.id}">
         <button class="check-btn ${done?'checked':''}" data-check="${e.id}" aria-label="완료 체크">✓</button>
         <span class="owner-tag o-${escapeHtml(e.owner||'댕')}">${escapeHtml(e.owner||'댕')}</span>
-        <span class="ledger-name">${escapeHtml(e.name)}</span>
+        <span class="ledger-name">${escapeHtml(e.card)}</span>
         <span class="day-badge">${e.day}일</span>
         <button class="expand-btn ${open?'open':''}" data-toggle-btn="${e.id}" aria-label="상세 정보">▾</button>
-        <button class="del-btn" data-del="${e.id}">✕</button>
+        <button class="del-btn" data-del="${e.id}" title="종료하기 (목록에서 빼기)">✕</button>
       </div>
       ${open ? `
       <div class="row-detail">
-        <div class="detail-item"><b>카드</b>${escapeHtml(e.card)}</div>
+        <div class="detail-item"><b>용도</b>${escapeHtml(e.name)}</div>
         <div class="detail-item"><b>지출 통장</b>${renderAcctChip(e)}</div>
         ${e.memo ? `<div class="detail-item"><b>메모</b>${escapeHtml(e.memo)}</div>` : ''}
         <div style="display:flex;gap:8px;">
@@ -887,14 +902,7 @@ function renderLedger(){
   body.querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', (ev)=>{
       ev.stopPropagation();
-      const id = btn.dataset.del;
-      const entry = entries.find(e=>e.id===id);
-      if(confirm(`'${entry.name}' 항목을 삭제할까요?`)){
-        entries = entries.filter(e=>e.id!==id);
-        saveEntries();
-        render();
-        showToast('삭제했어요');
-      }
+      expireEntry(btn.dataset.del);
     });
   });
   bindAcctChips(body);
@@ -917,11 +925,15 @@ function renderExpired(){
       <span class="owner-tag o-${escapeHtml(e.owner||'댕')}">${escapeHtml(e.owner||'댕')}</span>
       <span class="h-name expired-name">${escapeHtml(e.name)} · ${escapeHtml(e.card)} · 매월 ${e.day}일</span>
       <button class="restore-btn" data-restore="${e.id}">↩ 복원</button>
+      <button class="del-btn" data-del-permanent="${e.id}" title="완전 삭제">✕</button>
     </div>
   `).join('');
 
   list.querySelectorAll('[data-restore]').forEach(btn=>{
     btn.addEventListener('click', ()=> restoreEntry(btn.dataset.restore));
+  });
+  list.querySelectorAll('[data-del-permanent]').forEach(btn=>{
+    btn.addEventListener('click', ()=> deleteEntryPermanently(btn.dataset.delPermanent));
   });
 }
 
@@ -1168,6 +1180,35 @@ function restoreBackup(file){
   reader.readAsText(file);
 }
 
+function bindUpcomingScroll(){
+  const el = $('upcomingScroll');
+  if(!el) return;
+  el.addEventListener('wheel', (e)=>{
+    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    }
+  }, {passive:false});
+
+  let isDown = false, startX = 0, scrollStart = 0;
+  el.addEventListener('mousedown', (e)=>{
+    isDown = true;
+    el.classList.add('dragging');
+    startX = e.pageX;
+    scrollStart = el.scrollLeft;
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!isDown) return;
+    isDown = false;
+    el.classList.remove('dragging');
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    e.preventDefault();
+    el.scrollLeft = scrollStart - (e.pageX - startX);
+  });
+}
+
 function wireEvents(){
   $('addBtn').addEventListener('click', ()=>openModal(null));
   $('cancelBtn').addEventListener('click', closeModal);
@@ -1188,6 +1229,8 @@ function wireEvents(){
   $('bulkSaveBtn').addEventListener('click', saveBulk);
   $('bulk-text').addEventListener('input', updateBulkPreview);
   $('bulkBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='bulkBackdrop') closeBulkModal(); });
+
+  bindUpcomingScroll();
 
   $('backupDownloadBtn').addEventListener('click', downloadBackup);
   $('backupRestoreBtn').addEventListener('click', ()=> $('backupFileInput').click());
