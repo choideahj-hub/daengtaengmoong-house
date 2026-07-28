@@ -174,6 +174,24 @@
   .section-label .toggle-icon.open{transform:rotate(180deg);}
   .full-table-wrap{display:none;}
   .full-table-wrap.open{display:block;}
+
+  .subway-cta{
+    margin:14px 0;padding:14px 16px;border-radius:16px;
+    background:var(--accent);box-shadow:0 8px 18px -8px rgba(31,157,100,.5);
+    animation:cta-pulse 2.2s ease-in-out infinite;
+  }
+  .subway-cta h2{font-size:14px;font-weight:800;color:#fff;margin:0;}
+  .subway-cta .toggle-icon{color:#fff;font-size:14px;}
+  .subway-cta:active{transform:scale(.98);}
+  @keyframes cta-pulse{
+    0%,100%{box-shadow:0 8px 18px -8px rgba(31,157,100,.5);}
+    50%{box-shadow:0 8px 22px -6px rgba(31,157,100,.8);}
+  }
+  .subway-inner{
+    background:var(--accent-soft);border-radius:14px;
+    padding:14px;margin-top:-2px;
+  }
+  .subway-inner .group-divider{border-top-color:rgba(31,157,100,.18);}
   .selection-banner{
     background:var(--accent-soft);color:var(--accent);font-size:12.5px;font-weight:700;
     padding:10px 14px;border-radius:12px;margin-bottom:12px;
@@ -233,6 +251,68 @@
       </div>
     </div>
 
+    <div class="section-label subway-cta" id="subwayToggle" style="display:none;">
+      <h2>🚇 지하철에서 환승해서 오시나요? 눌러서 계산하기</h2>
+      <span class="toggle-icon" id="subwayToggleIcon">▾</span>
+    </div>
+    <div class="subway-inner" id="subwayCard" style="display:none;">
+      <div class="field-group">
+        <div class="label">즐겨찾는 역</div>
+        <div class="pill-row">
+          <button class="jump-btn fav-btn" data-fav="서울역">서울역</button>
+          <button class="jump-btn fav-btn" data-fav="공덕역">공덕역</button>
+          <button class="jump-btn fav-btn" data-fav="고속터미널역">고터</button>
+        </div>
+      </div>
+
+      <hr class="group-divider">
+
+      <div class="field-group">
+        <div class="label">다른 역에서 타고 싶다면 검색하세요</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="stationSearchInput" placeholder="예: 강남 (역 이름 일부만 입력해도 돼요)" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;background:#FBFCFD;color:var(--ink);">
+          <button class="jump-btn" id="stationSearchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
+        </div>
+        <div id="stationSearchResults" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="selectedStationLabel" style="margin-top:8px;font-size:12.5px;color:var(--accent);font-weight:800;">✓ 선택됨: 서울역</div>
+      </div>
+
+      <hr class="group-divider">
+
+      <div class="field-group">
+        <div class="label">몇 시에 탈까요?</div>
+        <div class="pill-row" id="subwayTimePresets" style="flex-wrap:wrap;margin-bottom:10px;">
+          <button class="jump-btn time-preset-btn" data-time="07:00">07시</button>
+          <button class="jump-btn time-preset-btn" data-time="08:00">08시</button>
+          <button class="jump-btn time-preset-btn" data-time="09:00">09시</button>
+          <button class="jump-btn time-preset-btn" data-time="12:00">12시</button>
+          <button class="jump-btn time-preset-btn" data-time="18:00">18시</button>
+          <button class="jump-btn time-preset-btn" data-time="21:00">21시</button>
+        </div>
+        <div class="time-select-row">
+          <div class="stepper">
+            <button class="stepper-btn" id="subwayHourMinus">−</button>
+            <span class="stepper-value" id="subwayHourValue">08</span>
+            <button class="stepper-btn" id="subwayHourPlus">+</button>
+          </div>
+          <span class="stepper-label">시</span>
+          <div class="stepper">
+            <button class="stepper-btn" id="subwayMinuteMinus">−</button>
+            <span class="stepper-value" id="subwayMinuteValue">00</span>
+            <button class="stepper-btn" id="subwayMinutePlus">+</button>
+          </div>
+          <span class="stepper-label">분</span>
+        </div>
+        <div class="time-select-row jump-row">
+          <button class="jump-btn" id="subwayMinuteJumpMinus">−10분</button>
+          <button class="jump-btn" id="subwayMinuteJumpPlus">+10분</button>
+          <button class="jump-btn" id="subwayResetToNow">지금으로</button>
+        </div>
+      </div>
+      <button class="jump-btn" id="calcSubwayBtn" style="width:100%;margin-top:12px;padding:11px 0;">🚇 금호역 도착 시간 계산하기</button>
+      <div id="subwayResult" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;"></div>
+    </div>
+
     <hr class="group-divider">
 
     <div class="field-group">
@@ -273,41 +353,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="section-label"><h2>🚇 지하철에서 환승</h2></div>
-  <div class="selector-card">
-    <div class="field-group">
-      <div class="label">어느 역에서 탈까요?</div>
-      <div style="display:flex;gap:8px;">
-        <input type="text" id="stationSearchInput" placeholder="예: 서울역" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;background:#FBFCFD;color:var(--ink);">
-        <button class="jump-btn" id="stationSearchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
-      </div>
-      <div id="stationSearchResults" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
-      <div id="selectedStationLabel" style="margin-top:8px;font-size:12.5px;color:var(--accent);font-weight:800;">✓ 선택됨: 서울역</div>
-    </div>
-
-    <hr class="group-divider">
-
-    <div class="field-group">
-      <div class="label">몇 시에 탈까요?</div>
-      <div class="time-select-row">
-        <div class="stepper">
-          <button class="stepper-btn" id="subwayHourMinus">−</button>
-          <span class="stepper-value" id="subwayHourValue">08</span>
-          <button class="stepper-btn" id="subwayHourPlus">+</button>
-        </div>
-        <span class="stepper-label">시</span>
-        <div class="stepper">
-          <button class="stepper-btn" id="subwayMinuteMinus">−</button>
-          <span class="stepper-value" id="subwayMinuteValue">00</span>
-          <button class="stepper-btn" id="subwayMinutePlus">+</button>
-        </div>
-        <span class="stepper-label">분</span>
-      </div>
-    </div>
-    <button class="jump-btn" id="calcSubwayBtn" style="width:100%;margin-top:12px;padding:11px 0;">🚇 금호역 도착 시간 계산하기</button>
-    <div id="subwayResult" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;"></div>
   </div>
 
   <div class="board-wrap">
@@ -363,6 +408,19 @@ let departureStation = null; // set to Seoul Station by default in initDefaults
 const ODSAY_API_KEY = 'yRxMzeDGppDHxUYG68lsFg';
 const SEOUL_STATION = { x: 126.969652, y: 37.553836 };
 const GEUMHO_STATION = { x: 127.016, y: 37.548 };
+
+const STATION_COORDS = {
+  '서울역': { x: 126.969652, y: 37.553836 },
+  '공덕역': { x: 126.95111, y: 37.54306 },
+  '고속터미널역': { x: 127.00447, y: 37.50594 }
+};
+
+const STATION_ALIASES = {
+  '고터': '고속터미널역',
+  '고속터미널': '고속터미널역',
+  '공덕': '공덕역',
+  '터미널': '고속터미널역'
+};
 
 function getKSTNow(){
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -425,6 +483,11 @@ function syncPillUI(){
     const [h, m] = state.customTime.split(':').map(Number);
     $('hourValue').textContent = String(h).padStart(2,'0');
     $('minuteValue').textContent = String(m).padStart(2,'0');
+  }
+  $('subwayToggle').style.display = state.stop === 'station' ? 'flex' : 'none';
+  if(state.stop !== 'station'){
+    $('subwayCard').style.display = 'none';
+    $('subwayToggleIcon').classList.remove('open');
   }
 }
 
@@ -670,11 +733,12 @@ async function searchDepartureStation(){
   const btn = $('stationSearchBtn');
   const input = $('stationSearchInput');
   const resultsEl = $('stationSearchResults');
-  const query = input.value.trim();
-  if(query.length < 2){
+  const rawQuery = input.value.trim();
+  if(rawQuery.length < 2){
     resultsEl.innerHTML = `<div style="color:var(--red);font-size:12px;">역 이름을 2글자 이상 입력해주세요</div>`;
     return;
   }
+  const query = STATION_ALIASES[rawQuery] || rawQuery;
   btn.disabled = true;
   btn.textContent = '검색 중...';
   resultsEl.innerHTML = '';
@@ -711,6 +775,40 @@ async function searchDepartureStation(){
   }
 }
 $('stationSearchBtn').addEventListener('click', searchDepartureStation);
+
+document.querySelectorAll('.fav-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    const name = b.dataset.fav;
+    const coords = STATION_COORDS[name];
+    departureStation = { name, x: coords.x, y: coords.y };
+    $('selectedStationLabel').textContent = `✓ 선택됨: ${name}`;
+    $('stationSearchResults').innerHTML = '';
+    calcSubwayArrival();
+  });
+});
+
+document.querySelectorAll('.time-preset-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    subwayTime = b.dataset.time;
+    syncSubwayUI();
+  });
+});
+
+bindHoldRepeat($('subwayMinuteJumpMinus'), () => adjustSubwayTime(-10));
+bindHoldRepeat($('subwayMinuteJumpPlus'), () => adjustSubwayTime(10));
+$('subwayResetToNow').addEventListener('click', () => {
+  const now = getKSTNow();
+  subwayTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  syncSubwayUI();
+});
+
+$('subwayToggle').addEventListener('click', () => {
+  const card = $('subwayCard');
+  const icon = $('subwayToggleIcon');
+  const isOpen = card.style.display !== 'none';
+  card.style.display = isOpen ? 'none' : 'block';
+  icon.classList.toggle('open', !isOpen);
+});
 
 async function calcSubwayArrival(){
   const btn = $('calcSubwayBtn');
