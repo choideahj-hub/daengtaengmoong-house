@@ -26,6 +26,7 @@
     --shadow:0 6px 18px -6px rgba(31,157,100,.16), 0 2px 6px -2px rgba(30,38,33,.06);
   }
   *{box-sizing:border-box;}
+  input, select, textarea{font-size:16px;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--bg);
@@ -270,7 +271,7 @@
       <div class="field-group">
         <div class="label">다른 역에서 타고 싶다면 검색하세요</div>
         <div style="display:flex;gap:8px;">
-          <input type="text" id="stationSearchInput" placeholder="예: 강남 (역 이름 일부만 입력해도 돼요)" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;background:#FBFCFD;color:var(--ink);">
+          <input type="text" id="stationSearchInput" placeholder="예: 강남 (역 이름 일부만 입력해도 돼요)" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;font-family:inherit;background:#FBFCFD;color:var(--ink);">
           <button class="jump-btn" id="stationSearchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
         </div>
         <div id="stationSearchResults" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
