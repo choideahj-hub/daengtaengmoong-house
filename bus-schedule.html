@@ -275,10 +275,22 @@
     </div>
   </div>
 
-  <div class="section-label"><h2>🚇 서울역에서 환승</h2></div>
+  <div class="section-label"><h2>🚇 지하철에서 환승</h2></div>
   <div class="selector-card">
     <div class="field-group">
-      <div class="label">몇 시에 서울역에서 지하철을 탈까요?</div>
+      <div class="label">어느 역에서 탈까요?</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="stationSearchInput" placeholder="예: 서울역" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;background:#FBFCFD;color:var(--ink);">
+        <button class="jump-btn" id="stationSearchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
+      </div>
+      <div id="stationSearchResults" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+      <div id="selectedStationLabel" style="margin-top:8px;font-size:12.5px;color:var(--accent);font-weight:800;">✓ 선택됨: 서울역</div>
+    </div>
+
+    <hr class="group-divider">
+
+    <div class="field-group">
+      <div class="label">몇 시에 탈까요?</div>
       <div class="time-select-row">
         <div class="stepper">
           <button class="stepper-btn" id="subwayHourMinus">−</button>
@@ -347,6 +359,7 @@ let state = {
 };
 
 let subwayTime = '08:00';
+let departureStation = null; // set to Seoul Station by default in initDefaults
 const ODSAY_API_KEY = 'yRxMzeDGppDHxUYG68lsFg';
 const SEOUL_STATION = { x: 126.969652, y: 37.553836 };
 const GEUMHO_STATION = { x: 127.016, y: 37.548 };
@@ -394,6 +407,7 @@ function initDefaults(){
   const now = getKSTNow();
   state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   subwayTime = state.customTime;
+  departureStation = { name: '서울역', x: SEOUL_STATION.x, y: SEOUL_STATION.y };
 }
 
 function syncPillUI(){
@@ -652,6 +666,52 @@ bindHoldRepeat($('subwayHourPlus'), () => adjustSubwayTime(60));
 bindHoldRepeat($('subwayMinuteMinus'), () => adjustSubwayTime(-1));
 bindHoldRepeat($('subwayMinutePlus'), () => adjustSubwayTime(1));
 
+async function searchDepartureStation(){
+  const btn = $('stationSearchBtn');
+  const input = $('stationSearchInput');
+  const resultsEl = $('stationSearchResults');
+  const query = input.value.trim();
+  if(query.length < 2){
+    resultsEl.innerHTML = `<div style="color:var(--red);font-size:12px;">역 이름을 2글자 이상 입력해주세요</div>`;
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '검색 중...';
+  resultsEl.innerHTML = '';
+  try{
+    const url = `https://api.odsay.com/v1/api/searchStation?stationName=${encodeURIComponent(query)}&CID=1000&stationClass=2&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error){
+      throw new Error(data.error[0] && data.error[0].message ? data.error[0].message : 'API 오류');
+    }
+    const stations = (data.result && data.result.station) ? data.result.station : [];
+    if(stations.length === 0){
+      resultsEl.innerHTML = `<div style="color:var(--red);font-size:12px;">검색 결과가 없어요</div>`;
+      return;
+    }
+    resultsEl.innerHTML = stations.map((s, i) => `
+      <button class="jump-btn station-pick-btn" data-idx="${i}" style="text-align:left;width:100%;">
+        📍 ${s.stationName} <span style="color:var(--muted);">${s.laneName || ''}</span>
+      </button>
+    `).join('');
+    resultsEl.querySelectorAll('.station-pick-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const s = stations[Number(b.dataset.idx)];
+        departureStation = { name: s.stationName, x: s.x, y: s.y };
+        $('selectedStationLabel').textContent = `✓ 선택됨: ${s.stationName}${s.laneName ? ' ('+s.laneName+')' : ''}`;
+        resultsEl.innerHTML = '';
+      });
+    });
+  }catch(err){
+    resultsEl.innerHTML = `<span style="color:var(--red);font-size:12px;">검색 실패: ${err.message}</span>`;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '검색';
+  }
+}
+$('stationSearchBtn').addEventListener('click', searchDepartureStation);
+
 async function calcSubwayArrival(){
   const btn = $('calcSubwayBtn');
   const resultEl = $('subwayResult');
@@ -659,7 +719,8 @@ async function calcSubwayArrival(){
   btn.textContent = '계산 중...';
   resultEl.innerHTML = '';
   try{
-    const url = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${SEOUL_STATION.x}&SY=${SEOUL_STATION.y}&EX=${GEUMHO_STATION.x}&EY=${GEUMHO_STATION.y}&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
+    const dep = departureStation || { name: '서울역', x: SEOUL_STATION.x, y: SEOUL_STATION.y };
+    const url = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${dep.x}&SY=${dep.y}&EX=${GEUMHO_STATION.x}&EY=${GEUMHO_STATION.y}&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
     const res = await fetch(url);
     const data = await res.json();
     if(data.error){
@@ -676,7 +737,7 @@ async function calcSubwayArrival(){
     const arriveM = arriveMin % 60;
     const arriveStr = `${String(arriveH).padStart(2,'0')}:${String(arriveM).padStart(2,'0')}`;
 
-    resultEl.innerHTML = `🚇 금호역 도착 예정: <b style="color:var(--accent);">${toKoreanTime(arriveH, arriveM)}</b> (환승 포함 약 ${totalTime}분)<br>아래 결과가 이 시각·금호역 기준으로 바뀌었어요.`;
+    resultEl.innerHTML = `🚇 ${dep.name}에서 타면 금호역 도착 예정: <b style="color:var(--accent);">${toKoreanTime(arriveH, arriveM)}</b> (환승 포함 약 ${totalTime}분)<br>아래 결과가 이 시각·금호역 기준으로 바뀌었어요.`;
 
     state.stop = 'station';
     state.mode = 'custom';
