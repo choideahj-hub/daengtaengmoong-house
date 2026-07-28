@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>댕탱뭉 하우스</title>
+<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css"></noscript>
+<style>
+  :root{
+    --bg:#FFF8F3;
+    --surface:#FFFFFF;
+    --ink:#4A3B34;
+    --ink-soft:#8A776C;
+    --muted:#C4B2A6;
+    --line:#F3E4D8;
+    --accent:#FF8FA0;
+    --accent-soft:#FFE7EC;
+    --accent2:#6FCFC0;
+    --accent2-soft:#E1F7F2;
+    --blue:#6C8EEB;
+    --blue-soft:#EAF0FF;
+    --green:#1F9D64;
+    --green-soft:#E3F7EC;
+    --radius:22px;
+    --shadow:0 6px 18px -6px rgba(255,143,160,.25), 0 2px 6px -2px rgba(74,59,52,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 8% 4%, #FFEFF2 0%, transparent 40%),
+      radial-gradient(circle at 96% 12%, #E9F9F4 0%, transparent 38%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 60px 0;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:44px 20px 0;}
+
+  header{text-align:center;margin-bottom:32px;}
+  .family-row{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 16px;}
+  .family-row .icon{
+    width:44px;height:44px;border-radius:50%;background:var(--accent-soft);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+    box-shadow:0 4px 10px -4px rgba(255,143,160,.5), 0 0 0 3px #fff;
+  }
+  .family-row .icon:nth-child(1){background:var(--accent2-soft);}
+  .family-row .icon:nth-child(3){background:var(--blue-soft);}
+  .family-row .icon.dog{background:#F1EAE3;}
+  .family-row .icon.dog span{filter:brightness(0);display:block;font-size:22px;}
+  .family-row .plus{color:var(--muted);font-size:15px;font-weight:800;}
+  h1{font-size:34px;font-weight:800;margin:0 0 8px;letter-spacing:-0.02em;}
+  h1 .wag{display:inline-block;animation:wag 1.8s ease-in-out infinite;transform-origin:70% 70%;}
+  @keyframes wag{
+    0%,100%{transform:rotate(0deg);}
+    25%{transform:rotate(-8deg);}
+    75%{transform:rotate(8deg);}
+  }
+  .sub{font-size:13.5px;color:var(--ink-soft);margin:0;line-height:1.6;}
+
+  .chapter-list{display:flex;flex-direction:column;gap:14px;margin-top:8px;}
+  .chapter-card{
+    display:flex;align-items:center;gap:16px;
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px;text-decoration:none;color:inherit;
+    transition:transform .15s ease;
+  }
+  .chapter-card:hover{transform:translateY(-2px);}
+  .chapter-card:active{transform:scale(.98);}
+  .chapter-icon{
+    width:56px;height:56px;border-radius:18px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:28px;
+  }
+  .chapter-icon.c1{background:var(--accent-soft);}
+  .chapter-icon.c2{background:var(--green-soft);}
+  .chapter-body{flex:1;min-width:0;}
+  .chapter-title{font-size:16.5px;font-weight:800;margin:0 0 4px;}
+  .chapter-desc{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.5;}
+  .chapter-arrow{font-size:18px;color:var(--muted);flex-shrink:0;}
+
+  .footer-note{
+    text-align:center;font-size:11.5px;color:var(--muted);margin-top:36px;line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="family-row">
+      <span class="icon">👩</span>
+      <span class="plus">+</span>
+      <span class="icon">👨</span>
+      <span class="plus">+</span>
+      <span class="icon dog"><span>🐕</span></span>
+    </div>
+    <h1>댕탱뭉 하우스 <span class="wag">🐾</span></h1>
+    <p class="sub">우리 둘만의 살림 도구 모음</p>
+  </header>
+
+  <div class="chapter-list">
+    <a class="chapter-card" href="card-ledger.html?store=019fa6f8-6557-7ab4-a7e5-0b4ea40be264">
+      <div class="chapter-icon c1">💳</div>
+      <div class="chapter-body">
+        <p class="chapter-title">정기지출 캘린더</p>
+        <p class="chapter-desc">카드별 출금일 · D-day · 완료 히스토리</p>
+      </div>
+      <div class="chapter-arrow">→</div>
+    </a>
+
+    <a class="chapter-card" href="bus-schedule.html">
+      <div class="chapter-icon c2">🚌</div>
+      <div class="chapter-body">
+        <p class="chapter-title">마을버스 시간표</p>
+        <p class="chapter-desc">성동15번 · 실시간 다음 버스 안내</p>
+      </div>
+      <div class="chapter-arrow">→</div>
+    </a>
+  </div>
+
+  <p class="footer-note">챕터는 계속 추가될 예정이에요 🐾</p>
+</div>
+
+</body>
+</html>
