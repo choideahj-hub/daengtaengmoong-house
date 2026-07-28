@@ -75,11 +75,15 @@
     border:none;border-top:1.5px dashed var(--line);margin:16px 0;
   }
   .time-input-row{margin-top:12px;}
-  .time-input-row input[type="time"]{
-    width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;
-    font-size:15px;font-family:inherit;background:#FBFCFD;color:var(--ink);
+  .time-select-row{display:flex;align-items:center;gap:8px;}
+  .time-select-row select{
+    flex:1;padding:11px 10px;border:1.5px solid var(--line);border-radius:12px;
+    font-size:16px;font-family:inherit;background:#FBFCFD;color:var(--ink);
+    font-variant-numeric:tabular-nums;text-align:center;
+    -webkit-appearance:none;appearance:none;
   }
-  .time-input-row input[type="time"]:focus{outline:none;border-color:var(--accent);}
+  .time-select-row select:focus{outline:none;border-color:var(--accent);}
+  .time-select-row span{font-size:13px;font-weight:700;color:var(--ink-soft);flex-shrink:0;}
 
   /* Bus result list (plain card style) */
   .board-wrap{margin-top:20px;}
@@ -164,7 +168,7 @@
   <header>
     <div class="eyebrow">🏠 댕탱뭉 하우스 · 챕터 02</div>
     <h1>성동15번 마을버스 🚌</h1>
-    <p class="sub">금호대우아파트 · 금호역 정류장 시간표 (동호운수 ☎ 02-2297-8103)</p>
+    <p class="sub">금호대우아파트 · 금호역 정류장 시간표</p>
   </header>
 
   <div class="now-clock">
@@ -201,7 +205,12 @@
         <button class="pill" data-mode="custom">🕐 시간 선택</button>
       </div>
       <div class="time-input-row" id="timeInputRow" style="display:none;">
-        <input type="time" id="customTime">
+        <div class="time-select-row">
+          <select id="customHour"></select>
+          <span>시</span>
+          <select id="customMinute"></select>
+          <span>분</span>
+        </div>
       </div>
     </div>
   </div>
@@ -283,6 +292,23 @@ function initDefaults(){
   state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
+function populateTimeSelects(){
+  const hourSel = $('customHour');
+  const minSel = $('customMinute');
+  hourSel.innerHTML = '';
+  for(let h=0; h<24; h++){
+    const opt = document.createElement('option');
+    opt.value = h; opt.textContent = String(h).padStart(2,'0');
+    hourSel.appendChild(opt);
+  }
+  minSel.innerHTML = '';
+  for(let m=0; m<60; m++){
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = String(m).padStart(2,'0');
+    minSel.appendChild(opt);
+  }
+}
+
 function syncPillUI(){
   document.querySelectorAll('#stopPills .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.stop === state.stop);
@@ -294,7 +320,11 @@ function syncPillUI(){
     p.classList.toggle('active', p.dataset.mode === state.mode);
   });
   $('timeInputRow').style.display = state.mode === 'custom' ? 'block' : 'none';
-  $('customTime').value = state.customTime;
+  if(state.customTime){
+    const [h, m] = state.customTime.split(':').map(Number);
+    $('customHour').value = h;
+    $('customMinute').value = m;
+  }
 }
 
 function computeUpcoming(){
@@ -421,10 +451,14 @@ document.querySelectorAll('#dayPills .pill').forEach(p=>{
 document.querySelectorAll('#modePills .pill').forEach(p=>{
   p.addEventListener('click', ()=>{ state.mode = p.dataset.mode; state.showMore=false; renderAll(); });
 });
-$('customTime').addEventListener('change', (e)=>{
-  state.customTime = e.target.value;
+function updateCustomTimeFromSelects(){
+  const h = $('customHour').value;
+  const m = $('customMinute').value;
+  state.customTime = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   renderAll();
-});
+}
+$('customHour').addEventListener('change', updateCustomTimeFromSelects);
+$('customMinute').addEventListener('change', updateCustomTimeFromSelects);
 $('fullTableToggle').addEventListener('click', ()=>{
   const wrap = $('fullTableWrap');
   const icon = $('fullTableIcon');
@@ -434,6 +468,7 @@ $('fullTableToggle').addEventListener('click', ()=>{
 
 function init(){
   try{
+    populateTimeSelects();
     initDefaults();
     renderAll();
     renderLiveClock();
