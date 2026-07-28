@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>댕탱뭉 하우스 · 마을버스 시간표</title>
+<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css"></noscript>
+<style>
+  :root{
+    --bg:#F4FAF6;
+    --surface:#FFFFFF;
+    --ink:#1E2621;
+    --ink-soft:#5B6B60;
+    --muted:#96A69C;
+    --line:#DCEAE1;
+    --accent:#1F9D64;
+    --accent-soft:#E3F7EC;
+    --amber:#B7791F;
+    --amber-soft:#FBF2E1;
+    --red:#C23B32;
+    --red-soft:#FBEAE8;
+    --gray-soft:#EEF1EF;
+    --gray-fg:#6B776F;
+    --radius:20px;
+    --shadow:0 6px 18px -6px rgba(31,157,100,.16), 0 2px 6px -2px rgba(30,38,33,.06);
+  }
+  *{box-sizing:border-box;}
+  input, select, textarea{font-size:16px;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 80px 0;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:18px 16px 0;}
+
+  header{margin-bottom:14px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11.5px;letter-spacing:.08em;color:var(--accent);
+    text-transform:uppercase;font-weight:800;margin-bottom:10px;
+    background:var(--accent-soft);padding:4px 11px;border-radius:100px;
+  }
+  h1{font-size:21px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
+  .sub{font-size:13px;color:var(--ink-soft);margin:0;line-height:1.6;}
+
+  .now-clock{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:12px 16px;margin-top:12px;text-align:center;
+  }
+  .now-clock-label{font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-bottom:3px;}
+  .now-clock-time{
+    font-size:19px;font-weight:800;color:var(--ink);letter-spacing:0;
+    font-variant-numeric:tabular-nums;line-height:1.25;white-space:nowrap;
+  }
+  .now-clock-date{font-size:10.5px;color:var(--ink-soft);margin-top:3px;font-weight:600;}
+  .now-clock-row{display:flex;align-items:center;justify-content:center;gap:12px;}
+  .now-clock-text{text-align:left;min-width:0;}
+  .analog-clock{width:58px;height:58px;flex-shrink:0;}
+
+  .selector-card{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:14px 16px;margin-top:12px;
+  }
+  .field-group{padding:2px 0;}
+  .field-group .label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px;}
+  .pill-row{display:flex;gap:6px;}
+  .pill{
+    flex:1;padding:8px 6px;border-radius:100px;border:1.5px solid var(--line);
+    background:#fff;font-size:12px;font-weight:700;color:var(--ink-soft);
+    cursor:pointer;transition:all .15s ease;text-align:center;
+  }
+  .pill:active{transform:scale(.97);}
+  .pill.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .group-divider{
+    border:none;border-top:1.5px dashed var(--line);margin:10px 0;
+  }
+  .time-input-row{margin-top:12px;}
+  .time-select-row{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .stepper{display:flex;align-items:center;gap:10px;}
+  .stepper-btn{
+    width:34px;height:34px;border-radius:10px;border:1.5px solid var(--line);
+    background:#FBFCFD;color:var(--accent);font-size:18px;font-weight:800;
+    cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    line-height:1;padding:0;user-select:none;
+  }
+  .stepper-btn:active{background:var(--accent-soft);transform:scale(.95);}
+  .stepper-value{
+    font-size:19px;font-weight:800;color:var(--ink);min-width:34px;text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  .stepper-label{font-size:12.5px;font-weight:700;color:var(--ink-soft);}
+  .jump-row{margin-top:10px;gap:8px;}
+  .jump-btn{
+    flex:1;padding:9px 0;border-radius:100px;border:1.5px solid var(--line);
+    background:#FBFCFD;color:var(--ink-soft);font-size:12.5px;font-weight:700;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .jump-btn:active{background:var(--accent-soft);color:var(--accent);transform:scale(.96);}
+
+  /* Bus result list (plain card style) */
+  .board-wrap{margin-top:12px;}
+  .board-header{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:10px;padding:0 4px;flex-wrap:wrap;row-gap:4px;
+  }
+  .board-title{font-size:13px;font-weight:800;color:var(--ink-soft);}
+  .board-clock{
+    font-size:12.5px;font-weight:700;color:var(--accent);
+    font-variant-numeric:tabular-nums;
+  }
+  .bus-row{
+    background:var(--surface);border-radius:16px;box-shadow:var(--shadow);
+    padding:16px;margin-bottom:10px;
+    border-left:5px solid var(--gray-soft);
+  }
+  .bus-row.status-ok{border-left-color:var(--accent);}
+  .bus-row.status-hurry{border-left-color:var(--red);background:var(--red-soft);}
+  .bus-row.status-skip{border-left-color:var(--muted);background:var(--gray-soft);}
+  .bus-row.status-now{border-left-color:var(--red);background:#F8D9D6;}
+  .bus-row.status-hurry .bus-time, .bus-row.status-now .bus-time{color:var(--red);}
+  .bus-row.status-skip .bus-time{color:var(--gray-fg);}
+  .bus-row.status-hurry .bus-stop, .bus-row.status-now .bus-stop{color:var(--red);opacity:.85;}
+  .bus-row.departed{border-left-color:var(--muted);opacity:.6;}
+  .bus-row-inner{display:flex;align-items:center;gap:14px;}
+  .bus-rank{flex-shrink:0;line-height:0;}
+  .bus-content{flex:1;min-width:0;}
+  .bus-time{
+    font-size:20px;font-weight:800;color:var(--ink);
+    font-variant-numeric:tabular-nums;letter-spacing:-0.01em;margin-bottom:3px;
+  }
+  .bus-stop{font-size:12px;color:var(--ink-soft);}
+  .bus-eta-pill{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:14px;font-weight:800;flex-shrink:0;text-align:center;
+    padding:9px 14px;border-radius:14px;line-height:1.3;min-width:74px;
+  }
+  .bus-eta-pill .eta-icon{font-size:16px;margin-bottom:1px;}
+  .bus-eta-pill.status-ok{background:var(--accent-soft);color:var(--accent);}
+  .bus-eta-pill.status-hurry, .bus-eta-pill.status-now{background:var(--red-soft);color:var(--red);}
+  .bus-eta-pill.status-skip{background:var(--gray-soft);color:var(--gray-fg);}
+  .urgent-tag{
+    display:block;font-size:12.5px;font-weight:700;line-height:1.5;
+    margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  }
+  .urgent-tag.status-hurry, .urgent-tag.status-now{color:var(--red);}
+  .urgent-tag.status-skip{color:var(--gray-fg);}
+  .bus-row.departed .bus-time{color:var(--ink-soft);}
+  .bus-row.departed .bus-eta-pill{background:var(--gray-soft);color:var(--gray-fg);}
+
+  .board-more-btn{
+    width:100%;padding:11px;border-radius:100px;
+    border:1.5px dashed var(--line);background:none;color:var(--ink-soft);
+    font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s ease;
+  }
+  .board-more-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .board-end{
+    background:var(--surface);border-radius:16px;box-shadow:var(--shadow);
+    text-align:center;padding:34px 10px;
+  }
+  .board-end .emoji{font-size:32px;display:block;margin-bottom:10px;}
+  .board-end .msg{font-size:15px;font-weight:800;color:var(--ink);}
+
+  .section-label{
+    display:flex;align-items:center;justify-content:space-between;
+    margin:26px 0 12px;cursor:pointer;user-select:none;
+  }
+  .section-label h2{font-size:14.5px;font-weight:800;margin:0;}
+  .section-label .toggle-icon{
+    font-size:12px;color:var(--muted);transition:transform .2s ease;
+  }
+  .section-label .toggle-icon.open{transform:rotate(180deg);}
+  .full-table-wrap{display:none;}
+  .full-table-wrap.open{display:block;}
+
+  .subway-cta{
+    margin:14px 0;padding:14px 16px;border-radius:16px;
+    background:var(--accent);box-shadow:0 8px 18px -8px rgba(31,157,100,.5);
+    animation:cta-pulse 2.2s ease-in-out infinite;
+  }
+  .subway-cta h2{font-size:14px;font-weight:800;color:#fff;margin:0;}
+  .subway-cta .toggle-icon{color:#fff;font-size:14px;}
+  .subway-cta:active{transform:scale(.98);}
+  @keyframes cta-pulse{
+    0%,100%{box-shadow:0 8px 18px -8px rgba(31,157,100,.5);}
+    50%{box-shadow:0 8px 22px -6px rgba(31,157,100,.8);}
+  }
+  .subway-inner{
+    background:var(--accent-soft);border-radius:14px;
+    padding:14px;margin-top:-2px;
+  }
+  .subway-inner .group-divider{border-top-color:rgba(31,157,100,.18);}
+  .selection-banner{
+    background:var(--accent-soft);color:var(--accent);font-size:12.5px;font-weight:700;
+    padding:10px 14px;border-radius:12px;margin-bottom:12px;
+  }
+  .full-table{
+    background:var(--surface);border-radius:16px;box-shadow:var(--shadow);
+    padding:16px;display:flex;flex-wrap:wrap;gap:8px;
+  }
+  .time-chip{
+    font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;
+    padding:6px 10px;border-radius:8px;background:#F3F5F8;color:var(--muted);
+  }
+  .time-chip.past{opacity:.4;text-decoration:line-through;}
+  .time-chip.next{background:var(--accent);color:#fff;}
+
+  .footer-note{
+    text-align:center;font-size:11.5px;color:var(--muted);margin-top:30px;line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">🏠 댕탱뭉 하우스 · 챕터 02</div>
+    <h1>성동15번 마을버스 🚌</h1>
+    <p class="sub">금호대우아파트 · 금호역 정류장 시간표</p>
+  </header>
+
+  <div class="now-clock">
+    <div class="now-clock-row">
+      <svg class="analog-clock" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" fill="#FFFCFA" stroke="var(--accent)" stroke-width="4"/>
+        <line x1="50" y1="9" x2="50" y2="16" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="50" y1="91" x2="50" y2="84" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="9" y1="50" x2="16" y2="50" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="91" y1="50" x2="84" y2="50" stroke="var(--ink-soft)" stroke-width="2.5" stroke-linecap="round"/>
+        <line id="hourHand" x1="50" y1="50" x2="50" y2="30" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round"/>
+        <line id="minuteHand" x1="50" y1="50" x2="50" y2="18" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+        <line id="secondHand" x1="50" y1="50" x2="50" y2="14" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="3.5" fill="var(--accent)"/>
+      </svg>
+      <div class="now-clock-text">
+        <div class="now-clock-label">⏰ 현재 시각</div>
+        <div class="now-clock-time" id="liveClock">--:--:--</div>
+        <div class="now-clock-date" id="liveDate"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="selector-card">
+    <div class="field-group">
+      <div class="label">출발 정류장</div>
+      <div class="pill-row" id="stopPills">
+        <button class="pill" data-stop="daewoo">🏢 금호대우아파트</button>
+        <button class="pill" data-stop="station">🚇 금호역</button>
+      </div>
+    </div>
+
+    <div class="section-label subway-cta" id="subwayToggle" style="display:none;">
+      <h2>🚇 지하철에서 환승해서 오시나요? 눌러서 계산하기</h2>
+      <span class="toggle-icon" id="subwayToggleIcon">▾</span>
+    </div>
+    <div class="subway-inner" id="subwayCard" style="display:none;">
+      <div class="field-group">
+        <div class="label">즐겨찾는 역</div>
+        <div class="pill-row">
+          <button class="jump-btn fav-btn" data-fav="서울역">서울역</button>
+          <button class="jump-btn fav-btn" data-fav="공덕역">공덕역</button>
+          <button class="jump-btn fav-btn" data-fav="고속터미널역">고터</button>
+        </div>
+      </div>
+
+      <hr class="group-divider">
+
+      <div class="field-group">
+        <div class="label">다른 역에서 타고 싶다면 검색하세요</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="stationSearchInput" placeholder="예: 강남 (역 이름 일부만 입력해도 돼요)" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;font-family:inherit;background:#FBFCFD;color:var(--ink);">
+          <button class="jump-btn" id="stationSearchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
+        </div>
+        <div id="stationSearchResults" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="selectedStationLabel" style="margin-top:8px;font-size:12.5px;color:var(--accent);font-weight:800;">✓ 선택됨: 서울역</div>
+      </div>
+
+      <hr class="group-divider">
+
+      <div class="field-group">
+        <div class="label">몇 시에 탈까요?</div>
+        <div class="pill-row" id="subwayTimePresets" style="flex-wrap:wrap;margin-bottom:10px;">
+          <button class="jump-btn time-preset-btn" data-time="07:00">07시</button>
+          <button class="jump-btn time-preset-btn" data-time="08:00">08시</button>
+          <button class="jump-btn time-preset-btn" data-time="09:00">09시</button>
+          <button class="jump-btn time-preset-btn" data-time="12:00">12시</button>
+          <button class="jump-btn time-preset-btn" data-time="18:00">18시</button>
+          <button class="jump-btn time-preset-btn" data-time="21:00">21시</button>
+        </div>
+        <div class="time-select-row">
+          <div class="stepper">
+            <button class="stepper-btn" id="subwayHourMinus">−</button>
+            <span class="stepper-value" id="subwayHourValue">08</span>
+            <button class="stepper-btn" id="subwayHourPlus">+</button>
+          </div>
+          <span class="stepper-label">시</span>
+          <div class="stepper">
+            <button class="stepper-btn" id="subwayMinuteMinus">−</button>
+            <span class="stepper-value" id="subwayMinuteValue">00</span>
+            <button class="stepper-btn" id="subwayMinutePlus">+</button>
+          </div>
+          <span class="stepper-label">분</span>
+        </div>
+        <div class="time-select-row jump-row">
+          <button class="jump-btn" id="subwayMinuteJumpMinus">−10분</button>
+          <button class="jump-btn" id="subwayMinuteJumpPlus">+10분</button>
+          <button class="jump-btn" id="subwayResetToNow">지금으로</button>
+        </div>
+      </div>
+      <button class="jump-btn" id="calcSubwayBtn" style="width:100%;margin-top:12px;padding:11px 0;">🚇 금호역 도착 시간 계산하기</button>
+      <div id="subwayResult" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;"></div>
+    </div>
+
+    <hr class="group-divider">
+
+    <div class="field-group">
+      <div class="label">평일 / 휴일</div>
+      <div class="pill-row" id="dayPills">
+        <button class="pill" data-day="weekday">💼 평일</button>
+        <button class="pill" data-day="holiday">☀️ 휴일</button>
+      </div>
+    </div>
+
+    <hr class="group-divider">
+
+    <div class="field-group">
+      <div class="label">기준 시간</div>
+      <div class="pill-row" id="modePills">
+        <button class="pill" data-mode="now">⏱️ 지금</button>
+        <button class="pill" data-mode="custom">👆 시간 선택</button>
+      </div>
+      <div class="time-input-row" id="timeInputRow" style="display:none;">
+        <div class="time-select-row">
+          <div class="stepper">
+            <button class="stepper-btn" id="hourMinus">−</button>
+            <span class="stepper-value" id="hourValue">00</span>
+            <button class="stepper-btn" id="hourPlus">+</button>
+          </div>
+          <span class="stepper-label">시</span>
+          <div class="stepper">
+            <button class="stepper-btn" id="minuteMinus">−</button>
+            <span class="stepper-value" id="minuteValue">00</span>
+            <button class="stepper-btn" id="minutePlus">+</button>
+          </div>
+          <span class="stepper-label">분</span>
+        </div>
+        <div class="time-select-row jump-row">
+          <button class="jump-btn" id="minuteJumpMinus">−10분</button>
+          <button class="jump-btn" id="minuteJumpPlus">+10분</button>
+          <button class="jump-btn" id="resetToNow">지금으로</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board-header">
+      <span class="board-title" id="boardTitle">금호대우아파트 · 평일</span>
+      <span class="board-clock" id="boardClock">--:--:--</span>
+    </div>
+    <div id="boardBody"></div>
+  </div>
+
+  <div class="section-label" id="fullTableToggle">
+    <h2>🕐 전체 시간표</h2>
+    <span class="toggle-icon" id="fullTableIcon">▾</span>
+  </div>
+  <div class="full-table-wrap" id="fullTableWrap">
+    <div class="selection-banner" id="selectionBanner"></div>
+    <div class="full-table" id="fullTable"></div>
+  </div>
+
+  <p class="footer-note">2024년 5월 20일(월) 첫차부터 적용된 시간표 기준이에요<br>실제 도착 시간은 도로 상황에 따라 달라질 수 있어요</p>
+</div>
+
+<script>
+const SCHEDULE = {
+  daewoo: {
+    label: '금호대우아파트',
+    emoji: '🏢',
+    routeEmoji: '🚌',
+    weekday: ["6:20","6:33","6:46","6:59","7:12","7:24","7:36","7:48","8:00","8:12","8:24","8:36","8:48","9:00","9:13","9:25","9:50","10:15","10:40","11:05","11:30","11:43","11:56","12:09","12:22","12:35","12:48","13:01","13:14","13:27","13:40","13:53","14:06","14:19","14:32","14:45","14:58","15:10","15:35","16:00","16:25","16:50","17:15","17:28","17:41","17:54","18:07","18:20","18:33","18:46","18:59","19:12","19:25","19:38","19:51","20:04","20:17","20:30","20:45","21:00","21:15","21:30","21:45","22:00","22:15","22:30","22:45","23:00"],
+    holiday: ["5:55","6:20","6:45","7:10","7:35","8:00","8:25","8:50","9:15","9:40","10:05","10:30","10:55","11:08","11:21","11:34","11:47","12:00","12:13","12:26","12:39","12:52","13:05","13:18","13:31","13:44","13:57","14:10","14:23","14:36","14:49","15:02","15:15","15:40","16:05","16:25","16:50","17:15","17:28","17:41","17:54","18:07","18:20","18:33","18:46","18:59","19:12","19:25","19:38","19:51","20:04","20:30","20:45","21:20","21:45","22:10","22:35","23:00"]
+  },
+  station: {
+    label: '금호역',
+    emoji: '🚇',
+    routeEmoji: '🚌',
+    weekday: ["6:13","6:39","6:52","7:05","7:18","7:31","7:43","7:55","8:07","8:19","8:31","8:43","8:55","9:07","9:19","9:32","9:44","10:08","10:33","10:58","11:23","11:49","12:02","12:15","12:28","12:41","12:54","13:07","13:20","13:33","13:46","13:59","14:12","14:25","14:38","14:51","15:04","15:17","15:29","15:53","16:18","16:43","17:08","17:34","17:47","18:00","18:13","18:26","18:39","18:52","19:05","19:18","19:31","19:44","19:57","20:10","20:23","20:36","20:48","21:03","21:18","21:33","21:48","22:03","22:18","22:33","22:48","22:58","23:13"],
+    holiday: ["6:13","6:38","7:03","7:28","7:53","8:18","8:43","9:08","9:33","9:58","10:23","10:48","11:13","11:27","11:40","11:53","12:06","12:19","12:32","12:45","12:58","13:11","13:24","13:37","13:50","14:03","14:16","14:29","14:42","14:55","15:08","15:21","15:33","15:58","16:23","16:43","17:08","17:34","17:47","18:00","18:13","18:26","18:39","18:52","19:05","19:18","19:31","19:44","19:57","20:10","20:23","20:48","21:13","21:38","22:03","22:28","22:53","23:13"]
+  }
+};
+
+const $ = (id) => document.getElementById(id);
+
+let state = {
+  stop: 'daewoo',
+  day: 'weekday',
+  mode: 'now',
+  customTime: '',
+  showMore: false,
+  fromSubway: false
+};
+
+let subwayTime = '08:00';
+let departureStation = null; // set to Seoul Station by default in initDefaults
+const ODSAY_API_KEY = 'yRxMzeDGppDHxUYG68lsFg';
+const SEOUL_STATION = { x: 126.969652, y: 37.553836 };
+const GEUMHO_STATION = { x: 127.016, y: 37.548 };
+
+const STATION_COORDS = {
+  '서울역': { x: 126.969652, y: 37.553836 },
+  '공덕역': { x: 126.95111, y: 37.54306 },
+  '고속터미널역': { x: 127.00447, y: 37.50594 }
+};
+
+const STATION_ALIASES = {
+  '고터': '고속터미널역',
+  '고속터미널': '고속터미널역',
+  '공덕': '공덕역',
+  '터미널': '고속터미널역'
+};
+
+function getKSTNow(){
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+}
+
+function isKSTWeekend(){
+  const d = getKSTNow().getDay();
+  return d === 0 || d === 6;
+}
+
+function toKoreanTime(hh, mm, ss){
+  const period = hh < 12 ? '오전' : '오후';
+  let h12 = hh % 12;
+  if(h12 === 0) h12 = 12;
+  let str = `${period} ${h12}시 ${String(mm).padStart(2,'0')}분`;
+  if(ss !== undefined) str += ` ${String(ss).padStart(2,'0')}초`;
+  return str;
+}
+
+function minutesToKorean(mins){
+  const hh = Math.floor(mins / 60) % 24;
+  const mm = mins % 60;
+  return toKoreanTime(hh, mm);
+}
+
+function parseHM(str){
+  const [h, m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function getReferenceMinutes(){
+  if(state.mode === 'custom' && state.customTime){
+    const [h, m] = state.customTime.split(':').map(Number);
+    return h * 60 + m;
+  }
+  const now = getKSTNow();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function initDefaults(){
+  state.day = isKSTWeekend() ? 'holiday' : 'weekday';
+  const now = getKSTNow();
+  state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  subwayTime = state.customTime;
+  departureStation = { name: '서울역', x: SEOUL_STATION.x, y: SEOUL_STATION.y };
+}
+
+function syncPillUI(){
+  document.querySelectorAll('#stopPills .pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.stop === state.stop);
+  });
+  document.querySelectorAll('#dayPills .pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.day === state.day);
+  });
+  document.querySelectorAll('#modePills .pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.mode === state.mode);
+  });
+  $('timeInputRow').style.display = state.mode === 'custom' ? 'block' : 'none';
+  if(state.customTime){
+    const [h, m] = state.customTime.split(':').map(Number);
+    $('hourValue').textContent = String(h).padStart(2,'0');
+    $('minuteValue').textContent = String(m).padStart(2,'0');
+  }
+  $('subwayToggle').style.display = state.stop === 'station' ? 'flex' : 'none';
+  if(state.stop !== 'station'){
+    $('subwayCard').style.display = 'none';
+    $('subwayToggleIcon').classList.remove('open');
+  }
+}
+
+function computeUpcoming(){
+  const times = SCHEDULE[state.stop][state.day];
+  const refMin = getReferenceMinutes();
+  const all = times.map(t => ({ label: t.length === 4 ? '0'+t : t, mins: parseHM(t) }));
+  const upcoming = all
+    .filter(t => t.mins >= refMin)
+    .sort((a,b)=> a.mins - b.mins);
+  const recentlyDeparted = all
+    .filter(t => refMin - t.mins > 0 && refMin - t.mins <= 3)
+    .sort((a,b)=> a.mins - b.mins);
+  return { upcoming, recentlyDeparted, refMin };
+}
+
+function rankBadge(n, isTop){
+  const bg = isTop ? 'var(--accent)' : '#FFFFFF';
+  const fg = isTop ? '#FFFFFF' : 'var(--ink-soft)';
+  const stroke = isTop ? 'var(--accent)' : 'var(--line)';
+  return `<svg width="26" height="26" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${bg}" stroke="${stroke}" stroke-width="2"/><text x="16" y="21" text-anchor="middle" font-size="14" font-weight="800" fill="${fg}" font-family="Pretendard, sans-serif">${n}</text></svg>`;
+}
+
+function departedBadge(){
+  return `<svg width="26" height="26" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#FFFFFF" stroke="var(--muted)" stroke-width="2"/><path d="M11 16h10" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+}
+
+const STATUS_THRESHOLDS = {
+  daewoo: { skipMax: 4, hurryMax: 10 },
+  station: { skipMax: 3, hurryMax: 10 }
+};
+
+function statusFor(diff, isTop, stopKey){
+  if(!isTop) return { cls:'ok', tag:'' };
+  if(diff <= 0) return { cls:'now', tag:'😮 지금 출발이라 놓쳤을 수 있어요, 다음 버스를 확인해보세요' };
+  const th = STATUS_THRESHOLDS[stopKey] || STATUS_THRESHOLDS.daewoo;
+  if(diff <= th.skipMax) return { cls:'skip', tag:'🐢 이건 놓칠 것 같아요, 다음 버스가 더 여유로워요' };
+  if(diff <= th.hurryMax) return { cls:'hurry', tag:'⚡ 지금 출발하면 탈 수 있어요!' };
+  return { cls:'ok', tag:'' };
+}
+
+function renderBoard(){
+  const meta = SCHEDULE[state.stop];
+  const dayLabel = state.day === 'weekday' ? '💼 평일' : '☀️ 휴일';
+  $('boardTitle').textContent = `${meta.routeEmoji} ${meta.label} · ${dayLabel}`;
+
+  const now = getKSTNow();
+  if(state.mode === 'now'){
+    $('boardClock').textContent = toKoreanTime(now.getHours(), now.getMinutes(), now.getSeconds());
+  } else if(state.fromSubway){
+    const [ch, cm] = state.customTime.split(':').map(Number);
+    $('boardClock').textContent = `🚇 ${toKoreanTime(ch, cm)} 도착 예상`;
+  } else {
+    const [ch, cm] = state.customTime.split(':').map(Number);
+    $('boardClock').textContent = `🕐 ${toKoreanTime(ch, cm)} 기준`;
+  }
+
+  const { upcoming, recentlyDeparted, refMin } = computeUpcoming();
+  const body = $('boardBody');
+
+  function departedRowHtml(t){
+    const agoMin = refMin - t.mins;
+    return `
+      <div class="bus-row departed">
+        <div class="bus-row-inner">
+          <div class="bus-rank">${departedBadge()}</div>
+          <div class="bus-content">
+            <div class="bus-time">${minutesToKorean(t.mins)}</div>
+            <div class="bus-stop">${meta.routeEmoji} ${meta.label} 출발</div>
+          </div>
+          <div class="bus-eta-pill"><span style="font-size:11px;">${agoMin === 0 ? '방금' : agoMin+'분 전'}</span><span style="font-size:10.5px;">지나감</span></div>
+        </div>
+      </div>
+    `;
+  }
+  const departedHtml = recentlyDeparted.map(departedRowHtml).join('');
+
+  if(upcoming.length === 0){
+    body.innerHTML = departedHtml + `<div class="board-end"><span class="emoji">🚌</span><span class="msg">오늘 운행 종료</span></div>`;
+    return;
+  }
+
+  const shown = state.showMore ? upcoming.slice(0,5) : upcoming.slice(0,3);
+
+  function etaPillHtml(diff, cls){
+    if(diff <= 0) return `<div class="bus-eta-pill status-${cls}"><span class="eta-icon">⏰</span><span>곧</span><span style="font-size:10.5px;">도착</span></div>`;
+    return `<div class="bus-eta-pill status-${cls}"><span class="eta-icon">⏳</span><span>${diff}분</span><span style="font-size:10.5px;">후 도착</span></div>`;
+  }
+
+  function rowHtml(t, i){
+    const diff = t.mins - refMin;
+    const isTop = i === 0;
+    const status = state.fromSubway ? { cls:'ok', tag:'' } : statusFor(diff, isTop, state.stop);
+    return `
+      <div class="bus-row status-${status.cls}">
+        <div class="bus-row-inner">
+          <div class="bus-rank">${rankBadge(i+1, isTop)}</div>
+          <div class="bus-content">
+            <div class="bus-time">${minutesToKorean(t.mins)}</div>
+            <div class="bus-stop">${meta.routeEmoji} ${meta.label} 출발</div>
+          </div>
+          ${etaPillHtml(diff, status.cls)}
+        </div>
+        ${status.tag ? `<div class="urgent-tag status-${status.cls}">${status.tag}</div>` : ''}
+      </div>
+    `;
+  }
+
+  let html = departedHtml + shown.map((t, i) => rowHtml(t, i)).join('');
+
+  if(upcoming.length > 3){
+    html += state.showMore
+      ? `<button class="board-more-btn" id="boardMoreBtn">▴ 접기</button>`
+      : `<button class="board-more-btn" id="boardMoreBtn">▾ 2개 더 보기</button>`;
+  }
+
+  body.innerHTML = html;
+  const moreBtn = $('boardMoreBtn');
+  if(moreBtn){
+    moreBtn.addEventListener('click', ()=>{
+      state.showMore = !state.showMore;
+      renderBoard();
+    });
+  }
+}
+
+function renderFullTable(){
+  const meta = SCHEDULE[state.stop];
+  const dayLabel = state.day === 'weekday' ? '💼 평일' : '☀️ 휴일';
+  $('selectionBanner').textContent = `📍 지금 보고 있는 시간표: ${meta.routeEmoji} ${meta.label} · ${dayLabel}`;
+
+  const times = SCHEDULE[state.stop][state.day];
+  const refMin = getReferenceMinutes();
+  const upcomingMins = times.map(parseHM).filter(m => m >= refMin).sort((a,b)=>a-b);
+  const nextThree = new Set(upcomingMins.slice(0,3));
+
+  $('fullTable').innerHTML = times.map(t=>{
+    const mins = parseHM(t);
+    const label = t.length === 4 ? '0'+t : t;
+    let cls = 'time-chip';
+    if(mins < refMin) cls += ' past';
+    else if(nextThree.has(mins)) cls += ' next';
+    return `<span class="${cls}">${label}</span>`;
+  }).join('');
+}
+
+function renderLiveClock(){
+  const now = getKSTNow();
+  $('liveClock').textContent = toKoreanTime(now.getHours(), now.getMinutes(), now.getSeconds());
+  const days = ['일','월','화','수','목','금','토'];
+  const dayLabel = isKSTWeekend() ? '휴일' : '평일';
+  $('liveDate').textContent = `${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]}) · 오늘은 ${dayLabel}이에요`;
+
+  const h = now.getHours() % 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hourDeg = (h + m/60) * 30;
+  const minuteDeg = (m + s/60) * 6;
+  const secondDeg = s * 6;
+  $('hourHand').setAttribute('transform', `rotate(${hourDeg} 50 50)`);
+  $('minuteHand').setAttribute('transform', `rotate(${minuteDeg} 50 50)`);
+  $('secondHand').setAttribute('transform', `rotate(${secondDeg} 50 50)`);
+}
+
+function renderAll(){
+  syncPillUI();
+  renderBoard();
+  renderFullTable();
+}
+
+document.querySelectorAll('#stopPills .pill').forEach(p=>{
+  p.addEventListener('click', ()=>{ state.stop = p.dataset.stop; state.showMore=false; state.fromSubway=false; renderAll(); });
+});
+document.querySelectorAll('#dayPills .pill').forEach(p=>{
+  p.addEventListener('click', ()=>{ state.day = p.dataset.day; state.showMore=false; state.fromSubway=false; renderAll(); });
+});
+document.querySelectorAll('#modePills .pill').forEach(p=>{
+  p.addEventListener('click', ()=>{ state.mode = p.dataset.mode; state.showMore=false; state.fromSubway=false; renderAll(); });
+});
+function adjustTime(deltaMinutes){
+  const [h, m] = state.customTime.split(':').map(Number);
+  let total = (h * 60 + m + deltaMinutes) % 1440;
+  if(total < 0) total += 1440;
+  const newH = Math.floor(total / 60);
+  const newM = total % 60;
+  state.customTime = `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}`;
+  state.fromSubway = false;
+  renderAll();
+}
+
+function bindHoldRepeat(el, fn){
+  let timer = null;
+  function start(e){
+    if(e) e.preventDefault();
+    fn();
+    let delay = 380;
+    const tick = () => {
+      fn();
+      delay = Math.max(60, delay * 0.72);
+      timer = setTimeout(tick, delay);
+    };
+    timer = setTimeout(tick, delay);
+  }
+  function stop(){
+    clearTimeout(timer);
+    timer = null;
+  }
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, {passive:false});
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => el.addEventListener(ev, stop));
+}
+
+bindHoldRepeat($('hourMinus'), () => adjustTime(-60));
+bindHoldRepeat($('hourPlus'), () => adjustTime(60));
+bindHoldRepeat($('minuteMinus'), () => adjustTime(-1));
+bindHoldRepeat($('minutePlus'), () => adjustTime(1));
+$('minuteJumpMinus').addEventListener('click', () => adjustTime(-10));
+$('minuteJumpPlus').addEventListener('click', () => adjustTime(10));
+$('resetToNow').addEventListener('click', () => {
+  const now = getKSTNow();
+  state.customTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  state.fromSubway = false;
+  renderAll();
+});
+
+function syncSubwayUI(){
+  const [h, m] = subwayTime.split(':').map(Number);
+  $('subwayHourValue').textContent = String(h).padStart(2,'0');
+  $('subwayMinuteValue').textContent = String(m).padStart(2,'0');
+}
+
+function adjustSubwayTime(deltaMinutes){
+  const [h, m] = subwayTime.split(':').map(Number);
+  let total = (h * 60 + m + deltaMinutes) % 1440;
+  if(total < 0) total += 1440;
+  const newH = Math.floor(total / 60);
+  const newM = total % 60;
+  subwayTime = `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}`;
+  syncSubwayUI();
+}
+
+bindHoldRepeat($('subwayHourMinus'), () => adjustSubwayTime(-60));
+bindHoldRepeat($('subwayHourPlus'), () => adjustSubwayTime(60));
+bindHoldRepeat($('subwayMinuteMinus'), () => adjustSubwayTime(-1));
+bindHoldRepeat($('subwayMinutePlus'), () => adjustSubwayTime(1));
+
+async function searchDepartureStation(){
+  const btn = $('stationSearchBtn');
+  const input = $('stationSearchInput');
+  const resultsEl = $('stationSearchResults');
+  const rawQuery = input.value.trim();
+  if(rawQuery.length < 2){
+    resultsEl.innerHTML = `<div style="color:var(--red);font-size:12px;">역 이름을 2글자 이상 입력해주세요</div>`;
+    return;
+  }
+  const query = STATION_ALIASES[rawQuery] || rawQuery;
+  btn.disabled = true;
+  btn.textContent = '검색 중...';
+  resultsEl.innerHTML = '';
+  try{
+    const url = `https://api.odsay.com/v1/api/searchStation?stationName=${encodeURIComponent(query)}&CID=1000&stationClass=2&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error){
+      throw new Error(data.error[0] && data.error[0].message ? data.error[0].message : 'API 오류');
+    }
+    const stations = (data.result && data.result.station) ? data.result.station : [];
+    if(stations.length === 0){
+      resultsEl.innerHTML = `<div style="color:var(--red);font-size:12px;">검색 결과가 없어요</div>`;
+      return;
+    }
+    resultsEl.innerHTML = stations.map((s, i) => `
+      <button class="jump-btn station-pick-btn" data-idx="${i}" style="text-align:left;width:100%;">
+        📍 ${s.stationName} <span style="color:var(--muted);">${s.laneName || ''}</span>
+      </button>
+    `).join('');
+    resultsEl.querySelectorAll('.station-pick-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const s = stations[Number(b.dataset.idx)];
+        departureStation = { name: s.stationName, x: s.x, y: s.y };
+        $('selectedStationLabel').textContent = `✓ 선택됨: ${s.stationName}${s.laneName ? ' ('+s.laneName+')' : ''}`;
+        resultsEl.innerHTML = '';
+      });
+    });
+  }catch(err){
+    resultsEl.innerHTML = `<span style="color:var(--red);font-size:12px;">검색 실패: ${err.message}</span>`;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '검색';
+  }
+}
+$('stationSearchBtn').addEventListener('click', searchDepartureStation);
+
+document.querySelectorAll('.fav-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    const name = b.dataset.fav;
+    const coords = STATION_COORDS[name];
+    departureStation = { name, x: coords.x, y: coords.y };
+    $('selectedStationLabel').textContent = `✓ 선택됨: ${name}`;
+    $('stationSearchResults').innerHTML = '';
+    calcSubwayArrival();
+  });
+});
+
+document.querySelectorAll('.time-preset-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    subwayTime = b.dataset.time;
+    syncSubwayUI();
+  });
+});
+
+bindHoldRepeat($('subwayMinuteJumpMinus'), () => adjustSubwayTime(-10));
+bindHoldRepeat($('subwayMinuteJumpPlus'), () => adjustSubwayTime(10));
+$('subwayResetToNow').addEventListener('click', () => {
+  const now = getKSTNow();
+  subwayTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  syncSubwayUI();
+});
+
+$('subwayToggle').addEventListener('click', () => {
+  const card = $('subwayCard');
+  const icon = $('subwayToggleIcon');
+  const isOpen = card.style.display !== 'none';
+  card.style.display = isOpen ? 'none' : 'block';
+  icon.classList.toggle('open', !isOpen);
+});
+
+async function calcSubwayArrival(){
+  const btn = $('calcSubwayBtn');
+  const resultEl = $('subwayResult');
+  btn.disabled = true;
+  btn.textContent = '계산 중...';
+  resultEl.innerHTML = '';
+  try{
+    const dep = departureStation || { name: '서울역', x: SEOUL_STATION.x, y: SEOUL_STATION.y };
+    const url = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${dep.x}&SY=${dep.y}&EX=${GEUMHO_STATION.x}&EY=${GEUMHO_STATION.y}&apiKey=${encodeURIComponent(ODSAY_API_KEY)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error){
+      throw new Error(data.error[0] && data.error[0].message ? data.error[0].message : 'API 오류');
+    }
+    if(!data.result || !data.result.path || !data.result.path.length){
+      throw new Error('경로를 찾지 못했어요');
+    }
+    const totalTime = data.result.path[0].info.totalTime;
+    const [h, m] = subwayTime.split(':').map(Number);
+    let arriveMin = h * 60 + m + totalTime;
+    arriveMin = ((arriveMin % 1440) + 1440) % 1440;
+    const arriveH = Math.floor(arriveMin / 60);
+    const arriveM = arriveMin % 60;
+    const arriveStr = `${String(arriveH).padStart(2,'0')}:${String(arriveM).padStart(2,'0')}`;
+
+    resultEl.innerHTML = `🚇 ${dep.name}에서 타면 금호역 도착 예정: <b style="color:var(--accent);">${toKoreanTime(arriveH, arriveM)}</b> (환승 포함 약 ${totalTime}분)<br>아래 결과가 이 시각·금호역 기준으로 바뀌었어요.`;
+
+    state.stop = 'station';
+    state.mode = 'custom';
+    state.customTime = arriveStr;
+    state.showMore = false;
+    state.fromSubway = true;
+    renderAll();
+  }catch(err){
+    resultEl.innerHTML = `<span style="color:var(--red);">계산에 실패했어요: ${err.message}</span>`;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '🚇 금호역 도착 시간 계산하기';
+  }
+}
+$('calcSubwayBtn').addEventListener('click', calcSubwayArrival);
+
+$('fullTableToggle').addEventListener('click', ()=>{
+  const wrap = $('fullTableWrap');
+  const icon = $('fullTableIcon');
+  wrap.classList.toggle('open');
+  icon.classList.toggle('open');
+});
+
+function init(){
+  try{
+    initDefaults();
+    renderAll();
+    syncSubwayUI();
+    renderLiveClock();
+    setInterval(()=>{
+      renderLiveClock();
+      if(state.mode === 'now') renderBoard();
+    }, 1000);
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 불러오는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
