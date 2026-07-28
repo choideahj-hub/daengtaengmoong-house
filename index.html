@@ -136,8 +136,12 @@
   .dday-card:nth-child(even){transform:rotate(1.2deg);}
   .dday-card .badge{
     display:inline-block;font-size:12px;font-weight:800;
-    padding:3px 10px;border-radius:100px;margin-bottom:10px;
+    padding:3px 10px;border-radius:100px;
     font-variant-numeric:tabular-nums;
+  }
+  .pay-day-label{
+    display:inline-block;font-size:11.5px;font-weight:800;color:var(--ink);
+    margin:0 0 10px 6px;
   }
   .dday-card .item{font-size:14.5px;font-weight:800;margin:0 0 4px;}
   .dday-card .meta{font-size:12px;color:var(--ink-soft);margin:0;line-height:1.6;}
@@ -220,10 +224,10 @@
     box-shadow:0 3px 8px -2px rgba(111,207,192,.6);
   }
   .check-btn:active{transform:scale(.9);}
-  .ledger-row.is-done .name, .ledger-row.is-done .sub2, .ledger-row.is-done .day{
+  .ledger-row.is-done .ledger-name{
     opacity:.45;text-decoration:line-through;text-decoration-color:var(--muted);
   }
-  .ledger-row.is-done .day{background:var(--muted);}
+  .ledger-row.is-done .day-badge{background:var(--muted);}
 
   .dday-card{position:relative;}
   .dday-card.is-done{opacity:.55;}
@@ -245,35 +249,53 @@
   .history-row .h-check{color:var(--accent2);font-size:15px;}
   .history-row .h-name{font-weight:700;flex:1;}
   .history-row .h-period{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+  .restore-btn{
+    border:1.5px solid var(--accent2);background:var(--accent2-soft);color:#3D9E8D;
+    font-size:11px;font-weight:800;padding:5px 11px;border-radius:100px;cursor:pointer;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .restore-btn:hover{background:var(--accent2);color:#fff;}
+  .expired-name{opacity:.7;}
 
   .ledger{
     background:var(--surface);border:none;
     border-radius:20px;overflow:hidden;box-shadow:var(--shadow);
   }
   .ledger-row{
-    display:grid;grid-template-columns:30px 1fr 1fr 60px 1fr 32px;
-    gap:8px;align-items:center;
-    padding:14px 16px;border-bottom:1.5px dashed var(--line);
+    padding:13px 16px;border-bottom:1.5px dashed var(--line);
     transition:background .12s ease;
   }
-  .ledger-row:not(.head):hover{background:#FFFBF8;cursor:pointer;}
-  .ledger-row.head{
-    background:#FFF3EC;font-size:11px;font-weight:800;color:var(--ink-soft);
-    letter-spacing:.03em;padding:11px 16px;
-  }
+  .ledger-row:hover{background:#FFFBF8;}
   .ledger-row:last-child{border-bottom:none;}
-  .ledger-row .name{font-size:14px;font-weight:700;}
-  .ledger-row .sub2{font-size:12px;color:var(--ink-soft);}
-  .ledger-row .day{
-    font-variant-numeric:tabular-nums;font-weight:800;font-size:13px;
-    color:#fff;text-align:center;background:var(--accent);
-    border-radius:100px;padding:3px 0;
+  .ledger-list-hint{
+    padding:10px 16px;font-size:11.5px;color:var(--muted);
+    background:#FFF3EC;font-weight:700;
   }
+  .row-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;}
+  .row-main .ledger-name{font-size:14px;font-weight:700;flex:1;min-width:70px;}
+  .day-badge{
+    font-variant-numeric:tabular-nums;font-weight:800;font-size:12.5px;
+    color:#fff;background:var(--accent);border-radius:100px;padding:4px 11px;
+    flex-shrink:0;
+  }
+  .expand-btn{
+    border:none;background:none;color:var(--muted);cursor:pointer;
+    font-size:13px;padding:4px 6px;border-radius:8px;line-height:1;
+    transition:transform .15s ease;flex-shrink:0;
+  }
+  .expand-btn.open{transform:rotate(180deg);color:var(--accent);}
   .del-btn{
     border:none;background:none;color:var(--muted);cursor:pointer;
-    font-size:16px;padding:4px;border-radius:8px;line-height:1;
+    font-size:16px;padding:4px;border-radius:8px;line-height:1;flex-shrink:0;
   }
   .del-btn:hover{background:var(--red-soft);color:var(--red);}
+  .row-detail{
+    margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+    display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--ink-soft);
+  }
+  .row-detail .detail-item b{
+    color:var(--ink);font-weight:700;margin-right:6px;display:inline-block;min-width:64px;
+  }
 
   .empty{
     text-align:center;padding:46px 20px;color:var(--muted);font-size:13.5px;
@@ -357,13 +379,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   @media(max-width:480px){
-    .ledger-row{grid-template-columns:26px 1fr 30px;grid-template-areas:"check main del" "empty meta meta";row-gap:4px;}
-    .ledger-row .check-wrap{grid-area:check;}
-    .ledger-row .name{grid-area:main;}
-    .del-btn{grid-area:del;justify-self:end;}
-    .ledger-row .meta-mobile{grid-area:meta;font-size:12px;color:var(--ink-soft);line-height:1.6;}
-    .ledger-row > .sub2, .ledger-row > .day{display:none;}
-    .ledger-row.head{display:none;}
+    .row-main .ledger-name{min-width:100%;order:-1;}
   }
 </style>
 </head>
@@ -412,29 +428,23 @@
   <div class="upcoming-scroll" id="upcomingScroll"></div>
 
   <div class="section-label">
-    <h2>이번 달 결제일 타임라인</h2>
-  </div>
-  <div class="timeline-box">
-    <div class="timeline-month" id="timelineMonth"></div>
-    <div class="timeline">
-      <div class="timeline-track" id="timelineTrack"></div>
-    </div>
-  </div>
-
-  <div class="section-label">
     <h2>전체 목록</h2>
     <span class="hint" id="countHint"></span>
   </div>
   <div class="ledger" id="ledgerBox">
-    <div class="ledger-row head">
-      <div>완료</div><div>항목</div><div>카드</div><div style="text-align:center;">출금일</div><div>지출 통장</div><div></div>
-    </div>
+    <div class="ledger-list-hint">항목을 탭하면 카드·통장 정보가 펼쳐져요</div>
     <div id="ledgerBody"></div>
   </div>
   <div class="add-row">
     <button class="add-btn" id="addBtn">🐾 새 항목 추가하기</button>
     <button class="add-btn bulk" id="bulkBtn">📋 여러 개 한번에</button>
   </div>
+
+  <div class="section-label">
+    <h2>종료된 정기지출</h2>
+    <span class="hint" id="expiredHint"></span>
+  </div>
+  <div class="history-list" id="expiredList"></div>
 
   <div class="section-label">
     <h2>완료 히스토리</h2>
@@ -525,6 +535,7 @@ let completions = {}; // key: `${entryId}__${YYYY-MM}` -> {done, doneAt, name, c
 let editingId = null;
 let ownerFilter = 'all';
 let revealedAccounts = new Set();
+let expandedRows = new Set();
 const DEFAULT_ENTRIES = [
   { id: 'seed1', owner: '댕', name: '취득세', card: '롯데카드(디지로카)', day: 25, account: '신한 110457762290', memo: '' },
   { id: 'seed2', owner: '댕', name: '세탁기', card: '비씨카드(복지카드)', day: 25, account: '기업 161-086989-01-015', memo: '' },
@@ -536,7 +547,35 @@ const DEFAULT_ENTRIES = [
 const $ = (id) => document.getElementById(id);
 
 function visibleEntries(){
-  return ownerFilter === 'all' ? entries : entries.filter(e => (e.owner||'댕') === ownerFilter);
+  const active = entries.filter(e => !e.expired);
+  return ownerFilter === 'all' ? active : active.filter(e => (e.owner||'댕') === ownerFilter);
+}
+
+function expiredVisibleEntries(){
+  const expired = entries.filter(e => e.expired);
+  return ownerFilter === 'all' ? expired : expired.filter(e => (e.owner||'댕') === ownerFilter);
+}
+
+function expireEntry(id){
+  const entry = entries.find(e=>e.id===id);
+  if(!entry) return;
+  if(!confirm(`'${entry.name}' 항목을 종료할까요? 목록에서 빠지고 종료 기록에 남아요.`)) return;
+  entry.expired = true;
+  entry.expiredAt = new Date().toISOString();
+  expandedRows.delete(id);
+  saveEntries();
+  render();
+  showToast('종료 처리했어요');
+}
+
+function restoreEntry(id){
+  const entry = entries.find(e=>e.id===id);
+  if(!entry) return;
+  entry.expired = false;
+  delete entry.expiredAt;
+  saveEntries();
+  render();
+  showToast('다시 활성화했어요');
 }
 
 function currentPeriodKey(){
@@ -697,8 +736,8 @@ function showToast(msg){
 
 function render(){
   renderUpcoming();
-  renderTimeline();
   renderLedger();
+  renderExpired();
   renderHistory();
 }
 
@@ -721,6 +760,7 @@ function renderUpcoming(){
       <div class="dday-card ${done?'is-done':''}">
         ${done ? '<span class="done-stamp">완료 ✓</span>' : ''}
         <span class="badge ${badgeClass(diff)}">${ddayLabel(diff)}</span>
+        <span class="pay-day-label">매월 ${e.day}일</span>
         <p class="item"><span class="owner-tag o-${escapeHtml(e.owner||'댕')}">${escapeHtml(e.owner||'댕')}</span>${escapeHtml(e.name)}</p>
         <p class="meta">${escapeHtml(e.card)} · 매월 ${e.day}일<br>${renderAcctChip(e)}</p>
       </div>
@@ -774,40 +814,54 @@ function renderLedger(){
   const body = $('ledgerBody');
   const countHint = $('countHint');
   const box = $('ledgerBox');
+  const hint = box.querySelector('.ledger-list-hint');
   const list = visibleEntries();
   countHint.textContent = list.length ? `${list.length}건` : '';
 
   if(list.length === 0){
-    body.innerHTML = '';
-    box.querySelector('.ledger-row.head').style.display = 'none';
+    if(hint) hint.style.display = 'none';
     body.innerHTML = entries.length === 0
       ? `<div class="empty"><b>아직 등록된 항목이 없어요</b>아래 버튼으로 첫 정기지출을 추가해보세요.</div>`
       : `<div class="empty"><b>해당하는 항목이 없어요</b>다른 필터를 선택해보세요.</div>`;
     return;
   }
-  box.querySelector('.ledger-row.head').style.display = '';
+  if(hint) hint.style.display = '';
 
   const sorted = [...list].sort((a,b)=> ddayFor(a.day) - ddayFor(b.day));
   const period = currentPeriodKey();
   body.innerHTML = sorted.map(e=>{
     const done = !!completions[completionKey(e.id, period)];
+    const open = expandedRows.has(e.id);
     return `
     <div class="ledger-row ${done?'is-done':''}" data-id="${e.id}">
-      <div class="check-wrap"><button class="check-btn ${done?'checked':''}" data-check="${e.id}" aria-label="완료 체크">✓</button></div>
-      <div class="name"><span class="owner-tag o-${escapeHtml(e.owner||'댕')}">${escapeHtml(e.owner||'댕')}</span>${escapeHtml(e.name)}</div>
-      <div class="sub2">${escapeHtml(e.card)}</div>
-      <div class="day">${e.day}일</div>
-      <div class="sub2">${renderAcctChip(e)}</div>
-      <div><button class="del-btn" data-del="${e.id}">✕</button></div>
-      <div class="meta-mobile">${escapeHtml(e.card)} · 매월 ${e.day}일<br>${renderAcctChip(e)}${e.memo?' · '+escapeHtml(e.memo):''}</div>
+      <div class="row-main" data-toggle="${e.id}">
+        <button class="check-btn ${done?'checked':''}" data-check="${e.id}" aria-label="완료 체크">✓</button>
+        <span class="owner-tag o-${escapeHtml(e.owner||'댕')}">${escapeHtml(e.owner||'댕')}</span>
+        <span class="ledger-name">${escapeHtml(e.name)}</span>
+        <span class="day-badge">${e.day}일</span>
+        <button class="expand-btn ${open?'open':''}" data-toggle-btn="${e.id}" aria-label="상세 정보">▾</button>
+        <button class="del-btn" data-del="${e.id}">✕</button>
+      </div>
+      ${open ? `
+      <div class="row-detail">
+        <div class="detail-item"><b>카드</b>${escapeHtml(e.card)}</div>
+        <div class="detail-item"><b>지출 통장</b>${renderAcctChip(e)}</div>
+        ${e.memo ? `<div class="detail-item"><b>메모</b>${escapeHtml(e.memo)}</div>` : ''}
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" data-edit="${e.id}" style="padding:8px 16px;font-size:12.5px;">✏️ 수정하기</button>
+          <button class="btn ghost" data-expire="${e.id}" style="padding:8px 16px;font-size:12.5px;">🏁 종료하기</button>
+        </div>
+      </div>` : ''}
     </div>
   `;
   }).join('');
 
-  body.querySelectorAll('.ledger-row').forEach(row=>{
-    row.addEventListener('click', (ev)=>{
-      if(ev.target.dataset.del || ev.target.dataset.check) return;
-      openModal(row.dataset.id);
+  body.querySelectorAll('[data-toggle]').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
+      if(ev.target.closest('[data-check]') || ev.target.closest('[data-del]')) return;
+      const id = el.dataset.toggle;
+      if(expandedRows.has(id)) expandedRows.delete(id); else expandedRows.add(id);
+      render();
     });
   });
   body.querySelectorAll('[data-check]').forEach(btn=>{
@@ -816,6 +870,18 @@ function renderLedger(){
       const id = btn.dataset.check;
       const entry = entries.find(e=>e.id===id);
       if(entry) toggleComplete(entry);
+    });
+  });
+  body.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      openModal(btn.dataset.edit);
+    });
+  });
+  body.querySelectorAll('[data-expire]').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      expireEntry(btn.dataset.expire);
     });
   });
   body.querySelectorAll('[data-del]').forEach(btn=>{
@@ -832,6 +898,31 @@ function renderLedger(){
     });
   });
   bindAcctChips(body);
+}
+
+function renderExpired(){
+  const list = $('expiredList');
+  const hint = $('expiredHint');
+  const expired = [...expiredVisibleEntries()].sort((a,b)=> new Date(b.expiredAt||0) - new Date(a.expiredAt||0));
+
+  hint.textContent = expired.length ? `${expired.length}건` : '';
+
+  if(expired.length === 0){
+    list.innerHTML = `<div class="empty"><b>종료된 항목이 없어요</b>할부가 끝나거나 더 이상 나가지 않는 지출은 항목 상세에서 종료 처리할 수 있어요.</div>`;
+    return;
+  }
+
+  list.innerHTML = expired.map(e=>`
+    <div class="history-row">
+      <span class="owner-tag o-${escapeHtml(e.owner||'댕')}">${escapeHtml(e.owner||'댕')}</span>
+      <span class="h-name expired-name">${escapeHtml(e.name)} · ${escapeHtml(e.card)} · 매월 ${e.day}일</span>
+      <button class="restore-btn" data-restore="${e.id}">↩ 복원</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-restore]').forEach(btn=>{
+    btn.addEventListener('click', ()=> restoreEntry(btn.dataset.restore));
+  });
 }
 
 function renderHistory(){
