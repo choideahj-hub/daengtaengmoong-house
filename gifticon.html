@@ -274,6 +274,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const API_BASE = 'https://jsonblob.com/api/jsonBlob';
 const params = new URLSearchParams(location.search);
@@ -496,6 +497,89 @@ function closeAddModal(){
   $('addModalBackdrop').classList.remove('open');
   editingId = null;
 }
+const KNOWN_BRANDS = [
+  '스타벅스','이디야','이디야커피','투썸플레이스','폴바셋','메가MGC커피','메가커피','컴포즈커피','빽다방','할리스',
+  '커피빈','파스쿠찌','탐앤탐스','던킨','던킨도너츠','크리스피크림','파리바게뜨','뚜레쥬르',
+  '배스킨라빈스','설빙','공차','스무디킹','쥬씨',
+  'CU','GS25','세븐일레븐','이마트24','미니스톱',
+  '교촌치킨','BBQ','굽네치킨','네네치킨','bhc','처갓집','맘스터치',
+  '맥도날드','버거킹','롯데리아','KFC','서브웨이',
+  '피자헛','도미노피자','미스터피자',
+  '올리브영','다이소','이마트','홈플러스','롯데마트',
+  '배달의민족','쿠팡','요기요','CGV','롯데시네마','메가박스'
+];
+
+const EXPIRY_KEYWORDS = ['유효기간','사용기한','교환기한','까지','만료일'];
+
+function parseGifticonText(text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const fullText = lines.join(' ');
+
+  // 브랜드 추정: 알려진 브랜드명이 텍스트에 포함되어 있는지 확인
+  let brand = '';
+  for(const b of KNOWN_BRANDS){
+    if(fullText.includes(b)){ brand = b; break; }
+  }
+
+  // 유효기간 추정: "유효기간"류 키워드가 있는 줄 우선, 없으면 전체에서 첫 날짜
+  const dateRe = /(20\d{2})\D{1,2}(\d{1,2})\D{1,2}(\d{1,2})/;
+  let expiry = '';
+  for(const line of lines){
+    if(EXPIRY_KEYWORDS.some(k => line.includes(k))){
+      const m = line.match(dateRe);
+      if(m){
+        const mm = m[2].padStart(2,'0'), dd = m[3].padStart(2,'0');
+        if(parseInt(mm,10)<=12 && parseInt(dd,10)<=31){
+          expiry = `${m[1]}-${mm}-${dd}`;
+          break;
+        }
+      }
+    }
+  }
+  if(!expiry){
+    for(const line of lines){
+      const m = line.match(dateRe);
+      if(m){
+        const mm = m[2].padStart(2,'0'), dd = m[3].padStart(2,'0');
+        if(parseInt(mm,10)<=12 && parseInt(dd,10)<=31){
+          expiry = `${m[1]}-${mm}-${dd}`;
+          break;
+        }
+      }
+    }
+  }
+
+  // 상품명 추정: 브랜드명·날짜·순수 숫자(바코드 등) 줄을 제외하고 가장 그럴듯한 줄
+  const noiseRe = /^\d+$/;
+  let name = '';
+  for(const line of lines){
+    if(brand && line.includes(brand)) continue;
+    if(EXPIRY_KEYWORDS.some(k => line.includes(k))) continue;
+    if(dateRe.test(line)) continue;
+    if(noiseRe.test(line.replace(/[\s-]/g,''))) continue;
+    if(line.length < 2 || line.length > 24) continue;
+    name = line;
+    break;
+  }
+
+  return { brand, name, expiry };
+}
+
+async function runGifticonOcr(file){
+  try{
+    const { data: { text } } = await Tesseract.recognize(file, 'kor+eng');
+    const parsed = parseGifticonText(text);
+    if(parsed.brand) $('f-brand').value = parsed.brand;
+    if(parsed.name && !$('f-name').value) $('f-name').value = parsed.name;
+    if(parsed.expiry) $('f-expiry').value = parsed.expiry;
+    if(parsed.brand || parsed.name || parsed.expiry){
+      showToast('✨ 자동으로 채웠어요, 확인 후 저장해주세요');
+    }
+  }catch(err){
+    // 인식 실패해도 조용히 넘어감 - 수동 입력하면 되니까
+  }
+}
+
 async function handleImageSelect(file){
   if(!file) return;
   try{
@@ -504,6 +588,8 @@ async function handleImageSelect(file){
     pendingImageData = dataUrl;
     $('imgPreview').style.backgroundImage = `url('${dataUrl}')`;
     $('imgPreview').textContent = '';
+    $('imgPreview').style.opacity = '0.6';
+    runGifticonOcr(file).finally(()=>{ $('imgPreview').style.opacity = '1'; });
   }catch(err){
     showToast('이미지 처리에 실패했어요');
     $('imgPreview').textContent = '📷 눌러서 이미지 선택';
