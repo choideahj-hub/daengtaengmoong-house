@@ -521,12 +521,14 @@ function parseGifticonText(text){
     if(fullText.includes(b)){ brand = b; break; }
   }
 
-  // 유효기간 추정: "유효기간"류 키워드가 있는 줄 우선, 없으면 전체에서 첫 날짜
+  // 유효기간 추정: "유효기간"류 키워드가 있는 줄(또는 바로 다음 줄) 우선, 없으면 전체에서 첫 날짜
   const dateRe = /(20\d{2})\D{1,2}(\d{1,2})\D{1,2}(\d{1,2})/;
   let expiry = '';
-  for(const line of lines){
+  for(let i=0; i<lines.length; i++){
+    const line = lines[i];
     if(EXPIRY_KEYWORDS.some(k => line.includes(k))){
-      const m = line.match(dateRe);
+      let m = line.match(dateRe);
+      if(!m && lines[i+1]) m = lines[i+1].match(dateRe); // 라벨과 날짜가 다른 줄에 있는 경우
       if(m){
         const mm = m[2].padStart(2,'0'), dd = m[3].padStart(2,'0');
         if(parseInt(mm,10)<=12 && parseInt(dd,10)<=31){
@@ -549,17 +551,33 @@ function parseGifticonText(text){
     }
   }
 
-  // 상품명 추정: 브랜드명·날짜·순수 숫자(바코드 등) 줄을 제외하고 가장 그럴듯한 줄
+  // 상품명 추정: 브랜드명·날짜·순수 숫자(바코드 등)·라벨 줄을 제외하고 가장 그럴듯한(긴) 줄
   const noiseRe = /^\d+$/;
-  let name = '';
-  for(const line of lines){
-    if(brand && line.includes(brand)) continue;
-    if(EXPIRY_KEYWORDS.some(k => line.includes(k))) continue;
-    if(dateRe.test(line)) continue;
-    if(noiseRe.test(line.replace(/[\s-]/g,''))) continue;
-    if(line.length < 2 || line.length > 24) continue;
-    name = line;
-    break;
+  const NOISE_WORDS = ['교환처','주문번호','카카오톡','선물하기','발행처','상품권','기프티콘','유효기간','사용기한'];
+  const candidates = [];
+  lines.forEach((line, idx) => {
+    if(brand && line.trim() === brand) return; // 브랜드 단독 표기(로고 등)만 제외, 제목 속 브랜드 언급은 허용
+    if(EXPIRY_KEYWORDS.some(k => line.includes(k))) return;
+    if(NOISE_WORDS.some(w => line === w)) return;
+    if(dateRe.test(line)) return;
+    if(noiseRe.test(line.replace(/[\s-]/g,''))) return;
+    if(line.length < 2 || line.length > 30) return;
+    candidates.push({ line, idx });
+  });
+  candidates.sort((a,b)=> b.line.length - a.line.length);
+  let name = candidates.length ? candidates[0].line : '';
+  // 제목이 다음 줄로 이어지는 경우(줄바꿈) 자연스럽게 붙이기
+  if(name){
+    const pickedIdx = candidates[0].idx;
+    const nextLine = lines[pickedIdx + 1];
+    if(nextLine && nextLine.length <= 12 &&
+       !(brand && nextLine.trim() === brand) &&
+       !EXPIRY_KEYWORDS.some(k => nextLine.includes(k)) &&
+       !NOISE_WORDS.some(w => nextLine === w) &&
+       !dateRe.test(nextLine) &&
+       !noiseRe.test(nextLine.replace(/[\s-]/g,''))){
+      name = name + nextLine;
+    }
   }
 
   return { brand, name, expiry };
