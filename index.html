@@ -184,6 +184,7 @@
   <p class="footer-note">챕터는 계속 추가될 예정이에요 🐾</p>
 </div>
 
+<script src="https://unpkg.com/solarlunar/dist/solarlunar.min.js"></script>
 <script>
 const EVENTS = [
   { name: '결혼기념일', owner: '우리', date: '2025-05-25', type: 'anniversary', emoji: '💍' },
@@ -191,6 +192,10 @@ const EVENTS = [
   { name: '탱 생일', owner: '탱', date: '1993-08-04', type: 'birthday', emoji: '🎂' },
   { name: '뭉 생일', owner: '뭉', date: '2018-09-19', type: 'birthday', emoji: '🐾' },
   { name: '댕탱 사귄 날', owner: '우리', date: '2018-12-21', type: 'dating', emoji: '💕' },
+  { name: '아버지 생신', owner: '댕', date: '1963-08-26', type: 'lunar-birthday', emoji: '🎂' },
+  { name: '어머니 생신', owner: '댕', date: '1968-12-04', type: 'lunar-birthday', emoji: '🎂' },
+  { name: '아버지 생신', owner: '탱', date: '1964-03-18', type: 'lunar-birthday', emoji: '🎂' },
+  { name: '어머니 생신', owner: '탱', date: '1967-01-19', type: 'lunar-birthday', emoji: '🎂' },
 ];
 
 function getKSTToday(){
@@ -200,6 +205,9 @@ function getKSTToday(){
 }
 
 function computeEvent(ev, today){
+  if(ev.type === 'lunar-birthday'){
+    return computeLunarBirthday(ev, today);
+  }
   const [origY, origM, origD] = ev.date.split('-').map(Number);
   let year = today.getFullYear();
   let next = new Date(year, origM - 1, origD);
@@ -220,6 +228,46 @@ function computeEvent(ev, today){
   return { ...ev, diffDays, countLabel, dateLabel: `${next.getMonth()+1}월 ${next.getDate()}일` };
 }
 
+function computeLunarBirthday(ev, today){
+  const [origY, origM, origD] = ev.date.split('-').map(Number);
+  // 생신(양력)을 음력으로 한 번 환산 - 평생 고정값
+  const birthLunar = solarLunar.solar2lunar(origY, origM, origD);
+  const lMonth = birthLunar.lMonth;
+  const lDay = birthLunar.lDay;
+  const isLeap = !!birthLunar.isLeap;
+
+  function solarForYear(y){
+    let r = solarLunar.lunar2solar(y, lMonth, lDay, isLeap);
+    if(!r && isLeap){
+      // 그 해에 윤달이 없으면 평달로 대체
+      r = solarLunar.lunar2solar(y, lMonth, lDay, false);
+    }
+    return r;
+  }
+
+  let year = today.getFullYear();
+  let s = solarForYear(year);
+  let next = new Date(s.cYear, s.cMonth - 1, s.cDay);
+  next.setHours(0,0,0,0);
+  if(next < today){
+    year += 1;
+    s = solarForYear(year);
+    next = new Date(s.cYear, s.cMonth - 1, s.cDay);
+    next.setHours(0,0,0,0);
+  }
+  const diffDays = Math.round((next - today) / (1000*60*60*24));
+  const count = year - origY;
+  const lunarLabel = `음력 ${lMonth}월 ${lDay}일${isLeap ? '(윤달)' : ''}`;
+
+  return {
+    ...ev,
+    diffDays,
+    countLabel: `${count}번째 생신`,
+    dateLabel: `${next.getMonth()+1}월 ${next.getDate()}일`,
+    lunarLabel
+  };
+}
+
 function ddayLabel(diff){
   return diff === 0 ? 'D-DAY' : 'D-' + diff;
 }
@@ -237,7 +285,7 @@ function renderAnnivWidget(){
             <span class="anniv-owner o-${ev.owner}">${ev.owner}</span>
             ${ev.name}
           </div>
-          <div class="anniv-meta">${ev.dateLabel} · ${ev.countLabel}</div>
+          <div class="anniv-meta">${ev.dateLabel}${ev.lunarLabel ? ' (' + ev.lunarLabel + ')' : ''} · ${ev.countLabel}</div>
         </div>
         <span class="anniv-dday ${ev.diffDays===0?'today':''}">${ddayLabel(ev.diffDays)}</span>
       </div>
