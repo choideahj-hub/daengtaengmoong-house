@@ -222,7 +222,7 @@
   </div>
   <div class="gift-grid" id="giftGrid"></div>
 
-  <p class="footer-note">바코드가 잘 보이도록 화질은 최대한 유지하면서 저장해요<br>기프티콘이 많이 쌓이면 저장 용량 한도에 걸릴 수 있어요, 그럴 땐 알려주세요 🐾</p>
+  <p class="footer-note">사진은 별도 이미지 호스팅에 저장돼서 많이 쌓여도 용량 걱정 없어요 🐾</p>
 </div>
 
 <div class="modal-backdrop" id="addModalBackdrop">
@@ -277,6 +277,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const API_BASE = 'https://jsonblob.com/api/jsonBlob';
+const IMGBB_API_KEY = 'a6f5457d7a2d46e75af40a9575f7857d';
 const params = new URLSearchParams(location.search);
 let BLOB_ID = params.get('store') || '';
 
@@ -423,6 +424,31 @@ function resizeImage(file, maxWidth, quality){
     reader.readAsDataURL(file);
   });
 }
+
+// ---- Image hosting (imgbb) ----
+// jsonblob 용량 한도를 피하기 위해, 실제 사진은 imgbb에 올리고 링크만 저장함
+async function uploadToImgbb(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const formData = new FormData();
+  formData.append('key', IMGBB_API_KEY);
+  formData.append('image', base64);
+  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+  const data = await res.json();
+  if(!data.success){
+    throw new Error(data.error && data.error.message ? data.error.message : '이미지 업로드에 실패했어요');
+  }
+  return data.data.url;
+}
+
+// pendingImageData가 이번에 새로 고른 사진(base64)이면 imgbb에 업로드해서 URL로 바꾸고,
+// 이미 호스팅된 URL(수정 시 그대로 둔 경우)이면 그대로 사용
+async function ensureImageUrl(pending){
+  if(pending && pending.startsWith('data:')){
+    return await uploadToImgbb(pending);
+  }
+  return pending;
+}
+
 
 // ---- Render ----
 function render(){
@@ -629,7 +655,7 @@ async function handleImageSelect(file){
   if(!file) return;
   try{
     $('imgPreview').textContent = '이미지 처리 중...';
-    const dataUrl = await resizeImage(file, 950, 0.82);
+    const dataUrl = await resizeImage(file, 1200, 0.9);
     pendingImageData = dataUrl;
     $('imgPreview').style.backgroundImage = `url('${dataUrl}')`;
     $('imgPreview').textContent = '';
@@ -656,6 +682,18 @@ async function saveGifticon(){
 
   const saveBtn = $('addSaveBtn');
   saveBtn.disabled = true;
+  saveBtn.textContent = '이미지 업로드 중...';
+
+  let imageUrl;
+  try{
+    imageUrl = await ensureImageUrl(pendingImageData);
+  }catch(err){
+    saveBtn.disabled = false;
+    saveBtn.textContent = '저장';
+    alert('⚠️ 이미지 업로드에 실패했어요\n\n' + (err.message || '') + '\n\n다시 시도해주세요.');
+    return;
+  }
+
   saveBtn.textContent = '저장 중...';
 
   // 실패 시 되돌리기 위해 이전 상태를 기억해둠
@@ -663,11 +701,11 @@ async function saveGifticon(){
   let newId = editingId;
   if(editingId){
     const idx = gifticons.findIndex(g=>g.id===editingId);
-    gifticons[idx] = { ...gifticons[idx], brand, name, expiry, image: pendingImageData };
+    gifticons[idx] = { ...gifticons[idx], brand, name, expiry, image: imageUrl };
   } else {
     newId = 'g' + Date.now() + Math.floor(Math.random()*100000);
     gifticons.push({
-      id: newId, brand, name, expiry, image: pendingImageData,
+      id: newId, brand, name, expiry, image: imageUrl,
       used: false, usedAt: null
     });
   }
