@@ -815,30 +815,73 @@ function closeOcrModal(){
   $('ocrModalBackdrop').classList.remove('open');
 }
 
+const OCR_NOISE_LABELS = [
+  '결제수단','총 상품가격','총상품가격','배송비','총 결제금액','총결제금액',
+  '장바구니 담기','배송 조회','교환','반품','리뷰 작성하기','받는사람','연락처',
+  '받는주소','배송요청사항','결제 정보','받는사람 정보','일시불'
+];
+
 function parseBankText(text){
   const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const dateRe = /(\d{1,2})\s?[.\/월]\s?(\d{1,2})\s?일?/;
+  // 우선순위 1: "2026. 7. 10" 처럼 4자리 연도가 포함된 전체 날짜
+  const fullDateRe = /(20\d{2})\D{1,3}(\d{1,2})\D{1,3}(\d{1,2})/;
+  // 우선순위 2: "7/13", "07.10" 처럼 월.일만 있는 짧은 날짜
+  const shortDateRe = /(?:^|[^\d])(\d{1,2})\s?[.\/]\s?(\d{1,2})\s?일?(?!\d)/;
   const amountRe = /([+-]?\s?[\d,]{3,})\s?원/;
   const now = getKSTNow();
   const year = now.getFullYear();
   const results = [];
   let lastDate = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  let hasFullDate = false;
 
-  lines.forEach(line=>{
-    const dMatch = line.match(dateRe);
-    if(dMatch){
-      const mm = dMatch[1].padStart(2,'0');
-      const dd = dMatch[2].padStart(2,'0');
+  lines.forEach((line, idx) => {
+    const fullMatch = line.match(fullDateRe);
+    if(fullMatch){
+      const yy = fullMatch[1];
+      const mm = fullMatch[2].padStart(2,'0');
+      const dd = fullMatch[3].padStart(2,'0');
       if(parseInt(mm,10) <= 12 && parseInt(dd,10) <= 31){
-        lastDate = `${year}-${mm}-${dd}`;
+        lastDate = `${yy}-${mm}-${dd}`;
+        hasFullDate = true; // 이후엔 짧은 날짜(배송일 등)로 덮어쓰지 않음
+      }
+    } else if(!hasFullDate){
+      const shortMatch = line.match(shortDateRe);
+      if(shortMatch){
+        const mm = shortMatch[1].padStart(2,'0');
+        const dd = shortMatch[2].padStart(2,'0');
+        if(parseInt(mm,10) <= 12 && parseInt(dd,10) <= 31){
+          lastDate = `${year}-${mm}-${dd}`;
+        }
       }
     }
+
     const aMatch = line.match(amountRe);
     if(aMatch){
       const amountNum = parseInt(aMatch[1].replace(/[^\d]/g,''), 10);
       if(!isNaN(amountNum) && amountNum >= 100){
-        let merchant = line.replace(dateRe,'').replace(amountRe,'').replace(/[-+]/g,'').trim();
-        results.push({ date: lastDate, amount: amountNum, detail: merchant || '', category: '기타' });
+        let merchant = line.replace(fullDateRe,'').replace(shortDateRe,'').replace(amountRe,'').replace(/[-+]/g,'').replace(/\d+\s?개/g,'').replace(/[·•]/g,'').trim();
+        let isNoise = OCR_NOISE_LABELS.some(label => merchant.includes(label)) || merchant.length < 2;
+        // 상품명이 금액과 다른 줄에 있는 경우, 바로 윗줄을 상세명 후보로 사용
+        if(isNoise && idx > 0){
+          const prevLine = lines[idx - 1];
+          if(prevLine && !amountRe.test(prevLine) && !fullDateRe.test(prevLine) && prevLine.length >= 2){
+            const prevIsNoise = OCR_NOISE_LABELS.some(label => prevLine.includes(label));
+            if(!prevIsNoise){
+              merchant = prevLine;
+              isNoise = false;
+            }
+          }
+        }
+        // 바로 앞 항목과 날짜·금액이 완전히 같으면 같은 거래를 중복으로 읽은 것으로 보고 건너뜀
+        const prev = results[results.length - 1];
+        const isDuplicate = prev && prev.date === lastDate && prev.amount === amountNum;
+        if(isDuplicate){
+          if(!isNoise && (!prev.detail || prev.detail.length < merchant.length)){
+            prev.detail = merchant; // 더 그럴듯한 이름으로 교체
+          }
+          return;
+        }
+        results.push({ date: lastDate, amount: amountNum, detail: isNoise ? '' : merchant, category: '기타' });
       }
     }
   });
