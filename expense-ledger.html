@@ -828,6 +828,7 @@ function parseBankText(text){
   // 우선순위 2: "7/13", "07.10" 처럼 월.일만 있는 짧은 날짜
   const shortDateRe = /(?:^|[^\d])(\d{1,2})\s?[.\/]\s?(\d{1,2})\s?일?(?!\d)/;
   const amountRe = /([+-]?\s?[\d,]{3,})\s?원/;
+  const amountCommaRe = /([+-]?\s?\d{1,3}(?:,\d{3})+)/;
   const now = getKSTNow();
   const year = now.getFullYear();
   const results = [];
@@ -855,11 +856,11 @@ function parseBankText(text){
       }
     }
 
-    const aMatch = line.match(amountRe);
+    const aMatch = line.match(amountRe) || line.match(amountCommaRe);
     if(aMatch){
       const amountNum = parseInt(aMatch[1].replace(/[^\d]/g,''), 10);
       if(!isNaN(amountNum) && amountNum >= 100){
-        let merchant = line.replace(fullDateRe,'').replace(shortDateRe,'').replace(amountRe,'').replace(/[-+]/g,'').replace(/\d+\s?개/g,'').replace(/[·•]/g,'').trim();
+        let merchant = line.replace(fullDateRe,'').replace(shortDateRe,'').replace(amountRe,'').replace(amountCommaRe,'').replace(/[-+]/g,'').replace(/\d+\s?개/g,'').replace(/[·•]/g,'').trim();
         let isNoise = OCR_NOISE_LABELS.some(label => merchant.includes(label)) || merchant.length < 2;
         // 상품명이 금액과 다른 줄에 있는 경우, 바로 윗줄을 상세명 후보로 사용
         if(isNoise && idx > 0){
