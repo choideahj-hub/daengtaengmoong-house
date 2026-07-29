@@ -290,6 +290,10 @@
     <div class="summary-amount" id="summaryTotal">0원</div>
     <div class="summary-compare" id="summaryCompare"></div>
     <div class="summary-split">
+      <div class="summary-split-item o-공용">
+        <div class="summary-split-label">공용</div>
+        <div class="summary-split-amount" id="summaryGongyong">0원</div>
+      </div>
       <div class="summary-split-item o-댕">
         <div class="summary-split-label">댕</div>
         <div class="summary-split-amount" id="summaryDaeng">0원</div>
@@ -297,10 +301,6 @@
       <div class="summary-split-item o-탱">
         <div class="summary-split-label">탱</div>
         <div class="summary-split-amount" id="summaryTaeng">0원</div>
-      </div>
-      <div class="summary-split-item o-공용">
-        <div class="summary-split-label">공용</div>
-        <div class="summary-split-amount" id="summaryGongyong">0원</div>
       </div>
     </div>
     <div class="cat-bars" id="catBars"></div>
@@ -349,11 +349,7 @@
     <h3 id="entryModalTitle">지출 추가</h3>
     <div class="field">
       <label>담당자</label>
-      <select id="f-owner">
-        <option value="댕">댕</option>
-        <option value="탱">탱</option>
-        <option value="공용">공용</option>
-      </select>
+      <div class="cat-select-grid" id="f-owner-grid" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
     <div class="field">
       <label>날짜</label>
@@ -440,6 +436,7 @@ let ownerFilter = 'all';
 let currentMonth = '';
 let editingId = null;
 let selectedCategory = '식비';
+let selectedOwner = '댕';
 let trashOpen = false;
 const BIG_EXPENSE_THRESHOLD = 150000;
 let ocrParsedRows = [];
@@ -724,6 +721,19 @@ function renderCategoryGrid(){
   });
 }
 
+const OWNER_EMOJI = { '댕':'🔵', '탱':'🌸', '공용':'🟡' };
+function renderOwnerGrid(){
+  $('f-owner-grid').innerHTML = ['댕','탱','공용'].map(o=>`
+    <button type="button" class="cat-select-btn ${o===selectedOwner?'active':''}" data-owner-pick="${o}">${OWNER_EMOJI[o]} ${o}</button>
+  `).join('');
+  $('f-owner-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedOwner = btn.dataset.ownerPick;
+      $('f-owner-grid').querySelectorAll('.cat-select-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+}
+
 function openEntryModal(id){
   editingId = id || null;
   $('entryModalTitle').textContent = id ? '지출 수정' : '지출 추가';
@@ -731,18 +741,19 @@ function openEntryModal(id){
   const now = getKSTNow();
   if(id){
     const e = entries.find(x=>x.id===id);
-    $('f-owner').value = e.owner;
+    selectedOwner = e.owner;
     $('f-date').value = e.date;
     $('f-amount').value = e.amount;
     selectedCategory = e.category;
     $('f-detail').value = e.detail || '';
   } else {
-    $('f-owner').value = ownerFilter !== 'all' ? ownerFilter : '댕';
+    selectedOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
     $('f-amount').value = '';
     selectedCategory = '식비';
     $('f-detail').value = '';
   }
+  renderOwnerGrid();
   renderCategoryGrid();
   $('entryModalBackdrop').classList.add('open');
 }
@@ -751,7 +762,7 @@ function closeEntryModal(){
   editingId = null;
 }
 function saveEntry(){
-  const owner = $('f-owner').value;
+  const owner = selectedOwner;
   const date = $('f-date').value;
   const amount = parseInt($('f-amount').value, 10);
   const detail = $('f-detail').value.trim();
