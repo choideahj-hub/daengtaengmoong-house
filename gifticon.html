@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>댕탱 기프티콘함</title>
+<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css"></noscript>
+<style>
+  :root{
+    --bg:#FFF8F3;
+    --surface:#FFFFFF;
+    --ink:#4A3B34;
+    --ink-soft:#8A776C;
+    --muted:#C4B2A6;
+    --line:#F3E4D8;
+    --accent:#FF8FA0;
+    --accent-soft:#FFE7EC;
+    --accent2:#6FCFC0;
+    --accent2-soft:#E1F7F2;
+    --amber:#D9A441;
+    --amber-soft:#FBF0DC;
+    --red:#C23B32;
+    --red-soft:#FBEAE8;
+    --gray-soft:#F0EFEA;
+    --radius:20px;
+    --shadow:0 6px 18px -6px rgba(255,143,160,.22), 0 2px 6px -2px rgba(74,59,52,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  input, select, textarea{font-size:16px;}
+  body{
+    background:
+      radial-gradient(circle at 8% 4%, #FFEFF2 0%, transparent 40%),
+      radial-gradient(circle at 96% 12%, #E9F9F4 0%, transparent 38%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 70px 0;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:22px 16px 0;}
+
+  /* Setup screen */
+  .setup-screen{
+    display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;
+  }
+  .setup-card{
+    max-width:420px;width:100%;background:var(--surface);border-radius:24px;
+    box-shadow:var(--shadow);padding:32px 26px;text-align:center;
+  }
+  .setup-emoji{font-size:40px;margin-bottom:10px;}
+  .setup-card h2{font-size:19px;margin:0 0 12px;}
+  .setup-card p{font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin:0 0 18px;}
+  .setup-card .btn{width:100%;margin-bottom:10px;}
+  .setup-done{color:var(--accent2);font-weight:800;font-size:14px;}
+  #setupLink{
+    width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:14px;
+    font-size:12.5px;font-family:inherit;background:#FFFCFA;color:var(--ink);
+    margin-bottom:10px;text-align:center;
+  }
+
+  header{margin-bottom:16px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;letter-spacing:.08em;color:var(--accent);
+    text-transform:uppercase;font-weight:800;margin-bottom:8px;
+    background:var(--accent-soft);padding:4px 11px;border-radius:100px;
+  }
+  h1{font-size:24px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
+  .sub{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.6;}
+
+  .add-btn{
+    width:100%;margin-top:14px;padding:14px;border-radius:100px;
+    border:2px dashed #FFC4D0;background:var(--accent-soft);color:var(--accent);
+    font-size:13.5px;font-weight:800;cursor:pointer;
+  }
+
+  .pill-row{display:flex;gap:6px;margin-top:14px;}
+  .pill{
+    flex:1;padding:9px 6px;border-radius:100px;border:1.5px solid var(--line);
+    background:#fff;font-size:12.5px;font-weight:700;color:var(--ink-soft);
+    cursor:pointer;transition:all .15s ease;text-align:center;
+  }
+  .pill.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+  .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
+  .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
+  .section-label .hint{font-size:11px;color:var(--muted);font-weight:700;}
+
+  .gift-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .gift-card{
+    background:var(--surface);border-radius:18px;box-shadow:var(--shadow);
+    overflow:hidden;cursor:pointer;border:3px solid transparent;
+  }
+  .gift-card.urgent{border-color:var(--red);}
+  .gift-card.soon{border-color:var(--amber);}
+  .gift-card.expired{opacity:.55;}
+  .gift-thumb{
+    position:relative;width:100%;aspect-ratio:1/1;background-size:cover;background-position:center;
+    background-color:var(--gray-soft);
+  }
+  .gift-dday{
+    position:absolute;top:8px;left:8px;font-size:11px;font-weight:800;color:#fff;
+    background:rgba(74,59,52,.55);padding:3px 9px;border-radius:100px;
+    backdrop-filter:blur(2px);
+  }
+  .gift-dday.urgent{background:var(--red);}
+  .gift-dday.soon{background:var(--amber);}
+  .gift-dday.expired{background:var(--muted);}
+  .used-stamp{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(74,59,52,.4);
+  }
+  .used-stamp span{
+    border:3px solid #fff;color:#fff;font-weight:800;font-size:15px;
+    padding:6px 14px;border-radius:10px;transform:rotate(-12deg);
+    letter-spacing:.05em;
+  }
+  .gift-info{padding:10px 12px;}
+  .gift-brand{font-size:10.5px;font-weight:800;color:var(--accent);margin-bottom:2px;}
+  .gift-name{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+  .empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:13px;grid-column:1/-1;}
+  .empty b{display:block;color:var(--ink);font-size:14px;margin-bottom:4px;}
+
+  /* Modals */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(74,59,52,.45);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+    border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+    animation:slideup .2s ease;
+  }
+  @media(min-width:540px){
+    .modal-backdrop{align-items:center;}
+    .modal{border-radius:24px;}
+  }
+  @keyframes slideup{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal h3{margin:0 0 16px;font-size:16px;font-weight:800;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:11.5px;font-weight:800;color:var(--ink-soft);margin-bottom:5px;}
+  .field input{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:inherit;background:#FFFCFA;color:var(--ink);
+  }
+  .field input:focus{outline:none;border-color:var(--accent);}
+  .img-preview{
+    width:100%;aspect-ratio:1/1;border-radius:14px;background:var(--gray-soft);
+    background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:12.5px;margin-bottom:10px;overflow:hidden;
+  }
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
+  .btn.primary{background:var(--ink);color:#fff;}
+  .btn.ghost{background:var(--gray-soft);color:var(--ink-soft);}
+  .btn.danger{background:var(--red-soft);color:var(--red);}
+  .btn.use{background:var(--accent2);color:#fff;}
+  .btn:disabled{opacity:.5;}
+
+  /* Viewer modal */
+  .viewer-img{width:100%;border-radius:16px;margin-bottom:14px;display:block;}
+  .viewer-title{font-size:16px;font-weight:800;margin-bottom:2px;}
+  .viewer-brand{font-size:12px;color:var(--accent);font-weight:800;margin-bottom:10px;}
+  .viewer-meta-row{display:flex;justify-content:space-between;align-items:center;
+    background:var(--gray-soft);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;}
+  .viewer-dday-badge{font-weight:800;padding:4px 10px;border-radius:100px;color:#fff;}
+  .viewer-dday-badge.urgent{background:var(--red);}
+  .viewer-dday-badge.soon{background:var(--amber);}
+  .viewer-dday-badge.expired{background:var(--muted);}
+  .viewer-dday-badge.ok{background:var(--accent2);}
+
+  .footer-note{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.7;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
+    font-size:12.5px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-emoji">🎁</div>
+    <h2>댕탱 기프티콘함 처음 시작하기</h2>
+    <p>아래 버튼을 눌러서 우리 둘만의 저장소를 딱 한 번 만들어요. 이 버튼은 <b>한 사람만</b> 눌러주세요.</p>
+    <button class="btn primary" id="setupCreateBtn" onclick="createStore()">🎁 저장소 만들기</button>
+    <div id="setupResult" style="display:none;">
+      <p class="setup-done">✓ 저장소를 만들었어요!</p>
+      <p>아래 링크를 <b>즐겨찾기하고</b>, 상대방에게도 카톡으로 보내주세요.</p>
+      <input type="text" id="setupLink" readonly onclick="this.select()">
+      <button class="btn primary" id="setupCopyBtn" onclick="copySetupLink()">링크 복사하기</button>
+      <button class="btn ghost" onclick="location.href=document.getElementById('setupLink').value">이 링크로 바로 시작하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="mainWrap">
+  <header>
+    <div class="eyebrow">🏠 댕탱뭉 하우스 · 챕터 04</div>
+    <h1>기프티콘함 🎁</h1>
+    <p class="sub">모아둔 기프티콘, 유효기간 임박한 순서로 보여요</p>
+  </header>
+
+  <button class="add-btn" id="addBtn">🎁 기프티콘 추가하기</button>
+
+  <div class="pill-row" id="filterPills">
+    <button class="pill active" data-filter="active">보유 중</button>
+    <button class="pill" data-filter="used">사용완료</button>
+    <button class="pill" data-filter="expired">기간만료</button>
+  </div>
+
+  <div class="section-label">
+    <h2 id="listTitle">보유 중인 기프티콘</h2>
+    <span class="hint" id="listCountHint"></span>
+  </div>
+  <div class="gift-grid" id="giftGrid"></div>
+
+  <p class="footer-note">바코드가 잘 보이도록 화질은 최대한 유지하면서 저장해요<br>기프티콘이 많이 쌓이면 저장 용량 한도에 걸릴 수 있어요, 그럴 땐 알려주세요 🐾</p>
+</div>
+
+<div class="modal-backdrop" id="addModalBackdrop">
+  <div class="modal">
+    <h3 id="addModalTitle">기프티콘 추가</h3>
+    <div class="field">
+      <label>캡처 이미지</label>
+      <div class="img-preview" id="imgPreview">📷 눌러서 이미지 선택</div>
+      <input type="file" id="f-image" accept="image/*" style="display:none;">
+    </div>
+    <div class="field">
+      <label>브랜드</label>
+      <input type="text" id="f-brand" placeholder="예: 스타벅스">
+    </div>
+    <div class="field">
+      <label>기프티콘명</label>
+      <input type="text" id="f-name" placeholder="예: 아이스 아메리카노 Tall">
+    </div>
+    <div class="field">
+      <label>유효기간</label>
+      <input type="date" id="f-expiry">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="addCancelBtn">취소</button>
+      <button class="btn danger" id="addDeleteBtn" style="display:none;">삭제</button>
+      <button class="btn primary" id="addSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="viewerBackdrop">
+  <div class="modal">
+    <img class="viewer-img" id="viewerImg" src="" alt="">
+    <div class="viewer-brand" id="viewerBrand"></div>
+    <div class="viewer-title" id="viewerTitle"></div>
+    <div class="viewer-meta-row">
+      <span id="viewerExpiryText"></span>
+      <span class="viewer-dday-badge" id="viewerDdayBadge"></span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="viewerEditBtn">✏️ 수정</button>
+      <button class="btn use" id="viewerUseBtn">✅ 사용완료</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="viewerCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = 'https://jsonblob.com/api/jsonBlob';
+const params = new URLSearchParams(location.search);
+let BLOB_ID = params.get('store') || '';
+
+let gifticons = [];
+let filter = 'active';
+let editingId = null;
+let viewingId = null;
+let pendingImageData = null;
+
+const $ = (id) => document.getElementById(id);
+
+function getKSTToday(){
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  d.setHours(0,0,0,0);
+  return d;
+}
+function daysUntil(dateStr){
+  const today = getKSTToday();
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m-1, d);
+  target.setHours(0,0,0,0);
+  return Math.round((target - today) / (1000*60*60*24));
+}
+function ddayLabel(diff){
+  if(diff < 0) return `만료 D+${Math.abs(diff)}`;
+  if(diff === 0) return 'D-DAY';
+  return 'D-' + diff;
+}
+function statusClass(diff){
+  if(diff < 0) return 'expired';
+  if(diff <= 3) return 'urgent';
+  if(diff <= 7) return 'soon';
+  return 'ok';
+}
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---- Remote storage ----
+async function loadGifticons(){
+  if(!BLOB_ID){
+    showSetupScreen();
+    return;
+  }
+  try{
+    const res = await fetch(`${API_BASE}/${BLOB_ID}`);
+    if(!res.ok) throw new Error('저장소를 찾을 수 없어요 (' + res.status + ')');
+    const data = await res.json();
+    gifticons = Array.isArray(data.gifticons) ? data.gifticons : [];
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '<br><br><a href="' + location.pathname + '">처음부터 다시 시작하기</a></div>';
+    return;
+  }
+  try{
+    hideSetupScreen();
+    render();
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 그리는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+async function saveGifticons(){
+  if(!BLOB_ID) return;
+  try{
+    const res = await fetch(`${API_BASE}/${BLOB_ID}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ gifticons })
+    });
+    if(!res.ok) throw new Error('저장 실패');
+  }catch(e){
+    showToast('저장에 실패했어요. 인터넷 연결을 확인해주세요.');
+  }
+}
+async function createStore(){
+  const btn = $('setupCreateBtn');
+  btn.disabled = true;
+  btn.textContent = '만드는 중...';
+  try{
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({ gifticons: [] })
+    });
+    const location_ = res.headers.get('Location') || res.headers.get('location');
+    if(!location_) throw new Error('저장소 생성 응답을 읽지 못했어요');
+    const newId = location_.split('/').pop();
+    const newUrl = location.origin + location.pathname + '?store=' + newId;
+    $('setupResult').style.display = 'block';
+    $('setupCreateBtn').style.display = 'none';
+    $('setupLink').value = newUrl;
+  }catch(err){
+    btn.disabled = false;
+    btn.textContent = '🎁 저장소 만들기';
+    showToast('저장소를 만들지 못했어요. 다시 시도해주세요.');
+  }
+}
+function showSetupScreen(){
+  $('mainWrap').style.display = 'none';
+  $('setupScreen').style.display = 'flex';
+}
+function hideSetupScreen(){
+  $('setupScreen').style.display = 'none';
+  $('mainWrap').style.display = '';
+}
+function copySetupLink(){
+  const input = $('setupLink');
+  input.select();
+  navigator.clipboard && navigator.clipboard.writeText(input.value).then(()=>{
+    showToast('링크를 복사했어요');
+  }).catch(()=>{ document.execCommand('copy'); });
+}
+
+// ---- Image resize ----
+function resizeImage(file, maxWidth, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxWidth){ h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('이미지를 읽지 못했어요'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('파일을 읽지 못했어요'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---- Render ----
+function render(){
+  document.querySelectorAll('#filterPills .pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.filter === filter);
+  });
+  renderGrid();
+}
+
+function renderGrid(){
+  let list;
+  if(filter === 'used'){
+    list = gifticons.filter(g => g.used).sort((a,b)=> (b.usedAt||'').localeCompare(a.usedAt||''));
+    $('listTitle').textContent = '사용완료';
+  } else if(filter === 'expired'){
+    list = gifticons.filter(g => !g.used && daysUntil(g.expiry) < 0).sort((a,b)=> a.expiry.localeCompare(b.expiry));
+    $('listTitle').textContent = '기간만료';
+  } else {
+    list = gifticons.filter(g => !g.used && daysUntil(g.expiry) >= 0).sort((a,b)=> a.expiry.localeCompare(b.expiry));
+    $('listTitle').textContent = '보유 중인 기프티콘';
+  }
+  $('listCountHint').textContent = list.length ? `${list.length}개` : '';
+
+  const grid = $('giftGrid');
+  if(list.length === 0){
+    grid.innerHTML = `<div class="empty"><b>해당하는 기프티콘이 없어요</b>${filter==='active' ? '위 버튼으로 추가해보세요.' : ''}</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(g=>{
+    const diff = daysUntil(g.expiry);
+    const cls = g.used ? '' : statusClass(diff);
+    return `
+      <div class="gift-card ${cls}" data-id="${g.id}">
+        <div class="gift-thumb" style="background-image:url('${g.image}')">
+          ${!g.used ? `<div class="gift-dday ${cls}">${ddayLabel(diff)}</div>` : ''}
+          ${g.used ? `<div class="used-stamp"><span>사용완료</span></div>` : ''}
+        </div>
+        <div class="gift-info">
+          <div class="gift-brand">${escapeHtml(g.brand)}</div>
+          <div class="gift-name">${escapeHtml(g.name)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.gift-card').forEach(card=>{
+    card.addEventListener('click', ()=> openViewer(card.dataset.id));
+  });
+}
+
+// ---- Add/Edit modal ----
+function openAddModal(id){
+  editingId = id || null;
+  pendingImageData = null;
+  $('addModalTitle').textContent = id ? '기프티콘 수정' : '기프티콘 추가';
+  $('addDeleteBtn').style.display = id ? 'block' : 'none';
+  if(id){
+    const g = gifticons.find(x=>x.id===id);
+    pendingImageData = g.image;
+    $('imgPreview').style.backgroundImage = `url('${g.image}')`;
+    $('imgPreview').textContent = '';
+    $('f-brand').value = g.brand;
+    $('f-name').value = g.name;
+    $('f-expiry').value = g.expiry;
+  } else {
+    $('imgPreview').style.backgroundImage = '';
+    $('imgPreview').textContent = '📷 눌러서 이미지 선택';
+    $('f-brand').value = '';
+    $('f-name').value = '';
+    const today = getKSTToday();
+    const oneYear = new Date(today); oneYear.setFullYear(oneYear.getFullYear()+1);
+    $('f-expiry').value = `${oneYear.getFullYear()}-${String(oneYear.getMonth()+1).padStart(2,'0')}-${String(oneYear.getDate()).padStart(2,'0')}`;
+  }
+  $('addModalBackdrop').classList.add('open');
+}
+function closeAddModal(){
+  $('addModalBackdrop').classList.remove('open');
+  editingId = null;
+}
+async function handleImageSelect(file){
+  if(!file) return;
+  try{
+    $('imgPreview').textContent = '이미지 처리 중...';
+    const dataUrl = await resizeImage(file, 1100, 0.9);
+    pendingImageData = dataUrl;
+    $('imgPreview').style.backgroundImage = `url('${dataUrl}')`;
+    $('imgPreview').textContent = '';
+  }catch(err){
+    showToast('이미지 처리에 실패했어요');
+    $('imgPreview').textContent = '📷 눌러서 이미지 선택';
+  }
+}
+function saveGifticon(){
+  const brand = $('f-brand').value.trim();
+  const name = $('f-name').value.trim();
+  const expiry = $('f-expiry').value;
+
+  if(!brand || !name || !expiry){
+    showToast('브랜드·기프티콘명·유효기간을 입력해주세요');
+    return;
+  }
+  if(!pendingImageData){
+    showToast('이미지를 선택해주세요');
+    return;
+  }
+
+  if(editingId){
+    const idx = gifticons.findIndex(g=>g.id===editingId);
+    gifticons[idx] = { ...gifticons[idx], brand, name, expiry, image: pendingImageData };
+  } else {
+    gifticons.push({
+      id: 'g' + Date.now() + Math.floor(Math.random()*100000),
+      brand, name, expiry, image: pendingImageData,
+      used: false, usedAt: null
+    });
+  }
+  saveGifticons();
+  render();
+  closeAddModal();
+  showToast('저장했어요');
+}
+function deleteGifticon(){
+  if(!editingId) return;
+  const g = gifticons.find(x=>x.id===editingId);
+  if(g && confirm(`'${g.brand} ${g.name}' 기프티콘을 삭제할까요? 되돌릴 수 없어요.`)){
+    gifticons = gifticons.filter(x=>x.id!==editingId);
+    saveGifticons();
+    render();
+    closeAddModal();
+    showToast('삭제했어요');
+  }
+}
+
+// ---- Viewer modal ----
+function openViewer(id){
+  viewingId = id;
+  const g = gifticons.find(x=>x.id===id);
+  if(!g) return;
+  $('viewerImg').src = g.image;
+  $('viewerBrand').textContent = g.brand;
+  $('viewerTitle').textContent = g.name;
+  const diff = daysUntil(g.expiry);
+  const cls = g.used ? 'ok' : statusClass(diff);
+  $('viewerExpiryText').textContent = `유효기간 ${g.expiry}`;
+  const badge = $('viewerDdayBadge');
+  badge.textContent = g.used ? '사용완료' : ddayLabel(diff);
+  badge.className = 'viewer-dday-badge ' + (g.used ? 'ok' : cls);
+  $('viewerUseBtn').textContent = g.used ? '↩ 사용 취소' : '✅ 사용완료';
+  $('viewerBackdrop').classList.add('open');
+}
+function closeViewer(){
+  $('viewerBackdrop').classList.remove('open');
+  viewingId = null;
+}
+function toggleUsed(){
+  const g = gifticons.find(x=>x.id===viewingId);
+  if(!g) return;
+  g.used = !g.used;
+  g.usedAt = g.used ? new Date().toISOString() : null;
+  saveGifticons();
+  render();
+  closeViewer();
+  showToast(g.used ? '사용완료로 표시했어요' : '사용 취소했어요');
+}
+
+function init(){
+  try{
+    $('addBtn').addEventListener('click', ()=> openAddModal(null));
+    $('addCancelBtn').addEventListener('click', closeAddModal);
+    $('addSaveBtn').addEventListener('click', saveGifticon);
+    $('addDeleteBtn').addEventListener('click', deleteGifticon);
+    $('addModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='addModalBackdrop') closeAddModal(); });
+    $('imgPreview').addEventListener('click', ()=> $('f-image').click());
+    $('f-image').addEventListener('change', e=> handleImageSelect(e.target.files[0]));
+
+    $('viewerCloseBtn').addEventListener('click', closeViewer);
+    $('viewerBackdrop').addEventListener('click', e=>{ if(e.target.id==='viewerBackdrop') closeViewer(); });
+    $('viewerUseBtn').addEventListener('click', toggleUsed);
+    $('viewerEditBtn').addEventListener('click', ()=>{ closeViewer(); openAddModal(viewingId); });
+
+    document.querySelectorAll('#filterPills .pill').forEach(p=>{
+      p.addEventListener('click', ()=>{ filter = p.dataset.filter; render(); });
+    });
+
+    loadGifticons();
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 불러오는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
