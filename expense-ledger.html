@@ -96,6 +96,7 @@
   .pill.active{background:var(--ink);border-color:var(--ink);color:#fff;}
   .pill.active[data-owner="댕"]{background:var(--blue);border-color:var(--blue);}
   .pill.active[data-owner="탱"]{background:var(--pink);border-color:var(--pink);}
+  .pill.active[data-owner="공용"]{background:var(--amber);border-color:var(--amber);}
 
   /* Summary card */
   .summary-card{
@@ -104,10 +105,14 @@
   }
   .summary-total{font-size:11.5px;color:var(--ink-soft);font-weight:700;margin-bottom:2px;}
   .summary-amount{font-size:28px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .summary-compare{font-size:11.5px;font-weight:700;margin-top:4px;color:var(--ink-soft);}
+  .summary-compare.up{color:var(--red);}
+  .summary-compare.down{color:var(--accent2);}
   .summary-split{display:flex;gap:10px;margin-top:12px;}
   .summary-split-item{flex:1;background:var(--gray-soft);border-radius:12px;padding:10px 12px;}
   .summary-split-item.o-댕{background:var(--blue-soft);}
   .summary-split-item.o-탱{background:var(--pink-soft);}
+  .summary-split-item.o-공용{background:var(--amber-soft);}
   .summary-split-label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:2px;}
   .summary-split-amount{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
   .cat-bars{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
@@ -129,6 +134,8 @@
   /* Section labels */
   .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
   .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
+  .toggle-icon{font-size:12px;color:var(--muted);transition:transform .2s ease;}
+  .toggle-icon.open{transform:rotate(180deg);}
   .section-label .hint{font-size:11px;color:var(--muted);font-weight:700;}
 
   /* Entry list */
@@ -138,6 +145,12 @@
     display:flex;align-items:center;gap:10px;
     background:var(--surface);border-radius:14px;box-shadow:var(--shadow);
     padding:12px 14px;margin-bottom:8px;cursor:pointer;
+    border-left:4px solid transparent;
+  }
+  .entry-row.big-expense{border-left-color:var(--red);background:var(--red-soft);}
+  .big-tag{
+    display:inline-block;font-size:10px;font-weight:800;color:var(--red);
+    background:#fff;border:1.5px solid var(--red);padding:1px 6px;border-radius:100px;
   }
   .entry-emoji{font-size:20px;flex-shrink:0;}
   .entry-body{flex:1;min-width:0;}
@@ -149,6 +162,7 @@
   }
   .owner-tag.o-댕{background:var(--blue-soft);color:#4C6FD6;}
   .owner-tag.o-탱{background:var(--pink-soft);color:#E0568F;}
+  .owner-tag.o-공용{background:var(--amber-soft);color:var(--amber);}
 
   .empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:13px;}
   .empty b{display:block;color:var(--ink);font-size:14px;margin-bottom:4px;}
@@ -219,6 +233,12 @@
   .ocr-row-fields .ocr-line1 input:last-child{flex:1;}
 
   .footer-note{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.7;}
+  .backup-row{display:flex;gap:8px;margin-top:16px;justify-content:center;}
+  .backup-link{
+    background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;
+    cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:6px 4px;
+  }
+  .backup-link:hover{color:var(--ink-soft);}
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
     background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
@@ -260,6 +280,7 @@
 
   <div class="pill-row" id="ownerFilterPills">
     <button class="pill active" data-owner="all">전체</button>
+    <button class="pill" data-owner="공용">공용</button>
     <button class="pill" data-owner="댕">댕</button>
     <button class="pill" data-owner="탱">탱</button>
   </div>
@@ -267,6 +288,7 @@
   <div class="summary-card">
     <div class="summary-total">이번 달 총 지출</div>
     <div class="summary-amount" id="summaryTotal">0원</div>
+    <div class="summary-compare" id="summaryCompare"></div>
     <div class="summary-split">
       <div class="summary-split-item o-댕">
         <div class="summary-split-label">댕</div>
@@ -276,6 +298,10 @@
         <div class="summary-split-label">탱</div>
         <div class="summary-split-amount" id="summaryTaeng">0원</div>
       </div>
+      <div class="summary-split-item o-공용">
+        <div class="summary-split-label">공용</div>
+        <div class="summary-split-amount" id="summaryGongyong">0원</div>
+      </div>
     </div>
     <div class="cat-bars" id="catBars"></div>
   </div>
@@ -283,6 +309,19 @@
   <div class="add-row">
     <button class="add-btn" id="addManualBtn">✏️ 직접 입력</button>
     <button class="add-btn ocr" id="addOcrBtn">📷 캡처로 추가</button>
+  </div>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin:8px 0 0;line-height:1.6;">📷 캡처 자동인식은 참고용이에요, 저장 전에 꼭 확인해주세요</p>
+
+  <div class="section-label" id="searchToggle" style="cursor:pointer;">
+    <h2>🔍 상세명 검색</h2>
+    <span class="toggle-icon" id="searchToggleIcon">▾</span>
+  </div>
+  <div id="searchPanel" style="display:none;">
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="text" id="searchInput" placeholder="예: 스타벅스" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
+      <button class="add-btn" id="searchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
+    </div>
+    <div id="searchResult"></div>
   </div>
 
   <div class="section-label">
@@ -297,7 +336,12 @@
   </div>
   <div id="trashList" style="display:none;"></div>
 
-  <p class="footer-note">캡처 자동인식은 참고용이에요, 저장 전에 꼭 확인해주세요 🐾</p>
+  <div class="backup-row">
+    <button class="backup-link" id="backupDownloadBtn">⬇ 데이터 백업 다운로드</button>
+    <button class="backup-link" id="backupRestoreBtn">⬆ 백업 파일 복원</button>
+    <input type="file" id="backupFileInput" accept="application/json" style="display:none;">
+  </div>
+
 </div>
 
 <div class="modal-backdrop" id="entryModalBackdrop">
@@ -308,6 +352,7 @@
       <select id="f-owner">
         <option value="댕">댕</option>
         <option value="탱">탱</option>
+        <option value="공용">공용</option>
       </select>
     </div>
     <div class="field">
@@ -349,6 +394,7 @@
         <select id="ocr-owner">
           <option value="댕">댕</option>
           <option value="탱">탱</option>
+          <option value="공용">공용</option>
         </select>
       </div>
       <div id="ocrRows"></div>
@@ -395,6 +441,7 @@ let currentMonth = '';
 let editingId = null;
 let selectedCategory = '식비';
 let trashOpen = false;
+const BIG_EXPENSE_THRESHOLD = 150000;
 let ocrParsedRows = [];
 
 const $ = (id) => document.getElementById(id);
@@ -518,7 +565,10 @@ function deletedEntries(){
   return entries.filter(e => e.deleted);
 }
 function monthEntries(){
-  let list = activeEntries().filter(e => monthKey(e.date) === currentMonth);
+  return entriesForMonth(currentMonth);
+}
+function entriesForMonth(mk){
+  let list = activeEntries().filter(e => monthKey(e.date) === mk);
   if(ownerFilter !== 'all') list = list.filter(e => e.owner === ownerFilter);
   return list;
 }
@@ -539,9 +589,31 @@ function renderSummary(){
   const total = list.reduce((s,e)=>s+e.amount, 0);
   const daengTotal = list.filter(e=>e.owner==='댕').reduce((s,e)=>s+e.amount, 0);
   const taengTotal = list.filter(e=>e.owner==='탱').reduce((s,e)=>s+e.amount, 0);
+  const gongyongTotal = list.filter(e=>e.owner==='공용').reduce((s,e)=>s+e.amount, 0);
   $('summaryTotal').textContent = formatWon(total);
   $('summaryDaeng').textContent = formatWon(daengTotal);
   $('summaryTaeng').textContent = formatWon(taengTotal);
+  $('summaryGongyong').textContent = formatWon(gongyongTotal);
+
+  const prevMonth = shiftMonth(currentMonth, -1);
+  const prevTotal = entriesForMonth(prevMonth).reduce((s,e)=>s+e.amount, 0);
+  const compareEl = $('summaryCompare');
+  if(prevTotal === 0){
+    compareEl.textContent = total > 0 ? '지난달 기록이 없어 비교할 수 없어요' : '';
+    compareEl.className = 'summary-compare';
+  } else {
+    const diffPct = Math.round(((total - prevTotal) / prevTotal) * 100);
+    if(diffPct > 0){
+      compareEl.textContent = `📈 지난달보다 ${diffPct}% 더 썼어요`;
+      compareEl.className = 'summary-compare up';
+    } else if(diffPct < 0){
+      compareEl.textContent = `📉 지난달보다 ${Math.abs(diffPct)}% 줄였어요`;
+      compareEl.className = 'summary-compare down';
+    } else {
+      compareEl.textContent = `지난달이랑 지출이 똑같아요`;
+      compareEl.className = 'summary-compare';
+    }
+  }
 
   const byCat = {};
   list.forEach(e=>{ byCat[e.category] = (byCat[e.category]||0) + e.amount; });
@@ -567,7 +639,7 @@ function renderEntryList(){
   const container = $('entryList');
 
   if(list.length === 0){
-    container.innerHTML = `<div class="empty"><b>이번 달 지출 내역이 없어요</b>아래 버튼으로 추가해보세요.</div>`;
+    container.innerHTML = `<div class="empty"><b>이번 달 지출 내역이 없어요</b>위 버튼으로 추가해보세요.</div>`;
     return;
   }
 
@@ -579,19 +651,23 @@ function renderEntryList(){
 
   container.innerHTML = Object.keys(groups).sort().reverse().map(date=>{
     const [y,m,d] = date.split('-');
-    const rows = groups[date].map(e=>`
-      <div class="entry-row" data-id="${e.id}">
+    const rows = groups[date].map(e=>{
+      const isBig = e.amount >= BIG_EXPENSE_THRESHOLD;
+      return `
+      <div class="entry-row ${isBig?'big-expense':''}" data-id="${e.id}">
         <span class="entry-emoji">${categoryEmoji(e.category)}</span>
         <div class="entry-body">
           <div class="entry-detail">
             <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
+            ${isBig ? '<span class="big-tag">⚠️ 큰 지출</span>' : ''}
             ${escapeHtml(e.detail || e.category)}
           </div>
           <div class="entry-meta">${escapeHtml(e.category)}</div>
         </div>
         <div class="entry-amount">${e.amount.toLocaleString('ko-KR')}원</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
     return `<div class="date-group"><div class="date-group-label">${parseInt(m,10)}월 ${parseInt(d,10)}일</div>${rows}</div>`;
   }).join('');
 
@@ -831,6 +907,77 @@ function saveOcrRows(){
 }
 
 // ---- Init & events ----
+// ---- Search ----
+function runSearch(){
+  const q = $('searchInput').value.trim();
+  const resultEl = $('searchResult');
+  if(!q){
+    resultEl.innerHTML = '';
+    return;
+  }
+  const matches = activeEntries().filter(e =>
+    (e.detail || '').includes(q) || (e.category || '').includes(q)
+  ).sort((a,b)=> b.date.localeCompare(a.date));
+
+  if(matches.length === 0){
+    resultEl.innerHTML = `<div class="empty"><b>검색 결과가 없어요</b></div>`;
+    return;
+  }
+  const total = matches.reduce((s,e)=>s+e.amount, 0);
+  resultEl.innerHTML =
+    `<div style="font-size:13px;font-weight:800;margin-bottom:8px;">'${escapeHtml(q)}' 검색 결과 ${matches.length}건 · ${formatWon(total)}</div>` +
+    matches.map(e=>`
+      <div class="entry-row" data-id="${e.id}">
+        <span class="entry-emoji">${categoryEmoji(e.category)}</span>
+        <div class="entry-body">
+          <div class="entry-detail">
+            <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
+            ${escapeHtml(e.detail || e.category)}
+          </div>
+          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}</div>
+        </div>
+        <div class="entry-amount">${e.amount.toLocaleString('ko-KR')}원</div>
+      </div>
+    `).join('');
+  resultEl.querySelectorAll('.entry-row').forEach(row=>{
+    row.addEventListener('click', ()=> openEntryModal(row.dataset.id));
+  });
+}
+
+// ---- Backup ----
+function downloadBackup(){
+  const payload = { exportedAt: new Date().toISOString(), entries };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const t = getKSTNow();
+  a.href = url;
+  a.download = `댕탱가계부_백업_${t.getFullYear()}${String(t.getMonth()+1).padStart(2,'0')}${String(t.getDate()).padStart(2,'0')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('백업 파일을 다운로드했어요');
+}
+
+function restoreBackup(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data.entries)) throw new Error('형식이 올바르지 않아요');
+      if(!confirm(`백업 파일에는 항목 ${data.entries.length}개가 있어요. 지금 데이터를 이걸로 덮어쓸까요?`)) return;
+      entries = data.entries;
+      saveEntries();
+      render();
+      showToast('복원했어요');
+    }catch(err){
+      showToast('백업 파일을 읽을 수 없어요');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function init(){
   try{
     const now = getKSTNow();
@@ -856,6 +1003,24 @@ function init(){
     $('ocrModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='ocrModalBackdrop') closeOcrModal(); });
 
     $('trashToggle').addEventListener('click', ()=>{ trashOpen = !trashOpen; renderTrash(); });
+
+    $('searchToggle').addEventListener('click', ()=>{
+      const panel = $('searchPanel');
+      const icon = $('searchToggleIcon');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      icon.classList.toggle('open', !isOpen);
+    });
+    $('searchBtn').addEventListener('click', runSearch);
+    $('searchInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runSearch(); });
+
+    $('backupDownloadBtn').addEventListener('click', downloadBackup);
+    $('backupRestoreBtn').addEventListener('click', ()=> $('backupFileInput').click());
+    $('backupFileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(file) restoreBackup(file);
+      e.target.value = '';
+    });
 
     loadEntries();
   }catch(err){
