@@ -494,14 +494,32 @@
   </div>
 </div>
 
-<script>
-const GITHUB_TOKEN = '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';
-const GITHUB_OWNER = 'choideahj-hub';
-const GITHUB_REPO = 'daengtaengmoong-house';
-const DATA_PATH = 'data/card-ledger.json';
-const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`;
-let currentSha = null;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhrAS_axfkAyBV7_JTTJOQdB6szw2_BXU",
+    authDomain: "daengtaengmoonghouse.firebaseapp.com",
+    projectId: "daengtaengmoonghouse",
+    storageBucket: "daengtaengmoonghouse.firebasestorage.app",
+    messagingSenderId: "656550962777",
+    appId: "1:656550962777:web:8a9ae998f5a2c25448f348"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const DOC_ID = 'card-ledger';
+
+  window.firestoreLoad = async function(){
+    const snap = await getDoc(doc(db, 'appdata', DOC_ID));
+    return snap.exists() ? snap.data() : null;
+  };
+  window.firestoreSave = async function(data){
+    await setDoc(doc(db, 'appdata', DOC_ID), data);
+    return true;
+  };
+</script>
+<script>
 let entries = [];
 let completions = {}; // key: `${entryId}__${YYYY-MM}` -> {done, doneAt, name, card, owner, account, day}
 let editingId = null;
@@ -603,33 +621,15 @@ function badgeClass(diff){
   return 'b-later';
 }
 
-// ---- GitHub repo storage (no login, no setup - fixed data file in this repo) ----
-
-function decodeBase64Utf8(b64){
-  return decodeURIComponent(escape(atob(b64.replace(/\n/g,''))));
-}
-function encodeBase64Utf8(str){
-  return btoa(unescape(encodeURIComponent(str)));
-}
+// ---- Firebase Firestore storage (no login, no token in source) ----
 
 async function loadEntries(){
   try{
-    const res = await fetch(GITHUB_API_URL, {
-      headers: {
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github+json'
-      }
-    });
-    if(res.status === 404){
+    const data = await window.firestoreLoad();
+    if(!data){
       entries = [...DEFAULT_ENTRIES];
       completions = {};
-      currentSha = null;
-    } else if(!res.ok){
-      throw new Error('데이터를 불러오지 못했어요 (' + res.status + ')');
     } else {
-      const json = await res.json();
-      currentSha = json.sha;
-      const data = JSON.parse(decodeBase64Utf8(json.content));
       entries = Array.isArray(data.entries) ? data.entries : [];
       completions = data.completions && typeof data.completions === 'object' ? data.completions : {};
     }
@@ -646,37 +646,7 @@ async function loadEntries(){
 
 async function saveRemote(){
   try{
-    // 저장 직전에 최신 sha를 다시 받아와서, 다른 기기가 먼저 저장했어도 충돌 없이 반영
-    const getRes = await fetch(GITHUB_API_URL, {
-      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
-    });
-    if(getRes.ok){
-      currentSha = (await getRes.json()).sha;
-    } else if(getRes.status !== 404){
-      throw new Error('저장 전 확인 실패 (' + getRes.status + ')');
-    }
-
-    const body = {
-      message: '가계부 업데이트 ' + new Date().toISOString(),
-      content: encodeBase64Utf8(JSON.stringify({ entries, completions }, null, 2)),
-      branch: 'main'
-    };
-    if(currentSha) body.sha = currentSha;
-
-    const putRes = await fetch(GITHUB_API_URL, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    if(!putRes.ok){
-      const errJson = await putRes.json().catch(()=>({}));
-      throw new Error(errJson.message || ('저장 실패 (' + putRes.status + ')'));
-    }
-    currentSha = (await putRes.json()).content.sha;
+    await window.firestoreSave({ entries, completions });
     return true;
   }catch(e){
     showToast('저장에 실패했어요: ' + (e.message || ''));
