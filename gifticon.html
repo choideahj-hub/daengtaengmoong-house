@@ -636,9 +636,37 @@ function parseGifticonText(text){
   return { brand, name, expiry };
 }
 
+// 상단 상품 사진 영역(글씨 노이즈 원인)을 잘라내고, 브랜드/제목/바코드가 있는
+// 아래쪽 텍스트 영역만 OCR에 넘김
+function cropBottomForOcr(file, topFraction){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const cropY = Math.round(img.height * topFraction);
+        const cropH = img.height - cropY;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = cropH;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, img.width, cropH);
+        canvas.toBlob((blob)=>{
+          if(blob) resolve(blob); else reject(new Error('이미지 자르기에 실패했어요'));
+        }, 'image/jpeg', 0.92);
+      };
+      img.onerror = () => reject(new Error('이미지를 읽지 못했어요'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('파일을 읽지 못했어요'));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function runGifticonOcr(file){
   try{
-    const { data: { text } } = await Tesseract.recognize(file, 'kor+eng');
+    const croppedBlob = await cropBottomForOcr(file, 0.38);
+    const { data: { text } } = await Tesseract.recognize(croppedBlob, 'kor+eng');
     const parsed = parseGifticonText(text);
     if(parsed.brand) $('f-brand').value = parsed.brand;
     if(parsed.name && !$('f-name').value) $('f-name').value = parsed.name;
