@@ -495,10 +495,12 @@ function parseGifticonText(text){
   const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
   const fullText = lines.join(' ');
 
-  // 브랜드 추정: 알려진 브랜드명이 텍스트에 포함되어 있는지 확인
+  // 브랜드 추정: 알려진 브랜드명이 텍스트에 포함되어 있는지 확인 (띄어쓰기는 무시하고 비교)
+  const normalizeForMatch = s => s.replace(/\s+/g, '');
+  const normalizedFullText = normalizeForMatch(fullText);
   let brand = '';
   for(const b of KNOWN_BRANDS){
-    if(fullText.includes(b)){ brand = b; break; }
+    if(normalizedFullText.includes(normalizeForMatch(b))){ brand = b; break; }
   }
 
   // 유효기간 추정: "유효기간"류 키워드가 있는 줄(또는 바로 다음 줄) 우선, 없으면 전체에서 첫 날짜
@@ -541,7 +543,7 @@ function parseGifticonText(text){
     if(NOISE_WORDS.some(w => line.includes(w))) return true;
     if(dateRe.test(line)) return true;
     if(noiseRe.test(line.replace(/[\s-]/g,''))) return true;
-    if(brand && line.trim() === brand) return true;
+    if(brand && normalizeForMatch(line) === normalizeForMatch(brand)) return true;
     if(line.length < 2 || line.length > 30) return true;
     return false;
   }
@@ -549,7 +551,7 @@ function parseGifticonText(text){
   let name = '';
   if(brand){
     // 브랜드명이 "단독으로" 등장하는 첫 줄(로고/헤더 표기)을 찾아 그 다음 줄부터 상품명으로 사용
-    const brandLineIdx = lines.findIndex(l => l.trim() === brand);
+    const brandLineIdx = lines.findIndex(l => normalizeForMatch(l) === normalizeForMatch(brand));
     if(brandLineIdx !== -1){
       for(let i = brandLineIdx + 1; i < Math.min(brandLineIdx + 4, lines.length); i++){
         if(!isNoiseLine(lines[i])){
