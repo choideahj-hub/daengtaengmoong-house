@@ -46,24 +46,7 @@
   .wrap{max-width:640px;margin:0 auto;padding:22px 16px 0;}
 
   /* Setup screen */
-  .setup-screen{
-    display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;
-  }
-  .setup-card{
-    max-width:420px;width:100%;background:var(--surface);border-radius:24px;
-    box-shadow:var(--shadow);padding:32px 26px;text-align:center;
-  }
-  .setup-emoji{font-size:40px;margin-bottom:10px;}
-  .setup-card h2{font-size:19px;margin:0 0 12px;}
-  .setup-card p{font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin:0 0 18px;}
-  .setup-card .btn{width:100%;margin-bottom:10px;}
-  .setup-done{color:var(--accent2);font-weight:800;font-size:14px;}
-  #setupLink{
-    width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:14px;
-    font-size:12.5px;font-family:inherit;background:#FFFCFA;color:var(--ink);
-    margin-bottom:10px;text-align:center;
-  }
-
+                
   header{margin-bottom:16px;}
   .eyebrow{
     display:inline-flex;align-items:center;gap:5px;
@@ -249,22 +232,6 @@
 </head>
 <body>
 
-<div class="setup-screen" id="setupScreen">
-  <div class="setup-card">
-    <div class="setup-emoji">💰</div>
-    <h2>댕탱 가계부 처음 시작하기</h2>
-    <p>아래 버튼을 눌러서 우리 둘만의 저장소를 딱 한 번 만들어요. 이 버튼은 <b>한 사람만</b> 눌러주세요.</p>
-    <button class="btn primary" id="setupCreateBtn" onclick="createStore()">💰 저장소 만들기</button>
-    <div id="setupResult" style="display:none;">
-      <p class="setup-done">✓ 저장소를 만들었어요!</p>
-      <p>아래 링크를 <b>즐겨찾기하고</b>, 상대방에게도 카톡으로 보내주세요.</p>
-      <input type="text" id="setupLink" readonly onclick="this.select()">
-      <button class="btn primary" id="setupCopyBtn" onclick="copySetupLink()">링크 복사하기</button>
-      <button class="btn ghost" onclick="location.href=document.getElementById('setupLink').value">이 링크로 바로 시작하기</button>
-    </div>
-  </div>
-</div>
-
 <div class="wrap" id="mainWrap">
   <header>
     <div class="eyebrow">🏠 댕탱뭉 하우스 · 챕터 03</div>
@@ -406,9 +373,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-const API_BASE = 'https://jsonblob.com/api/jsonBlob';
-const params = new URLSearchParams(location.search);
-let BLOB_ID = params.get('store') || '';
+const GITHUB_TOKEN = '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';
+const GITHUB_OWNER = 'choideahj-hub';
+const GITHUB_REPO = 'daengtaengmoong-house';
+const DATA_PATH = 'data/expense-ledger.json';
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`;
+let currentSha = null;
 
 const CATEGORIES = [
   { key:'식비', emoji:'🍚' },
@@ -477,23 +447,39 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ---- Remote storage ----
+// ---- GitHub repo storage (no login, no setup - fixed data file in this repo) ----
+
+function decodeBase64Utf8(b64){
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g,''))));
+}
+function encodeBase64Utf8(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
 async function loadEntries(){
-  if(!BLOB_ID){
-    showSetupScreen();
-    return;
-  }
   try{
-    const res = await fetch(`${API_BASE}/${BLOB_ID}`);
-    if(!res.ok) throw new Error('저장소를 찾을 수 없어요 (' + res.status + ')');
-    const data = await res.json();
-    entries = Array.isArray(data.entries) ? data.entries : [];
+    const res = await fetch(GITHUB_API_URL, {
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json'
+      }
+    });
+    if(res.status === 404){
+      entries = [];
+      currentSha = null;
+    } else if(!res.ok){
+      throw new Error('데이터를 불러오지 못했어요 (' + res.status + ')');
+    } else {
+      const json = await res.json();
+      currentSha = json.sha;
+      const data = JSON.parse(decodeBase64Utf8(json.content));
+      entries = Array.isArray(data.entries) ? data.entries : [];
+    }
   }catch(err){
-    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '<br><br><a href="' + location.pathname + '">처음부터 다시 시작하기</a></div>';
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
   }
   try{
-    hideSetupScreen();
     render();
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 그리는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
@@ -501,57 +487,42 @@ async function loadEntries(){
 }
 
 async function saveEntries(){
-  if(!BLOB_ID) return;
   try{
-    const res = await fetch(`${API_BASE}/${BLOB_ID}`, {
+    const getRes = await fetch(GITHUB_API_URL, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if(getRes.ok){
+      currentSha = (await getRes.json()).sha;
+    } else if(getRes.status !== 404){
+      throw new Error('저장 전 확인 실패 (' + getRes.status + ')');
+    }
+
+    const body = {
+      message: '가계부 업데이트 ' + new Date().toISOString(),
+      content: encodeBase64Utf8(JSON.stringify({ entries }, null, 2)),
+      branch: 'main'
+    };
+    if(currentSha) body.sha = currentSha;
+
+    const putRes = await fetch(GITHUB_API_URL, {
       method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ entries })
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
     });
-    if(!res.ok) throw new Error('저장 실패');
+    if(!putRes.ok){
+      const errJson = await putRes.json().catch(()=>({}));
+      throw new Error(errJson.message || ('저장 실패 (' + putRes.status + ')'));
+    }
+    currentSha = (await putRes.json()).content.sha;
+    return true;
   }catch(e){
-    showToast('저장에 실패했어요. 인터넷 연결을 확인해주세요.');
+    showToast('저장에 실패했어요: ' + (e.message || ''));
+    return false;
   }
-}
-
-async function createStore(){
-  const btn = $('setupCreateBtn');
-  btn.disabled = true;
-  btn.textContent = '만드는 중...';
-  try{
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({ entries: [] })
-    });
-    const location_ = res.headers.get('Location') || res.headers.get('location');
-    if(!location_) throw new Error('저장소 생성 응답을 읽지 못했어요');
-    const newId = location_.split('/').pop();
-    const newUrl = location.origin + location.pathname + '?store=' + newId;
-    $('setupResult').style.display = 'block';
-    $('setupCreateBtn').style.display = 'none';
-    $('setupLink').value = newUrl;
-  }catch(err){
-    btn.disabled = false;
-    btn.textContent = '💰 저장소 만들기';
-    showToast('저장소를 만들지 못했어요. 다시 시도해주세요.');
-  }
-}
-
-function showSetupScreen(){
-  $('mainWrap').style.display = 'none';
-  $('setupScreen').style.display = 'flex';
-}
-function hideSetupScreen(){
-  $('setupScreen').style.display = 'none';
-  $('mainWrap').style.display = '';
-}
-function copySetupLink(){
-  const input = $('setupLink');
-  input.select();
-  navigator.clipboard && navigator.clipboard.writeText(input.value).then(()=>{
-    showToast('링크를 복사했어요');
-  }).catch(()=>{ document.execCommand('copy'); });
 }
 
 // ---- Data helpers ----
