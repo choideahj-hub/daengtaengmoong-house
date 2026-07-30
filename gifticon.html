@@ -436,8 +436,8 @@ function renderGrid(){
           ${g.used ? `<div class="used-stamp"><span>사용완료</span></div>` : ''}
         </div>
         <div class="gift-info">
-          <div class="gift-brand">${escapeHtml(g.brand)}</div>
-          <div class="gift-name">${escapeHtml(g.name)}</div>
+          <div class="gift-brand">${escapeHtml(g.brand || '브랜드 미입력')}</div>
+          <div class="gift-name">${escapeHtml(g.name || '(이름 없음)')}</div>
         </div>
       </div>
     `;
@@ -477,31 +477,10 @@ function closeAddModal(){
   $('addModalBackdrop').classList.remove('open');
   editingId = null;
 }
-const KNOWN_BRANDS = [
-  '스타벅스','이디야','이디야커피','투썸플레이스','폴바셋','메가MGC커피','메가커피','컴포즈커피','빽다방','할리스',
-  '커피빈','파스쿠찌','탐앤탐스','던킨','던킨도너츠','크리스피크림','파리바게뜨','뚜레쥬르',
-  '배스킨라빈스','설빙','공차','스무디킹','쥬씨',
-  'CU','GS25','세븐일레븐','이마트24','미니스톱',
-  '교촌치킨','BBQ','굽네치킨','네네치킨','bhc','처갓집','맘스터치',
-  '맥도날드','버거킹','롯데리아','KFC','서브웨이',
-  '피자헛','도미노피자','미스터피자',
-  '올리브영','다이소','이마트','홈플러스','롯데마트',
-  '배달의민족','쿠팡','요기요','CGV','롯데시네마','메가박스'
-];
-
 const EXPIRY_KEYWORDS = ['유효기간','사용기한','교환기한','까지','만료일'];
 
 function parseGifticonText(text){
   const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const fullText = lines.join(' ');
-
-  // 브랜드 추정: 알려진 브랜드명이 텍스트에 포함되어 있는지 확인 (띄어쓰기는 무시하고 비교)
-  const normalizeForMatch = s => s.replace(/\s+/g, '');
-  const normalizedFullText = normalizeForMatch(fullText);
-  let brand = '';
-  for(const b of KNOWN_BRANDS){
-    if(normalizedFullText.includes(normalizeForMatch(b))){ brand = b; break; }
-  }
 
   // 유효기간 추정: "유효기간"류 키워드가 있는 줄(또는 바로 다음 줄) 우선, 없으면 전체에서 첫 날짜
   const dateRe = /(20\d{2})\D{1,2}(\d{1,2})\D{1,2}(\d{1,2})/;
@@ -533,57 +512,7 @@ function parseGifticonText(text){
     }
   }
 
-  // 상품명 추정: 카카오톡 선물하기 캡처는 "브랜드명 줄" 바로 다음 줄이 항상 상품명이라
-  // 브랜드 줄의 위치를 기준으로 찾는 게 훨씬 정확함. 브랜드를 못 찾은 경우에만 다른 방식으로 대체.
-  const noiseRe = /^\d+$/;
-  const NOISE_WORDS = ['교환처','주문번호','카카오톡','선물하기','발행처','상품권','기프티콘','유효기간','사용기한'];
-  function isNoiseLine(line){
-    if(!line) return true;
-    if(EXPIRY_KEYWORDS.some(k => line.includes(k))) return true;
-    if(NOISE_WORDS.some(w => line.includes(w))) return true;
-    if(dateRe.test(line)) return true;
-    if(noiseRe.test(line.replace(/[\s-]/g,''))) return true;
-    if(brand && normalizeForMatch(line) === normalizeForMatch(brand)) return true;
-    if(line.length < 2 || line.length > 30) return true;
-    return false;
-  }
-
-  let name = '';
-  if(brand){
-    // 브랜드명이 "단독으로" 등장하는 첫 줄(로고/헤더 표기)을 찾아 그 다음 줄부터 상품명으로 사용
-    const brandLineIdx = lines.findIndex(l => normalizeForMatch(l) === normalizeForMatch(brand));
-    if(brandLineIdx !== -1){
-      for(let i = brandLineIdx + 1; i < Math.min(brandLineIdx + 4, lines.length); i++){
-        if(!isNoiseLine(lines[i])){
-          name = lines[i];
-          // 제목이 다음 줄로 이어지는 경우(줄바꿈) 자연스럽게 붙이기
-          const cont = lines[i+1];
-          if(cont && cont.length <= 12 && !isNoiseLine(cont)){
-            name += cont;
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  // 브랜드를 못 찾았거나 위 방식으로 못 찾은 경우: 가장 그럴듯한(긴) 줄로 대체
-  if(!name){
-    const candidates = [];
-    lines.forEach((line, idx) => {
-      if(!isNoiseLine(line)) candidates.push({ line, idx });
-    });
-    candidates.sort((a,b)=> b.line.length - a.line.length);
-    if(candidates.length){
-      name = candidates[0].line;
-      const nextLine = lines[candidates[0].idx + 1];
-      if(nextLine && nextLine.length <= 12 && !isNoiseLine(nextLine)){
-        name += nextLine;
-      }
-    }
-  }
-
-  return { brand, name, expiry };
+  return { expiry };
 }
 
 // 상단 상품 사진 영역(글씨 노이즈 원인)을 잘라내고, 브랜드/제목/바코드가 있는
@@ -618,11 +547,9 @@ async function runGifticonOcr(file){
     const croppedBlob = await cropBottomForOcr(file, 0.38);
     const { data: { text } } = await Tesseract.recognize(croppedBlob, 'kor+eng');
     const parsed = parseGifticonText(text);
-    if(parsed.brand) $('f-brand').value = parsed.brand;
-    if(parsed.name && !$('f-name').value) $('f-name').value = parsed.name;
-    if(parsed.expiry) $('f-expiry').value = parsed.expiry;
-    if(parsed.brand || parsed.name || parsed.expiry){
-      showToast('✨ 자동으로 채웠어요, 확인 후 저장해주세요');
+    if(parsed.expiry){
+      $('f-expiry').value = parsed.expiry;
+      showToast('✨ 유효기간을 자동으로 채웠어요, 확인 후 저장해주세요');
     }
   }catch(err){
     // 인식 실패해도 조용히 넘어감 - 수동 입력하면 되니까
@@ -649,8 +576,8 @@ async function saveGifticon(){
   const name = $('f-name').value.trim();
   const expiry = $('f-expiry').value;
 
-  if(!brand || !name || !expiry){
-    showToast('브랜드·기프티콘명·유효기간을 입력해주세요');
+  if(!expiry){
+    showToast('유효기간을 입력해주세요');
     return;
   }
   if(!pendingImageData){
@@ -720,8 +647,8 @@ function openViewer(id){
   const g = gifticons.find(x=>x.id===id);
   if(!g) return;
   $('viewerImg').src = g.image;
-  $('viewerBrand').textContent = g.brand;
-  $('viewerTitle').textContent = g.name;
+  $('viewerBrand').textContent = g.brand || '브랜드 미입력';
+  $('viewerTitle').textContent = g.name || '(이름 없음)';
   const diff = daysUntil(g.expiry);
   const cls = g.used ? 'ok' : statusClass(diff);
   $('viewerExpiryText').textContent = `유효기간 ${g.expiry}`;
