@@ -229,18 +229,19 @@ function computeEvent(ev, today){
 }
 
 function computeLunarBirthday(ev, today){
+  const SL = (typeof solarLunar !== 'undefined' && solarLunar.solar2lunar) ? solarLunar : solarLunar.default;
   const [origY, origM, origD] = ev.date.split('-').map(Number);
   // 생신(양력)을 음력으로 한 번 환산 - 평생 고정값
-  const birthLunar = solarLunar.solar2lunar(origY, origM, origD);
+  const birthLunar = SL.solar2lunar(origY, origM, origD);
   const lMonth = birthLunar.lMonth;
   const lDay = birthLunar.lDay;
   const isLeap = !!birthLunar.isLeap;
 
   function solarForYear(y){
-    let r = solarLunar.lunar2solar(y, lMonth, lDay, isLeap);
-    if(!r && isLeap){
+    let r = SL.lunar2solar(y, lMonth, lDay, isLeap);
+    if((!r || r === -1) && isLeap){
       // 그 해에 윤달이 없으면 평달로 대체
-      r = solarLunar.lunar2solar(y, lMonth, lDay, false);
+      r = SL.lunar2solar(y, lMonth, lDay, false);
     }
     return r;
   }
