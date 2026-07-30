@@ -258,7 +258,8 @@ function computeLunarBirthday(ev, today){
   }
   const diffDays = Math.round((next - today) / (1000*60*60*24));
   const count = year - origY;
-  const lunarLabel = `음력 ${lMonth}월 ${lDay}일${isLeap ? '(윤달)' : ''}`;
+  const solarBirthLabel = `양력생일 ${origY}.${String(origM).padStart(2,'0')}.${String(origD).padStart(2,'0')}`;
+  const lunarLabel = `음력 ${lMonth}월 ${lDay}일${isLeap ? '(윤달)' : ''} · ${solarBirthLabel}`;
 
   return {
     ...ev,
