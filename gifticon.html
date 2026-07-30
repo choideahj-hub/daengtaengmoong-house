@@ -795,7 +795,7 @@ function init(){
     $('viewerCloseBtn').addEventListener('click', closeViewer);
     $('viewerBackdrop').addEventListener('click', e=>{ if(e.target.id==='viewerBackdrop') closeViewer(); });
     $('viewerUseBtn').addEventListener('click', toggleUsed);
-    $('viewerEditBtn').addEventListener('click', ()=>{ closeViewer(); openAddModal(viewingId); });
+    $('viewerEditBtn').addEventListener('click', ()=>{ const idToEdit = viewingId; closeViewer(); openAddModal(idToEdit); });
 
     document.querySelectorAll('#filterPills .pill').forEach(p=>{
       p.addEventListener('click', ()=>{ filter = p.dataset.filter; render(); });
