@@ -42,24 +42,7 @@
   .wrap{max-width:640px;margin:0 auto;padding:22px 16px 0;}
 
   /* Setup screen */
-  .setup-screen{
-    display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;
-  }
-  .setup-card{
-    max-width:420px;width:100%;background:var(--surface);border-radius:24px;
-    box-shadow:var(--shadow);padding:32px 26px;text-align:center;
-  }
-  .setup-emoji{font-size:40px;margin-bottom:10px;}
-  .setup-card h2{font-size:19px;margin:0 0 12px;}
-  .setup-card p{font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin:0 0 18px;}
-  .setup-card .btn{width:100%;margin-bottom:10px;}
-  .setup-done{color:var(--accent2);font-weight:800;font-size:14px;}
-  #setupLink{
-    width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:14px;
-    font-size:12.5px;font-family:inherit;background:#FFFCFA;color:var(--ink);
-    margin-bottom:10px;text-align:center;
-  }
-
+                
   header{margin-bottom:16px;}
   .eyebrow{
     display:inline-flex;align-items:center;gap:5px;
@@ -175,6 +158,12 @@
   .viewer-dday-badge.ok{background:var(--accent2);}
 
   .footer-note{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.7;}
+  .backup-row{display:flex;gap:8px;margin-top:22px;justify-content:center;}
+  .backup-link{
+    background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;
+    cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:6px 4px;
+  }
+  .backup-link:hover{color:var(--ink-soft);}
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
     background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
@@ -184,22 +173,6 @@
 </style>
 </head>
 <body>
-
-<div class="setup-screen" id="setupScreen">
-  <div class="setup-card">
-    <div class="setup-emoji">🎁</div>
-    <h2>댕탱 기프티콘함 처음 시작하기</h2>
-    <p>아래 버튼을 눌러서 우리 둘만의 저장소를 딱 한 번 만들어요. 이 버튼은 <b>한 사람만</b> 눌러주세요.</p>
-    <button class="btn primary" id="setupCreateBtn" onclick="createStore()">🎁 저장소 만들기</button>
-    <div id="setupResult" style="display:none;">
-      <p class="setup-done">✓ 저장소를 만들었어요!</p>
-      <p>아래 링크를 <b>즐겨찾기하고</b>, 상대방에게도 카톡으로 보내주세요.</p>
-      <input type="text" id="setupLink" readonly onclick="this.select()">
-      <button class="btn primary" id="setupCopyBtn" onclick="copySetupLink()">링크 복사하기</button>
-      <button class="btn ghost" onclick="location.href=document.getElementById('setupLink').value">이 링크로 바로 시작하기</button>
-    </div>
-  </div>
-</div>
 
 <div class="wrap" id="mainWrap">
   <header>
@@ -222,7 +195,13 @@
   </div>
   <div class="gift-grid" id="giftGrid"></div>
 
-  <p class="footer-note">사진은 별도 이미지 호스팅에 저장돼서 많이 쌓여도 용량 걱정 없어요 🐾</p>
+  <div class="backup-row">
+    <button class="backup-link" id="backupDownloadBtn">⬇ 데이터 백업 다운로드</button>
+    <button class="backup-link" id="backupRestoreBtn">⬆ 백업 파일 복원</button>
+    <input type="file" id="backupFileInput" accept="application/json" style="display:none;">
+  </div>
+
+  <p class="footer-note">사진은 별도 이미지 호스팅에 저장돼서 많이 쌓여도 용량 걱정 없어요 🐾<br>그래도 가끔 백업 눌러두시는 걸 추천해요</p>
 </div>
 
 <div class="modal-backdrop" id="addModalBackdrop">
@@ -276,10 +255,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-const API_BASE = 'https://jsonblob.com/api/jsonBlob';
 const IMGBB_API_KEY = 'a6f5457d7a2d46e75af40a9575f7857d';
-const params = new URLSearchParams(location.search);
-let BLOB_ID = params.get('store') || '';
+const GITHUB_TOKEN = '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';
+const GITHUB_OWNER = 'choideahj-hub';
+const GITHUB_REPO = 'daengtaengmoong-house';
+const DATA_PATH = 'data/gifticon.json';
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`;
+let currentSha = null;
 
 let gifticons = [];
 let filter = 'active';
@@ -322,84 +304,82 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ---- Remote storage ----
+// ---- GitHub repo storage (no login, no setup - fixed data file in this repo) ----
+
+function decodeBase64Utf8(b64){
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g,''))));
+}
+function encodeBase64Utf8(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
 async function loadGifticons(){
-  if(!BLOB_ID){
-    showSetupScreen();
-    return;
-  }
   try{
-    const res = await fetch(`${API_BASE}/${BLOB_ID}`);
-    if(!res.ok) throw new Error('저장소를 찾을 수 없어요 (' + res.status + ')');
-    const data = await res.json();
-    gifticons = Array.isArray(data.gifticons) ? data.gifticons : [];
+    const res = await fetch(GITHUB_API_URL, {
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json'
+      }
+    });
+    if(res.status === 404){
+      gifticons = [];
+      currentSha = null;
+    } else if(!res.ok){
+      throw new Error('데이터를 불러오지 못했어요 (' + res.status + ')');
+    } else {
+      const json = await res.json();
+      currentSha = json.sha;
+      const data = JSON.parse(decodeBase64Utf8(json.content));
+      gifticons = Array.isArray(data.gifticons) ? data.gifticons : [];
+    }
   }catch(err){
-    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '<br><br><a href="' + location.pathname + '">처음부터 다시 시작하기</a></div>';
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
   }
   try{
-    hideSetupScreen();
     render();
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 그리는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
   }
 }
+
 async function saveGifticons(){
-  if(!BLOB_ID) return false;
   try{
-    const res = await fetch(`${API_BASE}/${BLOB_ID}`, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ gifticons })
+    const getRes = await fetch(GITHUB_API_URL, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
     });
-    if(!res.ok){
-      let reason = `저장 실패 (${res.status})`;
-      if(res.status === 413 || res.status === 400) reason += ' — 이미지 용량이 너무 클 수 있어요';
-      throw new Error(reason);
+    if(getRes.ok){
+      currentSha = (await getRes.json()).sha;
+    } else if(getRes.status !== 404){
+      throw new Error('저장 전 확인 실패 (' + getRes.status + ')');
     }
+
+    const body = {
+      message: '기프티콘함 업데이트 ' + new Date().toISOString(),
+      content: encodeBase64Utf8(JSON.stringify({ gifticons }, null, 2)),
+      branch: 'main'
+    };
+    if(currentSha) body.sha = currentSha;
+
+    const putRes = await fetch(GITHUB_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(!putRes.ok){
+      const errJson = await putRes.json().catch(()=>({}));
+      throw new Error(errJson.message || ('저장 실패 (' + putRes.status + ')'));
+    }
+    currentSha = (await putRes.json()).content.sha;
     return true;
   }catch(e){
-    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 이미지가 크면 화질을 낮춰서 다시 시도해주세요.');
+    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요.');
     return false;
   }
-}
-async function createStore(){
-  const btn = $('setupCreateBtn');
-  btn.disabled = true;
-  btn.textContent = '만드는 중...';
-  try{
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({ gifticons: [] })
-    });
-    const location_ = res.headers.get('Location') || res.headers.get('location');
-    if(!location_) throw new Error('저장소 생성 응답을 읽지 못했어요');
-    const newId = location_.split('/').pop();
-    const newUrl = location.origin + location.pathname + '?store=' + newId;
-    $('setupResult').style.display = 'block';
-    $('setupCreateBtn').style.display = 'none';
-    $('setupLink').value = newUrl;
-  }catch(err){
-    btn.disabled = false;
-    btn.textContent = '🎁 저장소 만들기';
-    showToast('저장소를 만들지 못했어요. 다시 시도해주세요.');
-  }
-}
-function showSetupScreen(){
-  $('mainWrap').style.display = 'none';
-  $('setupScreen').style.display = 'flex';
-}
-function hideSetupScreen(){
-  $('setupScreen').style.display = 'none';
-  $('mainWrap').style.display = '';
-}
-function copySetupLink(){
-  const input = $('setupLink');
-  input.select();
-  navigator.clipboard && navigator.clipboard.writeText(input.value).then(()=>{
-    showToast('링크를 복사했어요');
-  }).catch(()=>{ document.execCommand('copy'); });
 }
 
 // ---- Image resize ----
@@ -798,6 +778,42 @@ async function toggleUsed(){
   showToast(g.used ? '사용완료로 표시했어요' : '사용 취소했어요');
 }
 
+// ---- Backup ----
+function downloadBackup(){
+  const payload = { exportedAt: new Date().toISOString(), gifticons };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const t = getKSTToday();
+  a.href = url;
+  a.download = `기프티콘함_백업_${t.getFullYear()}${String(t.getMonth()+1).padStart(2,'0')}${String(t.getDate()).padStart(2,'0')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('백업 파일을 다운로드했어요');
+}
+
+async function restoreBackup(file){
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data.gifticons)) throw new Error('형식이 올바르지 않아요');
+      if(!confirm(`백업 파일에는 기프티콘 ${data.gifticons.length}개가 있어요. 지금 데이터를 이걸로 덮어쓸까요?`)) return;
+      const backup = JSON.parse(JSON.stringify(gifticons));
+      gifticons = data.gifticons;
+      const ok = await saveGifticons();
+      if(!ok){ gifticons = backup; return; }
+      render();
+      showToast('복원했어요');
+    }catch(err){
+      showToast('백업 파일을 읽을 수 없어요');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function init(){
   try{
     $('addBtn').addEventListener('click', ()=> openAddModal(null));
@@ -815,6 +831,14 @@ function init(){
 
     document.querySelectorAll('#filterPills .pill').forEach(p=>{
       p.addEventListener('click', ()=>{ filter = p.dataset.filter; render(); });
+    });
+
+    $('backupDownloadBtn').addEventListener('click', downloadBackup);
+    $('backupRestoreBtn').addEventListener('click', ()=> $('backupFileInput').click());
+    $('backupFileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(file) restoreBackup(file);
+      e.target.value = '';
     });
 
     loadGifticons();
