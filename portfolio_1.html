@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>댕탱 자산관리</title>
+<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css"></noscript>
+<style>
+  :root{
+    --bg:#F5F7FB;
+    --surface:#FFFFFF;
+    --ink:#1E2536;
+    --ink-soft:#5C6478;
+    --muted:#9DA5B8;
+    --line:#E5E9F2;
+    --accent:#3E5AC7;
+    --accent-soft:#E8EBFB;
+    --accent2:#2E8A78;
+    --accent2-soft:#E1F5F0;
+    --blue:#4C6FD6;
+    --blue-soft:#EAF0FF;
+    --pink:#E0568F;
+    --pink-soft:#FFE7F3;
+    --amber:#C08A2E;
+    --amber-soft:#FBF0DC;
+    --red:#C23B32;
+    --red-soft:#FBEAE8;
+    --gray-soft:#EEF1F6;
+    --radius:20px;
+    --shadow:0 6px 18px -6px rgba(62,90,199,.16), 0 2px 6px -2px rgba(30,37,54,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  input, select, textarea{font-size:16px;}
+  body{
+    background:
+      radial-gradient(circle at 8% 4%, #EAEDFB 0%, transparent 40%),
+      radial-gradient(circle at 96% 12%, #E4F5F1 0%, transparent 38%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 70px 0;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:22px 16px 0;}
+
+  header{margin-bottom:14px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.08em;color:var(--accent);
+    text-transform:uppercase;font-weight:800;margin-bottom:8px;background:var(--accent-soft);padding:4px 11px;border-radius:100px;
+  }
+  h1{font-size:23px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
+  .sub{font-size:12px;color:var(--ink-soft);margin:0;line-height:1.6;}
+
+  .pill-row{display:flex;gap:6px;margin-top:14px;}
+  .pill{
+    flex:1;padding:9px 6px;border-radius:100px;border:1.5px solid var(--line);background:#fff;
+    font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;transition:all .15s ease;text-align:center;
+  }
+  .pill.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .pill.active[data-owner="댕"]{background:var(--blue);border-color:var(--blue);}
+  .pill.active[data-owner="탱"]{background:var(--pink);border-color:var(--pink);}
+
+  .summary-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-top:14px;}
+  .summary-label{font-size:11px;color:var(--ink-soft);font-weight:700;margin-bottom:2px;}
+  .summary-amount{font-size:26px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .summary-split{display:flex;gap:10px;margin-top:12px;}
+  .summary-split-item{flex:1;background:var(--gray-soft);border-radius:12px;padding:10px 12px;}
+  .summary-split-label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:2px;}
+  .summary-split-amount{font-size:14.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .as-of{font-size:11px;color:var(--muted);margin-top:10px;text-align:right;}
+
+  .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
+  .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
+  .section-label .hint{font-size:11px;color:var(--muted);font-weight:700;}
+  .refresh-btn{
+    border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);font-size:11px;font-weight:700;
+    padding:5px 10px;border-radius:100px;cursor:pointer;
+  }
+  .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .holding-card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;cursor:pointer;}
+  .holding-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .owner-tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;flex-shrink:0;}
+  .owner-tag.o-댕{background:var(--blue-soft);color:var(--blue);}
+  .owner-tag.o-탱{background:var(--pink-soft);color:var(--pink);}
+  .owner-tag.o-공통{background:var(--amber-soft);color:var(--amber);}
+  .market-tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;background:var(--gray-soft);color:var(--ink-soft);}
+  .holding-name{font-size:14.5px;font-weight:800;flex:1;}
+  .holding-broker{font-size:11px;color:var(--muted);}
+  .holding-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--ink-soft);}
+  .holding-grid b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .holding-pl{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .pl-amount{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .pl-amount.up{color:var(--red);}
+  .pl-amount.down{color:var(--accent2);}
+  .pl-pct{font-size:12px;font-weight:700;padding:2px 8px;border-radius:100px;}
+  .pl-pct.up{background:var(--red-soft);color:var(--red);}
+  .pl-pct.down{background:var(--accent2-soft);color:var(--accent2);}
+  .price-stale{font-size:10.5px;color:var(--muted);margin-top:4px;}
+
+  .savings-card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;cursor:pointer;}
+  .savings-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .savings-name{font-size:14.5px;font-weight:800;flex:1;}
+  .savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--ink-soft);}
+  .savings-grid b{color:var(--ink);font-variant-numeric:tabular-nums;}
+
+  .empty{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;}
+  .empty b{display:block;color:var(--ink);font-size:14px;margin-bottom:4px;}
+
+  .add-row{display:flex;gap:8px;margin-top:14px;}
+  .add-btn{
+    flex:1;padding:13px;border-radius:100px;border:2px dashed #C6D0F2;background:var(--accent-soft);color:var(--accent);
+    font-size:12.5px;font-weight:800;cursor:pointer;
+  }
+  .add-btn.savings{border-color:#A9DFD3;background:var(--accent2-soft);color:var(--accent2);}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(30,37,54,.42);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--surface);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));animation:slideup .2s ease;}
+  @media(min-width:540px){.modal-backdrop{align-items:center;}.modal{border-radius:24px;}}
+  @keyframes slideup{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal h3{margin:0 0 16px;font-size:16px;font-weight:800;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:11.5px;font-weight:800;color:var(--ink-soft);margin-bottom:5px;}
+  .field input, .field select{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:inherit;background:#FBFCFE;color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--accent);}
+  .seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .seg-btn{padding:9px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;}
+  .seg-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
+  .btn.primary{background:var(--ink);color:#fff;}
+  .btn.ghost{background:var(--gray-soft);color:var(--ink-soft);}
+  .btn.danger{background:var(--red-soft);color:var(--red);}
+
+  .footer-note{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.7;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;
+    padding:10px 18px;border-radius:100px;font-size:12.5px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="mainWrap">
+  <header>
+    <div class="eyebrow">🏠 댕탱뭉 하우스</div>
+    <h1>댕탱 자산관리 📊</h1>
+    <p class="sub">적금 · 주식 · 코인을 한눈에</p>
+  </header>
+
+  <div class="pill-row" id="ownerFilterPills">
+    <button class="pill active" data-owner="all">전체</button>
+    <button class="pill" data-owner="댕">댕</button>
+    <button class="pill" data-owner="탱">탱</button>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-label">총 자산 (투자 평가액 + 적금 원금)</div>
+    <div class="summary-amount" id="summaryTotal">0원</div>
+    <div class="summary-split">
+      <div class="summary-split-item">
+        <div class="summary-split-label">📈 투자 평가액</div>
+        <div class="summary-split-amount" id="summaryInvest">0원</div>
+      </div>
+      <div class="summary-split-item">
+        <div class="summary-split-label">🏦 적금 원금</div>
+        <div class="summary-split-amount" id="summarySavings">0원</div>
+      </div>
+    </div>
+    <div class="as-of" id="asOfLabel">기준 시각 계산 중...</div>
+  </div>
+
+  <div class="section-label">
+    <h2>📈 투자 자산 (주식·코인)</h2>
+    <button class="refresh-btn" id="refreshPricesBtn">🔄 코인 시세 새로고침</button>
+  </div>
+  <div id="holdingsList"></div>
+
+  <div class="add-row">
+    <button class="add-btn" id="addTxnBtn">+ 매수/매도 내역 추가</button>
+  </div>
+
+  <div class="section-label">
+    <h2>🏦 적금 현황</h2>
+    <span class="hint" id="savingsCountHint"></span>
+  </div>
+  <div id="savingsList"></div>
+
+  <div class="add-row">
+    <button class="add-btn savings" id="addSavingsBtn">+ 적금 추가</button>
+  </div>
+
+  <p class="footer-note">국내·해외 주식 시세는 매일 아침 9시에 한국투자증권 API로 자동 갱신돼요<br>코인은 업비트 실시간 시세, 자동 갱신 전이면 직접 입력한 값이 대신 쓰여요 🐾</p>
+</div>
+
+<!-- 매수/매도 모달 -->
+<div class="modal-backdrop" id="txnModalBackdrop">
+  <div class="modal">
+    <h3 id="txnModalTitle">매수/매도 내역 추가</h3>
+    <div class="field">
+      <label>소유자</label>
+      <div class="seg-grid" id="txn-owner-grid"></div>
+    </div>
+    <div class="field">
+      <label>구분</label>
+      <div class="seg-grid" id="txn-type-grid" style="grid-template-columns:repeat(2,1fr);"></div>
+    </div>
+    <div class="field">
+      <label>자산 종류</label>
+      <div class="seg-grid" id="txn-market-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+    </div>
+    <div class="field">
+      <label>종목명</label>
+      <input type="text" id="txn-name" placeholder="예: 삼성전자, 애플, 비트코인">
+    </div>
+    <div class="field" id="txn-domestic-field" style="display:none;">
+      <label>종목코드 (6자리, 자동 시세 조회용)</label>
+      <input type="text" id="txn-domestic-code" placeholder="예: 005930" maxlength="6" inputmode="numeric">
+    </div>
+    <div class="field" id="txn-overseas-field" style="display:none;">
+      <label>거래소코드</label>
+      <select id="txn-overseas-excd">
+        <option value="NAS">NAS (나스닥)</option>
+        <option value="NYS">NYS (뉴욕)</option>
+        <option value="AMS">AMS (아멕스)</option>
+      </select>
+      <label style="margin-top:8px;">티커 (자동 시세 조회용)</label>
+      <input type="text" id="txn-overseas-symb" placeholder="예: AAPL">
+    </div>
+    <div class="field" id="txn-upbit-field" style="display:none;">
+      <label>업비트 마켓 코드 (코인 시세 자동 조회용)</label>
+      <input type="text" id="txn-upbit-code" placeholder="예: KRW-BTC">
+    </div>
+    <div class="field">
+      <label>증권사/거래소</label>
+      <input type="text" id="txn-broker" placeholder="예: 미래에셋증권, 업비트">
+    </div>
+    <div class="field">
+      <label>날짜</label>
+      <input type="date" id="txn-date">
+    </div>
+    <div class="field">
+      <label>수량</label>
+      <input type="number" id="txn-qty" placeholder="예: 10" step="any" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>단가 (원)</label>
+      <input type="number" id="txn-price" placeholder="예: 72000" inputmode="numeric">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="txnCancelBtn">취소</button>
+      <button class="btn danger" id="txnDeleteBtn" style="display:none;">삭제</button>
+      <button class="btn primary" id="txnSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 현재가 입력 모달 (주식) -->
+<div class="modal-backdrop" id="priceModalBackdrop">
+  <div class="modal">
+    <h3>현재가 입력</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:-8px 0 14px;" id="priceModalDesc"></p>
+    <div class="field">
+      <label>현재가 (원)</label>
+      <input type="number" id="price-input" inputmode="numeric">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="priceCancelBtn">취소</button>
+      <button class="btn primary" id="priceSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 적금 모달 -->
+<div class="modal-backdrop" id="savingsModalBackdrop">
+  <div class="modal">
+    <h3 id="savingsModalTitle">적금 추가</h3>
+    <div class="field">
+      <label>소유자</label>
+      <div class="seg-grid" id="savings-owner-grid"></div>
+    </div>
+    <div class="field">
+      <label>항목명</label>
+      <input type="text" id="savings-name" placeholder="예: 청년희망적금">
+    </div>
+    <div class="field">
+      <label>금융사</label>
+      <input type="text" id="savings-bank" placeholder="예: KB국민은행">
+    </div>
+    <div class="field">
+      <label>월 납입액 (원)</label>
+      <input type="number" id="savings-amount" value="700000" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>시작일 (첫 납입일)</label>
+      <input type="date" id="savings-start">
+    </div>
+    <div class="field">
+      <label>만기 예정일</label>
+      <input type="date" id="savings-maturity">
+    </div>
+    <div class="field">
+      <label>비고 (선택)</label>
+      <input type="text" id="savings-memo" placeholder="선택 입력">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="savingsCancelBtn">취소</button>
+      <button class="btn danger" id="savingsDeleteBtn" style="display:none;">삭제</button>
+      <button class="btn primary" id="savingsSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhrAS_axfkAyBV7_JTTJOQdB6szw2_BXU",
+    authDomain: "daengtaengmoonghouse.firebaseapp.com",
+    projectId: "daengtaengmoonghouse",
+    storageBucket: "daengtaengmoonghouse.firebasestorage.app",
+    messagingSenderId: "656550962777",
+    appId: "1:656550962777:web:8a9ae998f5a2c25448f348"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const DOC_ID = 'portfolio';
+
+  window.firestoreLoad = async function(){
+    const snap = await getDoc(doc(db, 'appdata', DOC_ID));
+    return snap.exists() ? snap.data() : null;
+  };
+  window.firestoreSave = async function(data){
+    await setDoc(doc(db, 'appdata', DOC_ID), data, { merge: true });
+    return true;
+  };
+</script>
+<script>
+let transactions = []; // 매수/매도 내역
+let savings = [];      // 적금 항목
+let manualPrices = {}; // { key: { price, updatedAt } } - 주식 현재가 수동 입력 (자동 시세 없을 때 대체용)
+let coinPrices = {};   // { upbitCode: price } - 업비트에서 받아온 시세
+let autoPrices = { domestic:{}, overseas:{} }; // Cloud Functions 배치가 매일 9시에 채워주는 국내·해외 시세
+
+let ownerFilter = 'all';
+let editingTxnId = null;
+let editingSavingsId = null;
+let editingPriceKey = null;
+
+let txnOwner = '댕';
+let txnType = 'buy';
+let txnMarket = 'domestic';
+let savingsOwner = '댕';
+
+const $ = (id) => document.getElementById(id);
+
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatWon(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + Math.round(Math.abs(n)).toLocaleString('ko-KR') + '원';
+}
+function getKSTNow(){
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+}
+
+// ---- 저장/불러오기 ----
+async function loadAll(){
+  try{
+    const data = await window.firestoreLoad();
+    transactions = (data && Array.isArray(data.transactions)) ? data.transactions : [];
+    savings = (data && Array.isArray(data.savings)) ? data.savings : [];
+    manualPrices = (data && data.manualPrices && typeof data.manualPrices==='object') ? data.manualPrices : {};
+    autoPrices = (data && data.autoPrices && typeof data.autoPrices==='object') ? data.autoPrices : { domestic:{}, overseas:{} };
+    if(!autoPrices.domestic) autoPrices.domestic = {};
+    if(!autoPrices.overseas) autoPrices.overseas = {};
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+    return;
+  }
+  try{
+    await refreshCoinPrices();
+    render();
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 그리는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+
+async function saveAll(){
+  try{
+    await window.firestoreSave({ transactions, savings, manualPrices });
+    return true;
+  }catch(e){
+    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 다시 시도해주세요.');
+    return false;
+  }
+}
+
+// ---- 업비트 시세 ----
+async function refreshCoinPrices(){
+  const codes = [...new Set(transactions.filter(t=>t.market==='coin' && t.upbitCode).map(t=>t.upbitCode))];
+  if(codes.length === 0) return;
+  try{
+    const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${codes.join(',')}`);
+    if(!res.ok) throw new Error('업비트 조회 실패');
+    const data = await res.json();
+    data.forEach(d => { coinPrices[d.market] = d.trade_price; });
+  }catch(err){
+    showToast('코인 시세를 불러오지 못했어요');
+  }
+}
+
+// ---- 계산 로직 ----
+function filteredTxns(){
+  if(ownerFilter === 'all') return transactions;
+  return transactions.filter(t => t.owner === ownerFilter);
+}
+function filteredSavings(){
+  if(ownerFilter === 'all') return savings;
+  return savings.filter(s => s.owner === ownerFilter);
+}
+
+// 매수/매도 내역을 (소유자+시장+종목+거래처) 단위로 묶어 수량/평단가 계산 (이동평균법)
+function computeHoldings(){
+  const groups = {};
+  const sorted = [...filteredTxns()].sort((a,b)=> a.date.localeCompare(b.date) || (a.id||'').localeCompare(b.id||''));
+  sorted.forEach(t=>{
+    const key = `${t.owner}__${t.market}__${t.name}__${t.broker}`;
+    if(!groups[key]){
+      groups[key] = {
+        owner:t.owner, market:t.market, name:t.name, broker:t.broker,
+        upbitCode:t.upbitCode||'', domesticCode:t.domesticCode||'', excd:t.excd||'', symb:t.symb||'',
+        qty:0, avgCost:0, txnIds:[]
+      };
+    }
+    const g = groups[key];
+    g.txnIds.push(t.id);
+    if(t.upbitCode) g.upbitCode = t.upbitCode;
+    if(t.domesticCode) g.domesticCode = t.domesticCode;
+    if(t.excd) g.excd = t.excd;
+    if(t.symb) g.symb = t.symb;
+    const qty = Number(t.qty) || 0;
+    const price = Number(t.price) || 0;
+    if(t.type === 'buy'){
+      const newQty = g.qty + qty;
+      g.avgCost = newQty > 0 ? ((g.avgCost * g.qty) + (price * qty)) / newQty : 0;
+      g.qty = newQty;
+    } else { // sell
+      g.qty = Math.max(0, g.qty - qty);
+    }
+  });
+  return Object.values(groups).filter(g => g.qty > 0.000001);
+}
+
+function priceKeyFor(h){
+  return `${h.owner}__${h.market}__${h.name}__${h.broker}`;
+}
+
+function currentPriceFor(h){
+  if(h.market === 'coin' && h.upbitCode && coinPrices[h.upbitCode] != null){
+    return { price: coinPrices[h.upbitCode], source: 'upbit', stale:false };
+  }
+  if(h.market === 'domestic' && h.domesticCode){
+    const auto = autoPrices.domestic && autoPrices.domestic[h.domesticCode];
+    if(auto) return { price: auto.price, source:'kis', updatedAt: auto.updatedAt, stale:false };
+  }
+  if(h.market === 'overseas' && h.excd && h.symb){
+    const auto = autoPrices.overseas && autoPrices.overseas[`${h.excd}:${h.symb}`];
+    if(auto) return { price: auto.price, source:'kis', updatedAt: auto.updatedAt, stale:false };
+  }
+  const manual = manualPrices[priceKeyFor(h)];
+  if(manual) return { price: manual.price, source:'manual', updatedAt: manual.updatedAt, stale:true };
+  return { price: h.avgCost, source:'none', stale:true }; // 입력 전엔 평단가로 대체
+}
+
+// ---- 렌더 ----
+function render(){
+  document.querySelectorAll('#ownerFilterPills .pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.owner === ownerFilter);
+  });
+  renderSummary();
+  renderHoldings();
+  renderSavings();
+}
+
+function renderSummary(){
+  const holdings = computeHoldings();
+  let investTotal = 0;
+  holdings.forEach(h=>{
+    const cp = currentPriceFor(h);
+    investTotal += h.qty * cp.price;
+  });
+  const savingsTotal = filteredSavings().reduce((sum,s)=> sum + savingsPaidPrincipal(s), 0);
+
+  $('summaryInvest').textContent = formatWon(investTotal);
+  $('summarySavings').textContent = formatWon(savingsTotal);
+  $('summaryTotal').textContent = formatWon(investTotal + savingsTotal);
+
+  const now = getKSTNow();
+  const asOf = new Date(now);
+  if(now.getHours() < 9){ asOf.setDate(asOf.getDate() - 1); }
+  const y = asOf.getFullYear(), m = String(asOf.getMonth()+1).padStart(2,'0'), d = String(asOf.getDate()).padStart(2,'0');
+  $('asOfLabel').textContent = `기준 시각: ${y}-${m}-${d} 09:00 (전일 종가 기준) · 코인은 방금 새로고침한 실시간가`;
+}
+
+function savingsMonthsElapsed(s){
+  const start = new Date(s.startDate);
+  const maturity = s.maturityDate ? new Date(s.maturityDate) : null;
+  const today = getKSTNow();
+  const cap = maturity && maturity < today ? maturity : today;
+  let months = (cap.getFullYear() - start.getFullYear()) * 12 + (cap.getMonth() - start.getMonth());
+  if(cap.getDate() < start.getDate()) months -= 1;
+  return Math.max(0, months + 1); // 시작월 포함 회차
+}
+function savingsPaidPrincipal(s){
+  return savingsMonthsElapsed(s) * (Number(s.monthlyAmount) || 0);
+}
+
+function renderHoldings(){
+  const holdings = computeHoldings().sort((a,b)=> {
+    const cpA = currentPriceFor(a), cpB = currentPriceFor(b);
+    return (b.qty*cpB.price) - (a.qty*cpA.price);
+  });
+  const el = $('holdingsList');
+  if(holdings.length === 0){
+    el.innerHTML = `<div class="empty"><b>등록된 투자 자산이 없어요</b>아래 버튼으로 매수 내역을 추가해보세요.</div>`;
+    return;
+  }
+  el.innerHTML = holdings.map(h=>{
+    const cp = currentPriceFor(h);
+    const evalAmt = h.qty * cp.price;
+    const cost = h.qty * h.avgCost;
+    const pl = evalAmt - cost;
+    const plPct = cost > 0 ? (pl / cost) * 100 : 0;
+    const plClass = pl >= 0 ? 'up' : 'down';
+    const key = priceKeyFor(h);
+    const marketLabel = h.market === 'coin' ? '코인' : (h.market === 'overseas' ? '해외주식' : '국내주식');
+    let priceNote;
+    if(h.market === 'coin'){
+      priceNote = cp.source==='upbit' ? '업비트 실시간' : '시세 미조회';
+    } else if(cp.source === 'kis'){
+      priceNote = `자동조회 (${cp.updatedAt ? new Date(cp.updatedAt).toLocaleDateString('ko-KR') : ''} 기준)`;
+    } else if(cp.source === 'manual'){
+      priceNote = `수동입력 (${cp.updatedAt ? new Date(cp.updatedAt).toLocaleDateString('ko-KR') : ''})`;
+    } else {
+      priceNote = '현재가 미입력 (평단가로 표시 중)';
+    }
+    return `
+      <div class="holding-card" data-key="${escapeHtml(key)}" data-market="${h.market}">
+        <div class="holding-top">
+          <span class="owner-tag o-${escapeHtml(h.owner)}">${escapeHtml(h.owner)}</span>
+          <span class="market-tag">${marketLabel}</span>
+          <span class="holding-name">${escapeHtml(h.name)}</span>
+        </div>
+        <div class="holding-broker">${escapeHtml(h.broker||'')}</div>
+        <div class="holding-grid" style="margin-top:8px;">
+          <div>수량 <b>${h.qty.toLocaleString('ko-KR', {maximumFractionDigits:8})}</b></div>
+          <div>평단가 <b>${Math.round(h.avgCost).toLocaleString('ko-KR')}원</b></div>
+          <div>현재가 <b>${Math.round(cp.price).toLocaleString('ko-KR')}원</b></div>
+          <div>평가금액 <b>${formatWon(evalAmt)}</b></div>
+        </div>
+        <div class="holding-pl">
+          <span class="pl-amount ${plClass}">${pl>=0?'+':''}${formatWon(pl)}</span>
+          <span class="pl-pct ${plClass}">${pl>=0?'+':''}${plPct.toFixed(1)}%</span>
+        </div>
+        <div class="price-stale">${priceNote}${h.market!=='coin' ? ' · 탭해서 현재가 수동 조정' : ''}</div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.holding-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      if(card.dataset.market !== 'coin'){
+        openPriceModal(card.dataset.key, holdings.find(h=>priceKeyFor(h)===card.dataset.key));
+      } else {
+        showToast('코인은 업비트 시세를 자동으로 사용해요');
+      }
+    });
+  });
+}
+
+function renderSavings(){
+  const list = filteredSavings().sort((a,b)=> (a.startDate||'').localeCompare(b.startDate||''));
+  $('savingsCountHint').textContent = list.length ? `${list.length}건` : '';
+  const el = $('savingsList');
+  if(list.length === 0){
+    el.innerHTML = `<div class="empty"><b>등록된 적금이 없어요</b>아래 버튼으로 추가해보세요.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(s=>{
+    const rounds = savingsMonthsElapsed(s);
+    const principal = savingsPaidPrincipal(s);
+    return `
+      <div class="savings-card" data-id="${s.id}">
+        <div class="savings-top">
+          <span class="owner-tag o-${escapeHtml(s.owner)}">${escapeHtml(s.owner)}</span>
+          <span class="savings-name">${escapeHtml(s.name)}</span>
+        </div>
+        <div class="savings-grid">
+          <div>금융사 <b>${escapeHtml(s.bank||'-')}</b></div>
+          <div>월 납입액 <b>${formatWon(Number(s.monthlyAmount)||0)}</b></div>
+          <div>누적 회차 <b>${rounds}회</b></div>
+          <div>총 납입 원금 <b>${formatWon(principal)}</b></div>
+          <div>만기 예정일 <b>${escapeHtml(s.maturityDate||'-')}</b></div>
+          <div>비고 <b>${escapeHtml(s.memo||'-')}</b></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.savings-card').forEach(card=>{
+    card.addEventListener('click', ()=> openSavingsModal(card.dataset.id));
+  });
+}
+
+// ---- 매수/매도 모달 ----
+const OWNER_LIST = ['댕','탱','공통'];
+function renderSegGrid(containerId, options, current, onPick){
+  $(containerId).innerHTML = options.map(o=>`
+    <button type="button" class="seg-btn ${o.value===current?'active':''}" data-val="${o.value}">${o.label}</button>
+  `).join('');
+  $(containerId).querySelectorAll('.seg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      onPick(btn.dataset.val);
+      $(containerId).querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+}
+
+function updateTxnMarketFields(v){
+  $('txn-domestic-field').style.display = v === 'domestic' ? 'block' : 'none';
+  $('txn-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
+  $('txn-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
+}
+
+function openTxnModal(id){
+  editingTxnId = id || null;
+  $('txnModalTitle').textContent = id ? '내역 수정' : '매수/매도 내역 추가';
+  $('txnDeleteBtn').style.display = id ? 'block' : 'none';
+  const now = getKSTNow();
+
+  if(id){
+    const t = transactions.find(x=>x.id===id);
+    txnOwner = t.owner; txnType = t.type; txnMarket = t.market;
+    $('txn-name').value = t.name;
+    $('txn-domestic-code').value = t.domesticCode || '';
+    $('txn-overseas-excd').value = t.excd || 'NAS';
+    $('txn-overseas-symb').value = t.symb || '';
+    $('txn-upbit-code').value = t.upbitCode || '';
+    $('txn-broker').value = t.broker || '';
+    $('txn-date').value = t.date;
+    $('txn-qty').value = t.qty;
+    $('txn-price').value = t.price;
+  } else {
+    txnOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+    txnType = 'buy'; txnMarket = 'domestic';
+    $('txn-name').value = '';
+    $('txn-domestic-code').value = '';
+    $('txn-overseas-excd').value = 'NAS';
+    $('txn-overseas-symb').value = '';
+    $('txn-upbit-code').value = '';
+    $('txn-broker').value = '';
+    $('txn-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    $('txn-qty').value = '';
+    $('txn-price').value = '';
+  }
+
+  renderSegGrid('txn-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), txnOwner, v=>txnOwner=v);
+  renderSegGrid('txn-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], txnType, v=>txnType=v);
+  renderSegGrid('txn-market-grid', [{value:'domestic',label:'국내주식'},{value:'overseas',label:'해외주식'},{value:'coin',label:'코인'}], txnMarket, v=>{
+    txnMarket = v;
+    updateTxnMarketFields(v);
+  });
+  updateTxnMarketFields(txnMarket);
+
+  $('txnModalBackdrop').classList.add('open');
+}
+function closeTxnModal(){ $('txnModalBackdrop').classList.remove('open'); editingTxnId = null; }
+
+async function saveTxn(){
+  const name = $('txn-name').value.trim();
+  const broker = $('txn-broker').value.trim();
+  const date = $('txn-date').value;
+  const qty = parseFloat($('txn-qty').value);
+  const price = parseFloat($('txn-price').value);
+  const domesticCode = $('txn-domestic-code').value.trim();
+  const excd = $('txn-overseas-excd').value;
+  const symb = $('txn-overseas-symb').value.trim().toUpperCase();
+  const upbitCode = $('txn-upbit-code').value.trim().toUpperCase();
+
+  if(!name || !date || !qty || qty <= 0 || !price || price <= 0){
+    showToast('종목명·날짜·수량·단가를 확인해주세요');
+    return;
+  }
+
+  const btn = $('txnSaveBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  const backup = JSON.parse(JSON.stringify(transactions));
+
+  const payload = {
+    owner:txnOwner, type:txnType, market:txnMarket, name, broker, date, qty, price,
+    domesticCode: txnMarket==='domestic' ? domesticCode : '',
+    excd: txnMarket==='overseas' ? excd : '',
+    symb: txnMarket==='overseas' ? symb : '',
+    upbitCode: txnMarket==='coin' ? upbitCode : ''
+  };
+  if(editingTxnId){
+    const idx = transactions.findIndex(t=>t.id===editingTxnId);
+    transactions[idx] = { ...transactions[idx], ...payload };
+  } else {
+    transactions.push({ id:'t'+Date.now()+Math.floor(Math.random()*100000), ...payload });
+  }
+
+  const ok = await saveAll();
+  btn.disabled = false; btn.textContent = '저장';
+  if(!ok){ transactions = backup; return; }
+
+  if(txnMarket === 'coin' && upbitCode) await refreshCoinPrices();
+  render();
+  closeTxnModal();
+  showToast('저장했어요');
+}
+
+async function deleteTxn(){
+  if(!editingTxnId) return;
+  if(!confirm('이 내역을 삭제할까요? 되돌릴 수 없어요.')) return;
+  const backup = JSON.parse(JSON.stringify(transactions));
+  transactions = transactions.filter(t=>t.id!==editingTxnId);
+  const ok = await saveAll();
+  if(!ok){ transactions = backup; return; }
+  render();
+  closeTxnModal();
+  showToast('삭제했어요');
+}
+
+// ---- 현재가(주식) 모달 ----
+function openPriceModal(key, holding){
+  editingPriceKey = key;
+  $('priceModalDesc').textContent = `${holding.name} (${holding.broker || '-'}) 현재가`;
+  const existing = manualPrices[key];
+  $('price-input').value = existing ? existing.price : Math.round(holding.avgCost);
+  $('priceModalBackdrop').classList.add('open');
+}
+function closePriceModal(){ $('priceModalBackdrop').classList.remove('open'); editingPriceKey = null; }
+
+async function savePrice(){
+  const price = parseFloat($('price-input').value);
+  if(!price || price <= 0){ showToast('현재가를 입력해주세요'); return; }
+  const backup = JSON.parse(JSON.stringify(manualPrices));
+  manualPrices[editingPriceKey] = { price, updatedAt: new Date().toISOString() };
+  const ok = await saveAll();
+  if(!ok){ manualPrices = backup; return; }
+  render();
+  closePriceModal();
+  showToast('현재가를 저장했어요');
+}
+
+// ---- 적금 모달 ----
+function openSavingsModal(id){
+  editingSavingsId = id || null;
+  $('savingsModalTitle').textContent = id ? '적금 수정' : '적금 추가';
+  $('savingsDeleteBtn').style.display = id ? 'block' : 'none';
+  const now = getKSTNow();
+
+  if(id){
+    const s = savings.find(x=>x.id===id);
+    savingsOwner = s.owner;
+    $('savings-name').value = s.name;
+    $('savings-bank').value = s.bank || '';
+    $('savings-amount').value = s.monthlyAmount;
+    $('savings-start').value = s.startDate;
+    $('savings-maturity').value = s.maturityDate || '';
+    $('savings-memo').value = s.memo || '';
+  } else {
+    savingsOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+    $('savings-name').value = '';
+    $('savings-bank').value = '';
+    $('savings-amount').value = 700000;
+    $('savings-start').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    $('savings-maturity').value = '';
+    $('savings-memo').value = '';
+  }
+  renderSegGrid('savings-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), savingsOwner, v=>savingsOwner=v);
+  $('savingsModalBackdrop').classList.add('open');
+}
+function closeSavingsModal(){ $('savingsModalBackdrop').classList.remove('open'); editingSavingsId = null; }
+
+async function saveSavings(){
+  const name = $('savings-name').value.trim();
+  const bank = $('savings-bank').value.trim();
+  const amount = parseFloat($('savings-amount').value);
+  const start = $('savings-start').value;
+  const maturity = $('savings-maturity').value;
+  const memo = $('savings-memo').value.trim();
+
+  if(!name || !amount || amount <= 0 || !start){
+    showToast('항목명·월 납입액·시작일을 확인해주세요');
+    return;
+  }
+
+  const btn = $('savingsSaveBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  const backup = JSON.parse(JSON.stringify(savings));
+
+  const payload = { owner:savingsOwner, name, bank, monthlyAmount:amount, startDate:start, maturityDate:maturity, memo };
+  if(editingSavingsId){
+    const idx = savings.findIndex(s=>s.id===editingSavingsId);
+    savings[idx] = { ...savings[idx], ...payload };
+  } else {
+    savings.push({ id:'s'+Date.now()+Math.floor(Math.random()*100000), ...payload });
+  }
+
+  const ok = await saveAll();
+  btn.disabled = false; btn.textContent = '저장';
+  if(!ok){ savings = backup; return; }
+
+  render();
+  closeSavingsModal();
+  showToast('저장했어요');
+}
+
+async function deleteSavings(){
+  if(!editingSavingsId) return;
+  if(!confirm('이 적금을 삭제할까요? 되돌릴 수 없어요.')) return;
+  const backup = JSON.parse(JSON.stringify(savings));
+  savings = savings.filter(s=>s.id!==editingSavingsId);
+  const ok = await saveAll();
+  if(!ok){ savings = backup; return; }
+  render();
+  closeSavingsModal();
+  showToast('삭제했어요');
+}
+
+// ---- init ----
+function init(){
+  try{
+    document.querySelectorAll('#ownerFilterPills .pill').forEach(p=>{
+      p.addEventListener('click', ()=>{ ownerFilter = p.dataset.owner; render(); });
+    });
+
+    $('addTxnBtn').addEventListener('click', ()=> openTxnModal(null));
+    $('txnCancelBtn').addEventListener('click', closeTxnModal);
+    $('txnSaveBtn').addEventListener('click', saveTxn);
+    $('txnDeleteBtn').addEventListener('click', deleteTxn);
+    $('txnModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='txnModalBackdrop') closeTxnModal(); });
+
+    $('priceCancelBtn').addEventListener('click', closePriceModal);
+    $('priceSaveBtn').addEventListener('click', savePrice);
+    $('priceModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='priceModalBackdrop') closePriceModal(); });
+
+    $('addSavingsBtn').addEventListener('click', ()=> openSavingsModal(null));
+    $('savingsCancelBtn').addEventListener('click', closeSavingsModal);
+    $('savingsSaveBtn').addEventListener('click', saveSavings);
+    $('savingsDeleteBtn').addEventListener('click', deleteSavings);
+    $('savingsModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='savingsModalBackdrop') closeSavingsModal(); });
+
+    $('refreshPricesBtn').addEventListener('click', async ()=>{
+      $('refreshPricesBtn').textContent = '조회 중...';
+      await refreshCoinPrices();
+      render();
+      $('refreshPricesBtn').textContent = '🔄 코인 시세 새로고침';
+      showToast('코인 시세를 갱신했어요');
+    });
+
+    loadAll();
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 불러오는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
