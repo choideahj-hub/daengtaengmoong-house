@@ -65,7 +65,8 @@
   .summary-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-top:14px;}
   .summary-label{font-size:11px;color:var(--ink-soft);font-weight:700;margin-bottom:2px;}
   .summary-amount{font-size:26px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
-  .summary-split{display:flex;gap:10px;margin-top:12px;}
+  .summary-split{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .summary-split-item{min-width:0;}
   .summary-split-item{flex:1;background:var(--gray-soft);border-radius:12px;padding:10px 12px;}
   .summary-split-label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:2px;}
   .summary-split-amount{font-size:14.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
@@ -113,6 +114,8 @@
     font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;
   }
   .holding-action-btn:active{background:var(--accent-soft);color:var(--accent);}
+  .holding-action-btn.quick-buy{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:800;}
+  .holding-action-btn.quick-buy:active{background:#33499E;}
   .history-row{padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;}
   .history-row:active{background:var(--gray-soft);}
   .history-row-main{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:3px;}
@@ -136,6 +139,8 @@
     font-size:12.5px;font-weight:800;cursor:pointer;
   }
   .add-btn.savings{border-color:#A9DFD3;background:var(--accent2-soft);color:var(--accent2);}
+  .add-btn.bulk{border-color:#D9C9A0;background:var(--amber-soft);color:var(--amber);}
+  .add-btn.pension{border-color:#B8C4E8;background:#EEF1FA;color:#4C5FAE;}
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(30,37,54,.42);display:none;align-items:flex-end;justify-content:center;z-index:50;}
   .modal-backdrop.open{display:flex;}
@@ -188,7 +193,7 @@
   </div>
 
   <div class="summary-card">
-    <div class="summary-label">총 자산 (투자 평가액 + 적금 원금)</div>
+    <div class="summary-label">총 자산 (투자 평가액 + 적금·퇴직연금 원금)</div>
     <div class="summary-amount" id="summaryTotal">0원</div>
     <div class="summary-split">
       <div class="summary-split-item">
@@ -198,6 +203,10 @@
       <div class="summary-split-item">
         <div class="summary-split-label">🏦 적금 원금</div>
         <div class="summary-split-amount" id="summarySavings">0원</div>
+      </div>
+      <div class="summary-split-item">
+        <div class="summary-split-label">💼 퇴직연금 원금</div>
+        <div class="summary-split-amount" id="summaryPension">0원</div>
       </div>
     </div>
     <div class="as-of" id="asOfLabel">기준 시각 계산 중...</div>
@@ -215,21 +224,29 @@
     <h2>📈 투자 자산 (주식·코인)</h2>
     <button class="refresh-btn" id="refreshPricesBtn">🔄 코인 시세 새로고침</button>
   </div>
-  <div id="holdingsList"></div>
-
   <div class="add-row">
     <button class="add-btn" id="addTxnBtn">+ 매수/매도 내역 추가</button>
+    <button class="add-btn bulk" id="bulkAddBtn">📋 여러 건 한번에 추가</button>
   </div>
+  <div id="holdingsList"></div>
 
   <div class="section-label">
     <h2>🏦 적금 현황</h2>
     <span class="hint" id="savingsCountHint"></span>
   </div>
-  <div id="savingsList"></div>
-
   <div class="add-row">
     <button class="add-btn savings" id="addSavingsBtn">+ 적금 추가</button>
   </div>
+  <div id="savingsList"></div>
+
+  <div class="section-label">
+    <h2>💼 퇴직연금 현황</h2>
+    <span class="hint" id="pensionCountHint"></span>
+  </div>
+  <div class="add-row">
+    <button class="add-btn pension" id="addPensionBtn">+ 퇴직연금 추가</button>
+  </div>
+  <div id="pensionList"></div>
 
   <p class="footer-note">국내·해외 주식 시세는 매일 아침 9시에 한국투자증권 API로 자동 갱신돼요<br>코인은 업비트 실시간 시세, 자동 갱신 전이면 직접 입력한 값이 대신 쓰여요 🐾</p>
 </div>
@@ -255,11 +272,17 @@
       <input type="text" id="txn-name" placeholder="예: 삼성전자, 애플, 비트코인">
     </div>
     <div class="field" id="txn-domestic-field" style="display:none;">
-      <label>종목코드 (6자리, 자동 시세 조회용)</label>
+      <label>주요 종목 검색 (없으면 아래 코드 직접 입력)</label>
+      <input type="text" id="txn-domestic-search" placeholder="예: 삼성, 카카오">
+      <div id="txn-domestic-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
+      <label style="margin-top:10px;">종목코드 (6자리, 자동 시세 조회용)</label>
       <input type="text" id="txn-domestic-code" placeholder="예: 005930" maxlength="6" inputmode="numeric">
     </div>
     <div class="field" id="txn-overseas-field" style="display:none;">
-      <label>거래소코드</label>
+      <label>주요 종목 검색 (없으면 아래 직접 입력)</label>
+      <input type="text" id="txn-overseas-search" placeholder="예: 애플, AAPL">
+      <div id="txn-overseas-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
+      <label style="margin-top:10px;">거래소코드</label>
       <select id="txn-overseas-excd">
         <option value="NAS">NAS (나스닥)</option>
         <option value="NYS">NYS (뉴욕)</option>
@@ -318,6 +341,65 @@
 </div>
 
 <!-- 거래내역 보기 모달 -->
+<!-- 일괄 등록 모달 -->
+<div class="modal-backdrop" id="bulkModalBackdrop">
+  <div class="modal">
+    <h3>여러 건 한번에 추가</h3>
+    <div class="field">
+      <label>소유자</label>
+      <div class="seg-grid" id="bulk-owner-grid"></div>
+    </div>
+    <div class="field">
+      <label>자산 종류</label>
+      <div class="seg-grid" id="bulk-market-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+    </div>
+    <div class="field">
+      <label>종목명</label>
+      <input type="text" id="bulk-name" placeholder="예: 삼성전자, 비트코인">
+    </div>
+    <div class="field" id="bulk-domestic-field" style="display:none;">
+      <label>종목코드 (6자리)</label>
+      <input type="text" id="bulk-domestic-code" placeholder="예: 005930" maxlength="6" inputmode="numeric">
+    </div>
+    <div class="field" id="bulk-overseas-field" style="display:none;">
+      <label>거래소코드</label>
+      <select id="bulk-overseas-excd">
+        <option value="NAS">NAS (나스닥)</option>
+        <option value="NYS">NYS (뉴욕)</option>
+        <option value="AMS">AMS (아멕스)</option>
+      </select>
+      <label style="margin-top:8px;">티커</label>
+      <input type="text" id="bulk-overseas-symb" placeholder="예: AAPL">
+    </div>
+    <div class="field" id="bulk-upbit-field" style="display:none;">
+      <label>코인 검색</label>
+      <input type="text" id="bulk-coin-search" placeholder="예: 비트코인, BTC">
+      <div id="bulk-coin-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:140px;overflow-y:auto;"></div>
+      <div id="bulk-coin-selected" style="margin-top:8px;font-size:12.5px;font-weight:800;color:var(--accent);"></div>
+      <input type="hidden" id="bulk-upbit-code">
+    </div>
+    <div class="field">
+      <label>증권사/거래소</label>
+      <div class="seg-grid" id="bulk-broker-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px;"></div>
+      <input type="text" id="bulk-broker" placeholder="목록에 없으면 직접 입력">
+    </div>
+    <div class="field">
+      <label>구분</label>
+      <div class="seg-grid" id="bulk-type-grid" style="grid-template-columns:repeat(2,1fr);"></div>
+    </div>
+    <div class="field">
+      <label>날짜 · 수량 · 단가 (한 줄에 하나씩)</label>
+      <textarea id="bulk-lines" rows="8" placeholder="2026-01-05 0.001 92000000&#10;2026-01-06 0.001 93500000&#10;2026-01-07 0.001 91200000" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;background:#FBFCFE;color:var(--ink);resize:vertical;"></textarea>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">공백이나 쉼표로 구분해서 "날짜 수량 단가" 순서로 한 줄씩 넣어주세요</p>
+    </div>
+    <div id="bulkPreview" style="font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="bulkCancelBtn">취소</button>
+      <button class="btn primary" id="bulkSaveBtn">일괄 저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="historyModalBackdrop">
   <div class="modal">
     <h3 id="historyModalTitle">거래내역</h3>
@@ -337,6 +419,10 @@
       <label>소유자</label>
       <div class="seg-grid" id="savings-owner-grid"></div>
     </div>
+    <div class="field" id="savings-pension-type-field" style="display:none;">
+      <label>퇴직연금 유형</label>
+      <div class="seg-grid" id="savings-pension-type-grid" style="grid-template-columns:repeat(2,1fr);"></div>
+    </div>
     <div class="field">
       <label>항목명</label>
       <input type="text" id="savings-name" placeholder="예: 청년희망적금">
@@ -345,17 +431,30 @@
       <label>금융사</label>
       <input type="text" id="savings-bank" placeholder="예: KB국민은행">
     </div>
-    <div class="field">
-      <label>월 납입액 (원)</label>
-      <input type="number" id="savings-amount" value="700000" inputmode="numeric">
+    <div id="savings-guaranteed-field">
+      <div class="field">
+        <label>월 납입액 (원)</label>
+        <input type="number" id="savings-amount" value="700000" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>시작일 (첫 납입일)</label>
+        <input type="date" id="savings-start">
+      </div>
+      <div class="field">
+        <label>만기 예정일</label>
+        <input type="date" id="savings-maturity">
+      </div>
     </div>
-    <div class="field">
-      <label>시작일 (첫 납입일)</label>
-      <input type="date" id="savings-start">
-    </div>
-    <div class="field">
-      <label>만기 예정일</label>
-      <input type="date" id="savings-maturity">
+    <div id="savings-invested-field" style="display:none;">
+      <div class="field">
+        <label>누적 납입원금 (원)</label>
+        <input type="number" id="savings-invested-principal" inputmode="numeric" placeholder="예: 12000000">
+      </div>
+      <div class="field">
+        <label>현재 평가금액 (원)</label>
+        <input type="number" id="savings-invested-value" inputmode="numeric" placeholder="예: 12850000">
+        <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">퇴직연금 앱/명세서에서 확인해서 가끔 업데이트해주세요</p>
+      </div>
     </div>
     <div class="field">
       <label>비고 (선택)</label>
@@ -412,8 +511,54 @@ let txnOwner = '댕';
 let txnType = 'buy';
 let txnMarket = 'domestic';
 let savingsOwner = '댕';
+let savingsKind = 'installment'; // 'installment'(적금) | 'pension'(퇴직연금)
+let pensionSubtype = 'guaranteed'; // 'guaranteed'(원리금보장형) | 'invested'(투자형)
 let selectedCoin = null; // { market, koreanName }
+let bulkOwner = '댕';
+let bulkType = 'buy';
+let bulkMarket = 'domestic';
+let bulkSelectedCoin = null;
 let upbitMarketList = []; // 업비트 전체 마켓 캐시
+
+// 자주 거래되는 대형주 위주 큐레이션 목록 (전체 상장종목이 아니에요, 없으면 직접 입력)
+const DOMESTIC_STOCKS = [
+  {code:'005930', name:'삼성전자'}, {code:'000660', name:'SK하이닉스'}, {code:'373220', name:'LG에너지솔루션'},
+  {code:'207940', name:'삼성바이오로직스'}, {code:'005380', name:'현대차'}, {code:'000270', name:'기아'},
+  {code:'068270', name:'셀트리온'}, {code:'005490', name:'POSCO홀딩스'}, {code:'035420', name:'NAVER'},
+  {code:'035720', name:'카카오'}, {code:'051910', name:'LG화학'}, {code:'006400', name:'삼성SDI'},
+  {code:'105560', name:'KB금융'}, {code:'055550', name:'신한지주'}, {code:'086790', name:'하나금융지주'},
+  {code:'316140', name:'우리금융지주'}, {code:'012330', name:'현대모비스'}, {code:'032830', name:'삼성생명'},
+  {code:'066570', name:'LG전자'}, {code:'003550', name:'LG'}, {code:'034730', name:'SK'},
+  {code:'015760', name:'한국전력'}, {code:'018260', name:'삼성에스디에스'}, {code:'010130', name:'고려아연'},
+  {code:'011200', name:'HMM'}, {code:'009150', name:'삼성전기'}, {code:'097950', name:'CJ제일제당'},
+  {code:'000810', name:'삼성화재'}, {code:'030200', name:'KT'}, {code:'017670', name:'SK텔레콤'},
+  {code:'024110', name:'기업은행'}, {code:'139480', name:'이마트'}, {code:'090430', name:'아모레퍼시픽'},
+  {code:'051900', name:'LG생활건강'}, {code:'000100', name:'유한양행'}, {code:'196170', name:'알테오젠'},
+  {code:'259960', name:'크래프톤'}, {code:'036570', name:'엔씨소프트'}, {code:'251270', name:'넷마블'},
+  {code:'293490', name:'카카오게임즈'}, {code:'352820', name:'하이브'}, {code:'069500', name:'KODEX 200(ETF)'},
+];
+
+const OVERSEAS_STOCKS = [
+  {symb:'AAPL', excd:'NAS', name:'애플'}, {symb:'MSFT', excd:'NAS', name:'마이크로소프트'},
+  {symb:'GOOGL', excd:'NAS', name:'알파벳(구글) A'}, {symb:'GOOG', excd:'NAS', name:'알파벳(구글) C'},
+  {symb:'AMZN', excd:'NAS', name:'아마존'}, {symb:'NVDA', excd:'NAS', name:'엔비디아'},
+  {symb:'META', excd:'NAS', name:'메타(페이스북)'}, {symb:'TSLA', excd:'NAS', name:'테슬라'},
+  {symb:'NFLX', excd:'NAS', name:'넷플릭스'}, {symb:'AMD', excd:'NAS', name:'AMD'},
+  {symb:'INTC', excd:'NAS', name:'인텔'}, {symb:'AVGO', excd:'NAS', name:'브로드컴'},
+  {symb:'QCOM', excd:'NAS', name:'퀄컴'}, {symb:'ADBE', excd:'NAS', name:'어도비'},
+  {symb:'CSCO', excd:'NAS', name:'시스코'}, {symb:'PYPL', excd:'NAS', name:'페이팔'},
+  {symb:'SBUX', excd:'NAS', name:'스타벅스'}, {symb:'COST', excd:'NAS', name:'코스트코'},
+  {symb:'PEP', excd:'NAS', name:'펩시코'}, {symb:'JPM', excd:'NYS', name:'JP모건'},
+  {symb:'V', excd:'NYS', name:'비자'}, {symb:'MA', excd:'NYS', name:'마스터카드'},
+  {symb:'JNJ', excd:'NYS', name:'존슨앤존슨'}, {symb:'WMT', excd:'NYS', name:'월마트'},
+  {symb:'HD', excd:'NYS', name:'홈디포'}, {symb:'DIS', excd:'NYS', name:'디즈니'},
+  {symb:'KO', excd:'NYS', name:'코카콜라'}, {symb:'MCD', excd:'NYS', name:'맥도날드'},
+  {symb:'NKE', excd:'NYS', name:'나이키'}, {symb:'BA', excd:'NYS', name:'보잉'},
+  {symb:'XOM', excd:'NYS', name:'엑슨모빌'}, {symb:'CVX', excd:'NYS', name:'셰브런'},
+  {symb:'PFE', excd:'NYS', name:'화이자'}, {symb:'UNH', excd:'NYS', name:'유나이티드헬스'},
+  {symb:'GS', excd:'NYS', name:'골드만삭스'}, {symb:'IBM', excd:'NYS', name:'IBM'},
+  {symb:'ORCL', excd:'NYS', name:'오라클'}, {symb:'CRM', excd:'NYS', name:'세일즈포스'},
+];
 
 const BROKER_PRESETS = {
   domestic: ['미래에셋증권','삼성증권','키움증권','한국투자증권','NH투자증권','KB증권','신한투자증권','토스증권','대신증권','하나증권'],
@@ -570,8 +715,10 @@ function renderAllocation(){
     else if(h.market === 'overseas') overseasSum += amt;
     else coinSum += amt;
   });
-  const savingsSum = filteredSavings().reduce((s,x)=> s + savingsPaidPrincipal(x), 0);
-  const total = domesticSum + overseasSum + coinSum + savingsSum;
+  const allSavings = filteredSavings();
+  const savingsSum = allSavings.filter(s=>(s.kind||'installment')==='installment').reduce((s,x)=> s + savingsValueFor(x), 0);
+  const pensionSum = allSavings.filter(s=>s.kind==='pension').reduce((s,x)=> s + savingsValueFor(x), 0);
+  const total = domesticSum + overseasSum + coinSum + savingsSum + pensionSum;
 
   const card = $('allocationCard');
   if(total <= 0){ card.style.display = 'none'; return; }
@@ -580,8 +727,9 @@ function renderAllocation(){
   const segments = [
     { label:'국내주식', amt:domesticSum, color:'#3E5AC7' },
     { label:'해외주식', amt:overseasSum, color:'#2E8A78' },
-    { label:'코인', amt:coinSum, color:'#C08A2E' },
-    { label:'적금', amt:savingsSum, color:'#E0568F' }
+    { label:'코인', amt:coinSum, color:'#1E2A5E' },
+    { label:'적금', amt:savingsSum, color:'#E0568F' },
+    { label:'퇴직연금', amt:pensionSum, color:'#8A6D4E' }
   ].filter(s => s.amt > 0);
 
   const r = 50, c = 2 * Math.PI * r;
@@ -615,11 +763,14 @@ function renderSummary(){
     const cp = currentPriceFor(h);
     investTotal += h.qty * cp.price;
   });
-  const savingsTotal = filteredSavings().reduce((sum,s)=> sum + savingsPaidPrincipal(s), 0);
+  const allSavings = filteredSavings();
+  const savingsTotal = allSavings.filter(s=>(s.kind||'installment')==='installment').reduce((sum,s)=> sum + savingsValueFor(s), 0);
+  const pensionTotal = allSavings.filter(s=>s.kind==='pension').reduce((sum,s)=> sum + savingsValueFor(s), 0);
 
   $('summaryInvest').textContent = formatWon(investTotal);
   $('summarySavings').textContent = formatWon(savingsTotal);
-  $('summaryTotal').textContent = formatWon(investTotal + savingsTotal);
+  $('summaryPension').textContent = formatWon(pensionTotal);
+  $('summaryTotal').textContent = formatWon(investTotal + savingsTotal + pensionTotal);
 
   const now = getKSTNow();
   const asOf = new Date(now);
@@ -639,6 +790,17 @@ function savingsMonthsElapsed(s){
 }
 function savingsPaidPrincipal(s){
   return savingsMonthsElapsed(s) * (Number(s.monthlyAmount) || 0);
+}
+function isInvestedPension(s){
+  return s.kind === 'pension' && s.subtype === 'invested';
+}
+// 카드에 표시할 "원금" - 투자형은 직접입력값, 나머지는 월납입액 누적 계산
+function savingsPrincipalFor(s){
+  return isInvestedPension(s) ? (Number(s.investedPrincipal) || 0) : savingsPaidPrincipal(s);
+}
+// 총자산 계산에 쓸 "현재 가치" - 투자형은 평가금액(등락 반영), 나머지는 원금과 동일
+function savingsValueFor(s){
+  return isInvestedPension(s) ? (Number(s.investedValue) || 0) : savingsPrincipalFor(s);
 }
 
 function renderHoldings(){
@@ -690,6 +852,7 @@ function renderHoldings(){
         </div>
         <div class="price-stale">${priceNote}</div>
         <div class="holding-actions">
+          <button type="button" class="holding-action-btn quick-buy" data-action="quickbuy">🔁 오늘 매수 추가</button>
           <button type="button" class="holding-action-btn" data-action="history">✏️ 거래내역 수정</button>
           ${h.market!=='coin' ? `<button type="button" class="holding-action-btn" data-action="price">💲 현재가 수정</button>` : ''}
         </div>
@@ -704,6 +867,8 @@ function renderHoldings(){
         e.stopPropagation();
         if(btn.dataset.action === 'price'){
           openPriceModal(card.dataset.key, h);
+        } else if(btn.dataset.action === 'quickbuy'){
+          openQuickBuyModal(h);
         } else {
           openHistoryModal(h);
         }
@@ -737,36 +902,76 @@ function openHistoryModal(h){
 }
 function closeHistoryModal(){ $('historyModalBackdrop').classList.remove('open'); }
 
-function renderSavings(){
-  const list = filteredSavings().sort((a,b)=> (a.startDate||'').localeCompare(b.startDate||''));
-  $('savingsCountHint').textContent = list.length ? `${list.length}건` : '';
-  const el = $('savingsList');
-  if(list.length === 0){
-    el.innerHTML = `<div class="empty"><b>등록된 적금이 없어요</b>아래 버튼으로 추가해보세요.</div>`;
-    return;
-  }
-  el.innerHTML = list.map(s=>{
-    const rounds = savingsMonthsElapsed(s);
-    const principal = savingsPaidPrincipal(s);
+function renderSavingsCard(s){
+  if(isInvestedPension(s)){
+    const principal = savingsPrincipalFor(s);
+    const value = savingsValueFor(s);
+    const pl = value - principal;
+    const plPct = principal > 0 ? (pl / principal) * 100 : 0;
+    const plClass = pl >= 0 ? 'up' : 'down';
     return `
       <div class="savings-card" data-id="${s.id}">
         <div class="savings-top">
           <span class="owner-tag o-${escapeHtml(s.owner)}">${escapeHtml(s.owner)}</span>
+          <span class="market-tag">투자형</span>
           <span class="savings-name">${escapeHtml(s.name)}</span>
         </div>
         <div class="savings-grid">
           <div>금융사 <b>${escapeHtml(s.bank||'-')}</b></div>
-          <div>월 납입액 <b>${formatWon(Number(s.monthlyAmount)||0)}</b></div>
-          <div>누적 회차 <b>${rounds}회</b></div>
-          <div>총 납입 원금 <b>${formatWon(principal)}</b></div>
-          <div>만기 예정일 <b>${escapeHtml(s.maturityDate||'-')}</b></div>
+          <div>누적 납입원금 <b>${formatWon(principal)}</b></div>
+          <div>현재 평가금액 <b>${formatWon(value)}</b></div>
           <div>비고 <b>${escapeHtml(s.memo||'-')}</b></div>
+        </div>
+        <div class="holding-pl">
+          <span class="pl-amount ${plClass}">${pl>=0?'+':''}${formatWon(pl)}</span>
+          <span class="pl-pct ${plClass}">${pl>=0?'+':''}${plPct.toFixed(1)}%</span>
         </div>
       </div>
     `;
-  }).join('');
+  }
+  const rounds = savingsMonthsElapsed(s);
+  const principal = savingsPaidPrincipal(s);
+  return `
+    <div class="savings-card" data-id="${s.id}">
+      <div class="savings-top">
+        <span class="owner-tag o-${escapeHtml(s.owner)}">${escapeHtml(s.owner)}</span>
+        ${s.kind==='pension' ? '<span class="market-tag">원리금보장형</span>' : ''}
+        <span class="savings-name">${escapeHtml(s.name)}</span>
+      </div>
+      <div class="savings-grid">
+        <div>금융사 <b>${escapeHtml(s.bank||'-')}</b></div>
+        <div>월 납입액 <b>${formatWon(Number(s.monthlyAmount)||0)}</b></div>
+        <div>누적 회차 <b>${rounds}회</b></div>
+        <div>총 납입 원금 <b>${formatWon(principal)}</b></div>
+        <div>만기 예정일 <b>${escapeHtml(s.maturityDate||'-')}</b></div>
+        <div>비고 <b>${escapeHtml(s.memo||'-')}</b></div>
+      </div>
+    </div>
+  `;
+}
 
-  el.querySelectorAll('.savings-card').forEach(card=>{
+function renderSavings(){
+  const all = filteredSavings().sort((a,b)=> (a.startDate||'').localeCompare(b.startDate||''));
+  const installments = all.filter(s => (s.kind||'installment') === 'installment');
+  const pensions = all.filter(s => s.kind === 'pension');
+
+  $('savingsCountHint').textContent = installments.length ? `${installments.length}건` : '';
+  const savingsEl = $('savingsList');
+  if(installments.length === 0){
+    savingsEl.innerHTML = `<div class="empty"><b>등록된 적금이 없어요</b>위 버튼으로 추가해보세요.</div>`;
+  } else {
+    savingsEl.innerHTML = installments.map(renderSavingsCard).join('');
+  }
+
+  $('pensionCountHint').textContent = pensions.length ? `${pensions.length}건` : '';
+  const pensionEl = $('pensionList');
+  if(pensions.length === 0){
+    pensionEl.innerHTML = `<div class="empty"><b>등록된 퇴직연금이 없어요</b>위 버튼으로 추가해보세요.</div>`;
+  } else {
+    pensionEl.innerHTML = pensions.map(renderSavingsCard).join('');
+  }
+
+  document.querySelectorAll('#savingsList .savings-card, #pensionList .savings-card').forEach(card=>{
     card.addEventListener('click', ()=> openSavingsModal(card.dataset.id));
   });
 }
@@ -820,6 +1025,55 @@ async function ensureUpbitMarketList(){
   return upbitMarketList;
 }
 
+function searchDomesticStock(query){
+  const q = query.trim();
+  const resultsEl = $('txn-domestic-results');
+  if(!q){ resultsEl.innerHTML = ''; return; }
+  const matched = DOMESTIC_STOCKS.filter(s => s.name.includes(q) || s.code.includes(q)).slice(0, 15);
+  if(matched.length === 0){
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 아래에 코드를 직접 입력해주세요</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matched.map(s=>`
+    <button type="button" class="coin-result-btn" data-code="${s.code}" data-name="${escapeHtml(s.name)}">
+      ${escapeHtml(s.name)} <span style="color:var(--muted);">${s.code}</span>
+    </button>
+  `).join('');
+  resultsEl.querySelectorAll('.coin-result-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      $('txn-domestic-code').value = btn.dataset.code;
+      $('txn-name').value = btn.dataset.name;
+      resultsEl.innerHTML = '';
+      $('txn-domestic-search').value = '';
+    });
+  });
+}
+
+function searchOverseasStock(query){
+  const q = query.trim().toUpperCase();
+  const resultsEl = $('txn-overseas-results');
+  if(!q){ resultsEl.innerHTML = ''; return; }
+  const matched = OVERSEAS_STOCKS.filter(s => s.name.toUpperCase().includes(q) || s.symb.includes(q)).slice(0, 15);
+  if(matched.length === 0){
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 아래에 직접 입력해주세요</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matched.map(s=>`
+    <button type="button" class="coin-result-btn" data-symb="${s.symb}" data-excd="${s.excd}" data-name="${escapeHtml(s.name)}">
+      ${escapeHtml(s.name)} <span style="color:var(--muted);">${s.symb} · ${s.excd}</span>
+    </button>
+  `).join('');
+  resultsEl.querySelectorAll('.coin-result-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      $('txn-overseas-symb').value = btn.dataset.symb;
+      $('txn-overseas-excd').value = btn.dataset.excd;
+      $('txn-name').value = btn.dataset.name;
+      resultsEl.innerHTML = '';
+      $('txn-overseas-search').value = '';
+    });
+  });
+}
+
 async function searchCoin(query){
   const q = query.trim();
   const resultsEl = $('txn-coin-results');
@@ -849,9 +1103,9 @@ async function searchCoin(query){
   });
 }
 
-function openTxnModal(id){
+function openTxnModal(id, prefill){
   editingTxnId = id || null;
-  $('txnModalTitle').textContent = id ? '내역 수정' : '매수/매도 내역 추가';
+  $('txnModalTitle').textContent = id ? '내역 수정' : (prefill ? `${prefill.name} 매수 추가` : '매수/매도 내역 추가');
   $('txnDeleteBtn').style.display = id ? 'block' : 'none';
   const now = getKSTNow();
 
@@ -868,6 +1122,19 @@ function openTxnModal(id){
     $('txn-qty').value = t.qty;
     $('txn-price').value = t.price;
     selectedCoin = t.upbitCode ? { market: t.upbitCode, koreanName: t.name } : null;
+    $('txn-coin-selected').textContent = selectedCoin ? `✓ 선택됨: ${selectedCoin.koreanName} (${selectedCoin.market})` : '';
+  } else if(prefill){
+    txnOwner = prefill.owner; txnType = 'buy'; txnMarket = prefill.market;
+    $('txn-name').value = prefill.name;
+    $('txn-domestic-code').value = prefill.domesticCode || '';
+    $('txn-overseas-excd').value = prefill.excd || 'NAS';
+    $('txn-overseas-symb').value = prefill.symb || '';
+    $('txn-upbit-code').value = prefill.upbitCode || '';
+    $('txn-broker').value = prefill.broker || '';
+    $('txn-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    $('txn-qty').value = '';
+    $('txn-price').value = '';
+    selectedCoin = prefill.upbitCode ? { market: prefill.upbitCode, koreanName: prefill.name } : null;
     $('txn-coin-selected').textContent = selectedCoin ? `✓ 선택됨: ${selectedCoin.koreanName} (${selectedCoin.market})` : '';
   } else {
     txnOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
@@ -886,6 +1153,10 @@ function openTxnModal(id){
   }
   $('txn-coin-search').value = '';
   $('txn-coin-results').innerHTML = '';
+  $('txn-domestic-search').value = '';
+  $('txn-domestic-results').innerHTML = '';
+  $('txn-overseas-search').value = '';
+  $('txn-overseas-results').innerHTML = '';
 
   renderSegGrid('txn-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), txnOwner, v=>txnOwner=v);
   renderSegGrid('txn-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], txnType, v=>txnType=v);
@@ -896,8 +1167,162 @@ function openTxnModal(id){
   updateTxnMarketFields(txnMarket);
 
   $('txnModalBackdrop').classList.add('open');
+  if(prefill){
+    setTimeout(()=> $('txn-qty').focus(), 50);
+  }
 }
 function closeTxnModal(){ $('txnModalBackdrop').classList.remove('open'); editingTxnId = null; }
+
+function openQuickBuyModal(h){
+  openTxnModal(null, {
+    owner: h.owner, market: h.market, name: h.name, broker: h.broker,
+    domesticCode: h.domesticCode, excd: h.excd, symb: h.symb, upbitCode: h.upbitCode
+  });
+}
+
+// ---- 일괄 등록 모달 ----
+function updateBulkMarketFields(v){
+  $('bulk-domestic-field').style.display = v === 'domestic' ? 'block' : 'none';
+  $('bulk-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
+  $('bulk-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
+  renderBulkBrokerChips(v);
+}
+function renderBulkBrokerChips(market){
+  const presets = BROKER_PRESETS[market] || [];
+  const current = $('bulk-broker').value.trim();
+  $('bulk-broker-grid').innerHTML = presets.map(b=>`
+    <button type="button" class="seg-btn broker-chip ${b===current?'active':''}" data-val="${escapeHtml(b)}">${escapeHtml(b)}</button>
+  `).join('');
+  $('bulk-broker-grid').querySelectorAll('.broker-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      $('bulk-broker').value = btn.dataset.val;
+      $('bulk-broker-grid').querySelectorAll('.broker-chip').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+}
+async function searchBulkCoin(query){
+  const q = query.trim();
+  const resultsEl = $('bulk-coin-results');
+  if(!q){ resultsEl.innerHTML = ''; return; }
+  const list = await ensureUpbitMarketList();
+  const matched = list.filter(m =>
+    m.korean_name.includes(q) || m.english_name.toUpperCase().includes(q.toUpperCase()) || m.market.toUpperCase().includes(q.toUpperCase())
+  ).slice(0, 15);
+  if(matched.length === 0){
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">검색 결과가 없어요</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matched.map(m=>`
+    <button type="button" class="coin-result-btn" data-market="${m.market}" data-name="${escapeHtml(m.korean_name)}">
+      ${escapeHtml(m.korean_name)} <span style="color:var(--muted);">${m.market}</span>
+    </button>
+  `).join('');
+  resultsEl.querySelectorAll('.coin-result-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      bulkSelectedCoin = { market: btn.dataset.market, koreanName: btn.dataset.name };
+      $('bulk-upbit-code').value = bulkSelectedCoin.market;
+      $('bulk-name').value = bulkSelectedCoin.koreanName;
+      $('bulk-coin-selected').textContent = `✓ 선택됨: ${bulkSelectedCoin.koreanName} (${bulkSelectedCoin.market})`;
+      resultsEl.innerHTML = '';
+      $('bulk-coin-search').value = '';
+    });
+  });
+}
+
+function openBulkModal(){
+  bulkOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+  bulkType = 'buy'; bulkMarket = 'domestic';
+  bulkSelectedCoin = null;
+  $('bulk-name').value = '';
+  $('bulk-domestic-code').value = '';
+  $('bulk-overseas-excd').value = 'NAS';
+  $('bulk-overseas-symb').value = '';
+  $('bulk-upbit-code').value = '';
+  $('bulk-coin-selected').textContent = '';
+  $('bulk-coin-search').value = '';
+  $('bulk-coin-results').innerHTML = '';
+  $('bulk-broker').value = '';
+  $('bulk-lines').value = '';
+  $('bulkPreview').textContent = '';
+
+  renderSegGrid('bulk-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), bulkOwner, v=>bulkOwner=v);
+  renderSegGrid('bulk-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], bulkType, v=>bulkType=v);
+  renderSegGrid('bulk-market-grid', [{value:'domestic',label:'국내주식'},{value:'overseas',label:'해외주식'},{value:'coin',label:'코인'}], bulkMarket, v=>{
+    bulkMarket = v;
+    updateBulkMarketFields(v);
+  });
+  updateBulkMarketFields(bulkMarket);
+
+  $('bulkModalBackdrop').classList.add('open');
+}
+function closeBulkModal(){ $('bulkModalBackdrop').classList.remove('open'); }
+
+function parseBulkLines(text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const results = [];
+  const errors = [];
+  lines.forEach((line, i)=>{
+    const parts = line.split(/[\s,]+/).filter(Boolean);
+    if(parts.length < 3){ errors.push(i+1); return; }
+    const [dateRaw, qtyRaw, priceRaw] = parts;
+    const date = dateRaw.replace(/\./g, '-').replace(/\//g, '-');
+    const qty = parseFloat(qtyRaw);
+    const price = parseFloat(priceRaw.replace(/,/g, ''));
+    if(!/^\d{4}-\d{1,2}-\d{1,2}$/.test(date) || isNaN(qty) || qty<=0 || isNaN(price) || price<=0){
+      errors.push(i+1);
+      return;
+    }
+    const [y,m,d] = date.split('-');
+    results.push({ date: `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`, qty, price });
+  });
+  return { results, errors };
+}
+
+async function saveBulk(){
+  const name = $('bulk-name').value.trim();
+  const broker = $('bulk-broker').value.trim();
+  const domesticCode = $('bulk-domestic-code').value.trim();
+  const excd = $('bulk-overseas-excd').value;
+  const symb = $('bulk-overseas-symb').value.trim().toUpperCase();
+  const upbitCode = $('bulk-upbit-code').value.trim().toUpperCase();
+
+  if(!name){
+    showToast('종목명을 입력해주세요');
+    return;
+  }
+  const { results, errors } = parseBulkLines($('bulk-lines').value);
+  if(results.length === 0){
+    showToast('추가할 내역이 없어요. 형식을 확인해주세요');
+    return;
+  }
+
+  const btn = $('bulkSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  const backup = JSON.parse(JSON.stringify(transactions));
+
+  results.forEach((r, i)=>{
+    transactions.push({
+      id: 't' + Date.now() + Math.floor(Math.random()*100000) + i,
+      owner: bulkOwner, type: bulkType, market: bulkMarket, name, broker,
+      date: r.date, qty: r.qty, price: r.price,
+      domesticCode: bulkMarket==='domestic' ? domesticCode : '',
+      excd: bulkMarket==='overseas' ? excd : '',
+      symb: bulkMarket==='overseas' ? symb : '',
+      upbitCode: bulkMarket==='coin' ? upbitCode : ''
+    });
+  });
+
+  const ok = await saveAll();
+  btn.disabled = false;
+  btn.textContent = '일괄 저장';
+  if(!ok){ transactions = backup; return; }
+
+  if(bulkMarket === 'coin' && upbitCode) await refreshCoinPrices();
+  render();
+  closeBulkModal();
+  showToast(`${results.length}건 추가했어요${errors.length ? ` (형식 이상해서 건너뛴 줄: ${errors.join(', ')}행)` : ''}`);
+}
 
 async function saveTxn(){
   const name = $('txn-name').value.trim();
@@ -978,31 +1403,51 @@ async function savePrice(){
 }
 
 // ---- 적금 모달 ----
-function openSavingsModal(id){
+function updateSavingsFieldsVisibility(){
+  $('savings-pension-type-field').style.display = savingsKind === 'pension' ? 'block' : 'none';
+  const invested = isInvestedPension({ kind: savingsKind, subtype: pensionSubtype });
+  $('savings-guaranteed-field').style.display = invested ? 'none' : 'block';
+  $('savings-invested-field').style.display = invested ? 'block' : 'none';
+}
+
+function openSavingsModal(id, kind){
   editingSavingsId = id || null;
-  $('savingsModalTitle').textContent = id ? '적금 수정' : '적금 추가';
-  $('savingsDeleteBtn').style.display = id ? 'block' : 'none';
   const now = getKSTNow();
 
   if(id){
     const s = savings.find(x=>x.id===id);
     savingsOwner = s.owner;
+    savingsKind = s.kind || 'installment';
+    pensionSubtype = s.subtype || 'guaranteed';
     $('savings-name').value = s.name;
     $('savings-bank').value = s.bank || '';
-    $('savings-amount').value = s.monthlyAmount;
-    $('savings-start').value = s.startDate;
+    $('savings-amount').value = s.monthlyAmount || 700000;
+    $('savings-start').value = s.startDate || '';
     $('savings-maturity').value = s.maturityDate || '';
+    $('savings-invested-principal').value = s.investedPrincipal || '';
+    $('savings-invested-value').value = s.investedValue || '';
     $('savings-memo').value = s.memo || '';
   } else {
     savingsOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+    savingsKind = kind || 'installment';
+    pensionSubtype = 'guaranteed';
     $('savings-name').value = '';
     $('savings-bank').value = '';
     $('savings-amount').value = 700000;
     $('savings-start').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
     $('savings-maturity').value = '';
+    $('savings-invested-principal').value = '';
+    $('savings-invested-value').value = '';
     $('savings-memo').value = '';
   }
+  $('savingsModalTitle').textContent = (id ? '수정' : '추가') + ' (' + (savingsKind==='pension' ? '퇴직연금' : '적금') + ')';
+  $('savingsDeleteBtn').style.display = id ? 'block' : 'none';
   renderSegGrid('savings-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), savingsOwner, v=>savingsOwner=v);
+  renderSegGrid('savings-pension-type-grid', [{value:'guaranteed',label:'원리금보장형'},{value:'invested',label:'투자형'}], pensionSubtype, v=>{
+    pensionSubtype = v;
+    updateSavingsFieldsVisibility();
+  });
+  updateSavingsFieldsVisibility();
   $('savingsModalBackdrop').classList.add('open');
 }
 function closeSavingsModal(){ $('savingsModalBackdrop').classList.remove('open'); editingSavingsId = null; }
@@ -1010,21 +1455,41 @@ function closeSavingsModal(){ $('savingsModalBackdrop').classList.remove('open')
 async function saveSavings(){
   const name = $('savings-name').value.trim();
   const bank = $('savings-bank').value.trim();
-  const amount = parseFloat($('savings-amount').value);
-  const start = $('savings-start').value;
-  const maturity = $('savings-maturity').value;
   const memo = $('savings-memo').value.trim();
+  const invested = isInvestedPension({ kind: savingsKind, subtype: pensionSubtype });
 
-  if(!name || !amount || amount <= 0 || !start){
-    showToast('항목명·월 납입액·시작일을 확인해주세요');
-    return;
+  let payload;
+  if(invested){
+    const principal = parseFloat($('savings-invested-principal').value) || 0;
+    const value = parseFloat($('savings-invested-value').value) || 0;
+    if(!name || principal <= 0 || value <= 0){
+      showToast('항목명·누적 납입원금·현재 평가금액을 확인해주세요');
+      return;
+    }
+    payload = {
+      owner:savingsOwner, kind:savingsKind, subtype:pensionSubtype, name, bank, memo,
+      investedPrincipal:principal, investedValue:value, valueUpdatedAt:new Date().toISOString(),
+      monthlyAmount:0, startDate:'', maturityDate:''
+    };
+  } else {
+    const amount = parseFloat($('savings-amount').value);
+    const start = $('savings-start').value;
+    const maturity = $('savings-maturity').value;
+    if(!name || !amount || amount <= 0 || !start){
+      showToast('항목명·월 납입액·시작일을 확인해주세요');
+      return;
+    }
+    payload = {
+      owner:savingsOwner, kind:savingsKind, subtype:savingsKind==='pension' ? 'guaranteed' : null,
+      name, bank, monthlyAmount:amount, startDate:start, maturityDate:maturity, memo,
+      investedPrincipal:0, investedValue:0
+    };
   }
 
   const btn = $('savingsSaveBtn');
   btn.disabled = true; btn.textContent = '저장 중...';
   const backup = JSON.parse(JSON.stringify(savings));
 
-  const payload = { owner:savingsOwner, name, bank, monthlyAmount:amount, startDate:start, maturityDate:maturity, memo };
   if(editingSavingsId){
     const idx = savings.findIndex(s=>s.id===editingSavingsId);
     savings[idx] = { ...savings[idx], ...payload };
@@ -1061,6 +1526,19 @@ function init(){
     });
 
     $('addTxnBtn').addEventListener('click', ()=> openTxnModal(null));
+    $('bulkAddBtn').addEventListener('click', openBulkModal);
+    $('bulkCancelBtn').addEventListener('click', closeBulkModal);
+    $('bulkSaveBtn').addEventListener('click', saveBulk);
+    $('bulkModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='bulkModalBackdrop') closeBulkModal(); });
+    $('bulk-coin-search').addEventListener('input', (e)=> searchBulkCoin(e.target.value));
+    $('bulk-lines').addEventListener('input', (e)=>{
+      const { results, errors } = parseBulkLines(e.target.value);
+      $('bulkPreview').textContent = results.length
+        ? `${results.length}건 인식됨${errors.length ? ` · 형식 이상: ${errors.join(', ')}행` : ''}`
+        : '';
+    });
+    $('txn-domestic-search').addEventListener('input', (e)=> searchDomesticStock(e.target.value));
+    $('txn-overseas-search').addEventListener('input', (e)=> searchOverseasStock(e.target.value));
     let coinSearchTimer = null;
     $('txn-coin-search').addEventListener('input', (e)=>{
       clearTimeout(coinSearchTimer);
@@ -1078,7 +1556,8 @@ function init(){
     $('priceSaveBtn').addEventListener('click', savePrice);
     $('priceModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='priceModalBackdrop') closePriceModal(); });
 
-    $('addSavingsBtn').addEventListener('click', ()=> openSavingsModal(null));
+    $('addSavingsBtn').addEventListener('click', ()=> openSavingsModal(null, 'installment'));
+    $('addPensionBtn').addEventListener('click', ()=> openSavingsModal(null, 'pension'));
     $('savingsCancelBtn').addEventListener('click', closeSavingsModal);
     $('savingsSaveBtn').addEventListener('click', saveSavings);
     $('savingsDeleteBtn').addEventListener('click', deleteSavings);
