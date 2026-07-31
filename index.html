@@ -347,7 +347,7 @@ async function renderLedgerWidget(){
       </div>
     `).join('');
   }catch(err){
-    el.innerHTML = '<div style="padding:16px;color:#C23B32;font-size:12.5px;">정기지출 정보를 불러오지 못했어요.</div>';
+    el.innerHTML = '<div style="padding:16px;color:#C23B32;font-size:12.5px;">정기지출 정보를 불러오지 못했어요.<br>(' + (err && err.message ? err.message : err) + ')</div>';
   }
 }
 
