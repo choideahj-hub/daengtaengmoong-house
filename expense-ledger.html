@@ -206,6 +206,7 @@
     font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;
   }
   .cat-select-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .cat-select-btn.add-cat{border-style:dashed;color:var(--accent);border-color:#FFC4D0;}
   .modal-actions{display:flex;gap:8px;margin-top:16px;}
   .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
   .btn.primary{background:var(--ink);color:#fff;}
@@ -431,6 +432,7 @@ const CATEGORIES = [
   { key:'통신', emoji:'📱' },
   { key:'구독', emoji:'📺' },
   { key:'문화생활', emoji:'🎬' },
+  { key:'운동', emoji:'💪' },
   { key:'의료', emoji:'🏥' },
   { key:'차량', emoji:'🚗' },
   { key:'주거', emoji:'🏠' },
@@ -449,7 +451,9 @@ const INCOME_CATEGORIES = [
 ];
 
 function categoryListFor(type){
-  return type === 'income' ? INCOME_CATEGORIES : CATEGORIES;
+  const base = type === 'income' ? INCOME_CATEGORIES : CATEGORIES;
+  const custom = customCategories.filter(c => (c.type || 'expense') === type);
+  return [...base, ...custom];
 }
 
 function categoryEmoji(cat, type){
@@ -457,7 +461,7 @@ function categoryEmoji(cat, type){
   const c = list.find(c => c.key === cat);
   if(c) return c.emoji;
   // 타입을 모를 때는 양쪽 다 확인
-  const fallback = [...CATEGORIES, ...INCOME_CATEGORIES].find(c => c.key === cat);
+  const fallback = [...CATEGORIES, ...INCOME_CATEGORIES, ...customCategories].find(c => c.key === cat);
   return fallback ? fallback.emoji : '🗂️';
 }
 
@@ -510,10 +514,13 @@ function escapeHtml(str){
 
 // ---- Firebase Firestore storage (no login, no token in source) ----
 
+let customCategories = []; // [{key, emoji, type}]
+
 async function loadEntries(){
   try{
     const data = await window.firestoreLoad();
     entries = (data && Array.isArray(data.entries)) ? data.entries : [];
+    customCategories = (data && Array.isArray(data.customCategories)) ? data.customCategories : [];
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
@@ -527,7 +534,7 @@ async function loadEntries(){
 
 async function saveEntries(){
   try{
-    await window.firestoreSave({ entries });
+    await window.firestoreSave({ entries, customCategories });
     return true;
   }catch(e){
     showToast('저장에 실패했어요: ' + (e.message || ''));
@@ -712,13 +719,40 @@ function renderCategoryGrid(){
   const list = categoryListFor(currentEntryType);
   $('f-category-grid').innerHTML = list.map(c=>`
     <button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>
-  `).join('');
-  $('f-category-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
+  `).join('') + `<button type="button" class="cat-select-btn add-cat" id="addCategoryBtn">➕ 추가</button>`;
+  $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selectedCategory = btn.dataset.cat;
-      $('f-category-grid').querySelectorAll('.cat-select-btn').forEach(b=>b.classList.toggle('active', b===btn));
+      $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(b=>b.classList.toggle('active', b===btn));
     });
   });
+  $('addCategoryBtn').addEventListener('click', addCustomCategory);
+}
+
+async function addCustomCategory(){
+  const raw = prompt('추가할 카테고리 이름을 입력해주세요\n(예: 반려동물, 자기계발)');
+  if(!raw) return;
+  const name = raw.trim();
+  if(!name) return;
+  if(name.length > 8){
+    showToast('카테고리 이름은 8자 이내로 입력해주세요');
+    return;
+  }
+  const exists = categoryListFor(currentEntryType).some(c => c.key === name);
+  if(exists){
+    selectedCategory = name;
+    renderCategoryGrid();
+    return;
+  }
+  customCategories.push({ key: name, emoji: '🏷️', type: currentEntryType });
+  selectedCategory = name;
+  const ok = await saveEntries(); // customCategories도 함께 저장됨
+  if(!ok){
+    customCategories = customCategories.filter(c => c.key !== name || c.type !== currentEntryType);
+    return;
+  }
+  renderCategoryGrid();
+  showToast(`'${name}' 카테고리를 추가했어요`);
 }
 
 const OWNER_EMOJI = { '댕':'🔵', '탱':'🌸', '공용':'🟡' };
