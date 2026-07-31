@@ -322,6 +322,23 @@ function renderAnnivWidget(){
 
 // ---- 정기지출 캘린더 위젯 (읽기 전용, Firestore에서 조회) ----
 
+function maskAccount(account){
+  if(!account) return '';
+  const digitCount = (account.match(/\d/g) || []).length;
+  if(digitCount <= 4) return account;
+  let toMask = digitCount - 4;
+  let out = '';
+  for(const ch of account){
+    if(/\d/.test(ch) && toMask > 0){
+      out += '•';
+      toMask--;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 function ledgerDdayFor(day, today){
   const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
   const clampedDay = Math.min(day, dim);
@@ -364,6 +381,7 @@ async function renderLedgerWidget(){
             ${e.name || e.card || '정기지출'}
           </div>
           <div class="anniv-meta">${e.card || ''} · 매월 ${e.day}일</div>
+          <div class="anniv-meta" style="color:var(--accent);font-weight:700;">🏦 ${maskAccount(e.account) || '통장 정보 없음'}</div>
         </div>
         <span class="anniv-dday ${e.diffDays===0?'today':''}">${e.diffDays===0?'D-DAY':'D-'+e.diffDays}</span>
       </div>
