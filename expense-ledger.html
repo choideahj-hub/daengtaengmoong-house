@@ -91,6 +91,13 @@
   .summary-compare{font-size:11.5px;font-weight:700;margin-top:4px;color:var(--ink-soft);}
   .summary-compare.up{color:var(--red);}
   .summary-compare.down{color:var(--accent2);}
+  .summary-divider{border:none;border-top:1.5px dashed var(--line);margin:14px 0;}
+  .income-net-row{display:flex;gap:10px;}
+  .income-net-item{flex:1;}
+  .summary-amount.income{font-size:20px;color:#2E8A78;}
+  .summary-net-amount{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .summary-net-amount.plus{color:#2E8A78;}
+  .summary-net-amount.minus{color:var(--red);}
   .summary-split{display:flex;gap:10px;margin-top:12px;}
   .summary-split-item{flex:1;background:var(--gray-soft);border-radius:12px;padding:10px 12px;}
   .summary-split-item.o-댕{background:var(--blue-soft);}
@@ -113,6 +120,8 @@
     font-size:13px;font-weight:800;cursor:pointer;
   }
   .add-btn.ocr{border-color:var(--accent2);background:var(--accent2-soft);color:#3D9E8D;}
+  .add-btn.expense{border-color:#F0B8B0;background:var(--red-soft);color:var(--red);}
+  .add-btn.income{border-color:#9AD8CC;background:var(--accent2-soft);color:#2E8A78;}
 
   /* Section labels */
   .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
@@ -140,6 +149,8 @@
   .entry-detail{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;}
   .entry-meta{font-size:11px;color:var(--ink-soft);}
   .entry-amount{font-size:14px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;flex-shrink:0;}
+  .entry-amount.income{color:#2E8A78;}
+  .entry-row.income-row{border-left:4px solid #6FCFC0;}
   .owner-tag{
     display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:100px;flex-shrink:0;
   }
@@ -270,12 +281,26 @@
         <div class="summary-split-amount" id="summaryTaeng">0원</div>
       </div>
     </div>
+    <hr class="summary-divider">
+    <div class="income-net-row">
+      <div class="income-net-item">
+        <div class="summary-total">이번 달 총 수입</div>
+        <div class="summary-amount income" id="summaryIncomeTotal">0원</div>
+      </div>
+      <div class="income-net-item">
+        <div class="summary-total">순수익 (수입-지출)</div>
+        <div class="summary-net-amount" id="summaryNet">0원</div>
+      </div>
+    </div>
     <div class="cat-bars" id="catBars"></div>
   </div>
 
   <div class="add-row">
-    <button class="add-btn" id="addManualBtn">✏️ 직접 입력</button>
-    <button class="add-btn ocr" id="addOcrBtn">📷 캡처로 추가</button>
+    <button class="add-btn expense" id="addExpenseBtn">💸 지출 추가</button>
+    <button class="add-btn income" id="addIncomeBtn">💰 수입 추가</button>
+  </div>
+  <div class="add-row">
+    <button class="add-btn ocr" id="addOcrBtn" style="flex:1;">📷 캡처로 지출 추가</button>
   </div>
   <p style="font-size:11px;color:var(--muted);text-align:center;margin:8px 0 0;line-height:1.6;">📷 캡처 자동인식은 참고용이에요, 저장 전에 꼭 확인해주세요</p>
 
@@ -414,9 +439,26 @@ const CATEGORIES = [
   { key:'기타', emoji:'🗂️' }
 ];
 
-function categoryEmoji(cat){
-  const c = CATEGORIES.find(c => c.key === cat);
-  return c ? c.emoji : '🗂️';
+const INCOME_CATEGORIES = [
+  { key:'월급', emoji:'💼' },
+  { key:'용돈', emoji:'🧧' },
+  { key:'부수입', emoji:'💵' },
+  { key:'환급/캐시백', emoji:'↩️' },
+  { key:'이자/배당', emoji:'📈' },
+  { key:'기타수입', emoji:'🗂️' }
+];
+
+function categoryListFor(type){
+  return type === 'income' ? INCOME_CATEGORIES : CATEGORIES;
+}
+
+function categoryEmoji(cat, type){
+  const list = categoryListFor(type);
+  const c = list.find(c => c.key === cat);
+  if(c) return c.emoji;
+  // 타입을 모를 때는 양쪽 다 확인
+  const fallback = [...CATEGORIES, ...INCOME_CATEGORIES].find(c => c.key === cat);
+  return fallback ? fallback.emoji : '🗂️';
 }
 
 let entries = [];
@@ -425,6 +467,7 @@ let currentMonth = '';
 let editingId = null;
 let selectedCategory = '식비';
 let selectedOwner = '댕';
+let currentEntryType = 'expense'; // 모달에서 지금 입력 중인 타입
 let trashOpen = false;
 const BIG_EXPENSE_THRESHOLD = 150000;
 let ocrParsedRows = [];
@@ -499,6 +542,9 @@ function activeEntries(){
 function deletedEntries(){
   return entries.filter(e => e.deleted);
 }
+function entryType(e){
+  return e.type || 'expense'; // 기존 데이터(타입 없음)는 지출로 취급
+}
 function monthEntries(){
   return entriesForMonth(currentMonth);
 }
@@ -506,6 +552,12 @@ function entriesForMonth(mk){
   let list = activeEntries().filter(e => monthKey(e.date) === mk);
   if(ownerFilter !== 'all') list = list.filter(e => e.owner === ownerFilter);
   return list;
+}
+function monthExpenseEntries(){
+  return monthEntries().filter(e => entryType(e) === 'expense');
+}
+function monthIncomeEntries(){
+  return monthEntries().filter(e => entryType(e) === 'income');
 }
 
 // ---- Render ----
@@ -520,8 +572,11 @@ function render(){
 }
 
 function renderSummary(){
-  const list = monthEntries();
+  const list = monthExpenseEntries();
+  const incomeList = monthIncomeEntries();
   const total = list.reduce((s,e)=>s+e.amount, 0);
+  const incomeTotal = incomeList.reduce((s,e)=>s+e.amount, 0);
+  const net = incomeTotal - total;
   const daengTotal = list.filter(e=>e.owner==='댕').reduce((s,e)=>s+e.amount, 0);
   const taengTotal = list.filter(e=>e.owner==='탱').reduce((s,e)=>s+e.amount, 0);
   const gongyongTotal = list.filter(e=>e.owner==='공용').reduce((s,e)=>s+e.amount, 0);
@@ -530,8 +585,13 @@ function renderSummary(){
   $('summaryTaeng').textContent = formatWon(taengTotal);
   $('summaryGongyong').textContent = formatWon(gongyongTotal);
 
+  $('summaryIncomeTotal').textContent = formatWon(incomeTotal);
+  const netEl = $('summaryNet');
+  netEl.textContent = (net >= 0 ? '+' : '−') + formatWon(Math.abs(net));
+  netEl.className = 'summary-net-amount ' + (net >= 0 ? 'plus' : 'minus');
+
   const prevMonth = shiftMonth(currentMonth, -1);
-  const prevTotal = entriesForMonth(prevMonth).reduce((s,e)=>s+e.amount, 0);
+  const prevTotal = entriesForMonth(prevMonth).filter(e=>entryType(e)==='expense').reduce((s,e)=>s+e.amount, 0);
   const compareEl = $('summaryCompare');
   if(prevTotal === 0){
     compareEl.textContent = total > 0 ? '지난달 기록이 없어 비교할 수 없어요' : '';
@@ -560,7 +620,7 @@ function renderSummary(){
   } else {
     $('catBars').innerHTML = sorted.map(([cat, amt])=>`
       <div class="cat-bar-row">
-        <div class="cat-bar-label">${categoryEmoji(cat)} ${cat}</div>
+        <div class="cat-bar-label">${categoryEmoji(cat,'expense')} ${cat}</div>
         <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4, amt/maxAmt*100)}%"></div></div>
         <div class="cat-bar-amount">${amt.toLocaleString('ko-KR')}</div>
       </div>
@@ -574,7 +634,7 @@ function renderEntryList(){
   const container = $('entryList');
 
   if(list.length === 0){
-    container.innerHTML = `<div class="empty"><b>이번 달 지출 내역이 없어요</b>위 버튼으로 추가해보세요.</div>`;
+    container.innerHTML = `<div class="empty"><b>이번 달 내역이 없어요</b>위 버튼으로 추가해보세요.</div>`;
     return;
   }
 
@@ -587,10 +647,11 @@ function renderEntryList(){
   container.innerHTML = Object.keys(groups).sort().reverse().map(date=>{
     const [y,m,d] = date.split('-');
     const rows = groups[date].map(e=>{
-      const isBig = e.amount >= BIG_EXPENSE_THRESHOLD;
+      const isIncome = entryType(e) === 'income';
+      const isBig = !isIncome && e.amount >= BIG_EXPENSE_THRESHOLD;
       return `
-      <div class="entry-row ${isBig?'big-expense':''}" data-id="${e.id}">
-        <span class="entry-emoji">${categoryEmoji(e.category)}</span>
+      <div class="entry-row ${isBig?'big-expense':''} ${isIncome?'income-row':''}" data-id="${e.id}">
+        <span class="entry-emoji">${categoryEmoji(e.category, e.type)}</span>
         <div class="entry-body">
           <div class="entry-detail">
             <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
@@ -599,7 +660,7 @@ function renderEntryList(){
           </div>
           <div class="entry-meta">${escapeHtml(e.category)}</div>
         </div>
-        <div class="entry-amount">${e.amount.toLocaleString('ko-KR')}원</div>
+        <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':'−'}${e.amount.toLocaleString('ko-KR')}원</div>
       </div>
     `;
     }).join('');
@@ -648,7 +709,8 @@ function renderTrash(){
 
 // ---- Entry modal ----
 function renderCategoryGrid(){
-  $('f-category-grid').innerHTML = CATEGORIES.map(c=>`
+  const list = categoryListFor(currentEntryType);
+  $('f-category-grid').innerHTML = list.map(c=>`
     <button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>
   `).join('');
   $('f-category-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
@@ -672,9 +734,16 @@ function renderOwnerGrid(){
   });
 }
 
-function openEntryModal(id){
+function openEntryModal(id, type){
   editingId = id || null;
-  $('entryModalTitle').textContent = id ? '지출 수정' : '지출 추가';
+  if(id){
+    const e = entries.find(x=>x.id===id);
+    currentEntryType = e.type || 'expense';
+  } else {
+    currentEntryType = type || 'expense';
+  }
+  const typeLabel = currentEntryType === 'income' ? '수입' : '지출';
+  $('entryModalTitle').textContent = id ? `${typeLabel} 수정` : `${typeLabel} 추가`;
   $('entryDeleteBtn').style.display = id ? 'block' : 'none';
   const now = getKSTNow();
   if(id){
@@ -685,10 +754,10 @@ function openEntryModal(id){
     selectedCategory = e.category;
     $('f-detail').value = e.detail || '';
   } else {
-    selectedOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+    selectedOwner = ownerFilter !== 'all' && ownerFilter !== 'income-all' ? ownerFilter : '댕';
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
     $('f-amount').value = '';
-    selectedCategory = '식비';
+    selectedCategory = categoryListFor(currentEntryType)[0].key;
     $('f-detail').value = '';
   }
   renderOwnerGrid();
@@ -712,11 +781,11 @@ function saveEntry(){
 
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
-    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail };
+    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType };
   } else {
     entries.push({
       id: 'e' + Date.now() + Math.floor(Math.random()*100000),
-      owner, date, amount, category: selectedCategory, detail,
+      owner, date, amount, category: selectedCategory, detail, type: currentEntryType,
       deleted: false, deletedAt: null
     });
   }
@@ -882,7 +951,7 @@ function saveOcrRows(){
       if(r.date && r.amount > 0){
         entries.push({
           id: 'e' + Date.now() + Math.floor(Math.random()*100000) + count,
-          owner, date: r.date, amount: r.amount, category: r.category, detail: r.detail,
+          owner, date: r.date, amount: r.amount, category: r.category, detail: r.detail, type: 'expense',
           deleted: false, deletedAt: null
         });
         count++;
@@ -919,9 +988,11 @@ function runSearch(){
   const total = matches.reduce((s,e)=>s+e.amount, 0);
   resultEl.innerHTML =
     `<div style="font-size:13px;font-weight:800;margin-bottom:8px;">'${escapeHtml(q)}' 검색 결과 ${matches.length}건 · ${formatWon(total)}</div>` +
-    matches.map(e=>`
-      <div class="entry-row" data-id="${e.id}">
-        <span class="entry-emoji">${categoryEmoji(e.category)}</span>
+    matches.map(e=>{
+      const isIncome = entryType(e) === 'income';
+      return `
+      <div class="entry-row ${isIncome?'income-row':''}" data-id="${e.id}">
+        <span class="entry-emoji">${categoryEmoji(e.category, e.type)}</span>
         <div class="entry-body">
           <div class="entry-detail">
             <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
@@ -929,9 +1000,10 @@ function runSearch(){
           </div>
           <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}</div>
         </div>
-        <div class="entry-amount">${e.amount.toLocaleString('ko-KR')}원</div>
+        <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':'−'}${e.amount.toLocaleString('ko-KR')}원</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   resultEl.querySelectorAll('.entry-row').forEach(row=>{
     row.addEventListener('click', ()=> openEntryModal(row.dataset.id));
   });
@@ -983,7 +1055,8 @@ function init(){
       p.addEventListener('click', ()=>{ ownerFilter = p.dataset.owner; render(); });
     });
 
-    $('addManualBtn').addEventListener('click', ()=> openEntryModal(null));
+    $('addExpenseBtn').addEventListener('click', ()=> openEntryModal(null, 'expense'));
+    $('addIncomeBtn').addEventListener('click', ()=> openEntryModal(null, 'income'));
     $('entryCancelBtn').addEventListener('click', closeEntryModal);
     $('entrySaveBtn').addEventListener('click', saveEntry);
     $('entryDeleteBtn').addEventListener('click', deleteEntry);
