@@ -189,6 +189,26 @@
   <p class="footer-note">챕터는 계속 추가될 예정이에요 🐾</p>
 </div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhrAS_axfkAyBV7_JTTJOQdB6szw2_BXU",
+    authDomain: "daengtaengmoonghouse.firebaseapp.com",
+    projectId: "daengtaengmoonghouse",
+    storageBucket: "daengtaengmoonghouse.firebasestorage.app",
+    messagingSenderId: "656550962777",
+    appId: "1:656550962777:web:8a9ae998f5a2c25448f348"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+
+  window.firestoreLoadLedger = async function(){
+    const snap = await getDoc(doc(db, 'appdata', 'card-ledger'));
+    return snap.exists() ? snap.data() : null;
+  };
+</script>
 <script src="https://unpkg.com/solarlunar/dist/solarlunar.min.js"></script>
 <script>
 const EVENTS = [
@@ -302,8 +322,7 @@ function renderAnnivWidget(){
   }
 }
 
-// ---- 정기지출 캘린더 위젯 (읽기 전용, card-ledger 저장소를 그대로 조회) ----
-const LEDGER_STORE_ID = '019fa6f8-6557-7ab4-a7e5-0b4ea40be264';
+// ---- 정기지출 캘린더 위젯 (읽기 전용, Firestore에서 조회) ----
 
 function ledgerDdayFor(day, today){
   const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
@@ -320,10 +339,15 @@ function ledgerDdayFor(day, today){
 async function renderLedgerWidget(){
   const el = document.getElementById('ledgerWidget');
   try{
-    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${LEDGER_STORE_ID}`);
-    if(!res.ok) throw new Error('조회 실패');
-    const data = await res.json();
-    const entries = Array.isArray(data.entries) ? data.entries : [];
+    // module script가 아직 로드/실행 중일 수 있어 잠깐 대기
+    let tries = 0;
+    while(!window.firestoreLoadLedger && tries < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if(!window.firestoreLoadLedger) throw new Error('저장소 연결 준비가 안 됐어요');
+    const data = await window.firestoreLoadLedger();
+    const entries = (data && Array.isArray(data.entries)) ? data.entries : [];
     const active = entries.filter(e => !e.expired);
     if(active.length === 0){
       el.innerHTML = '<div style="padding:16px;color:var(--ink-soft);font-size:12.5px;">등록된 정기지출이 없어요.</div>';
