@@ -88,6 +88,7 @@
   .section-label{margin:26px 0 12px;}
   .section-label h2{font-size:14.5px;font-weight:800;margin:0;color:var(--ink);}
   .section-label h2::before{content:"🎉 ";font-size:12px;}
+  .section-label.ledger-label h2::before{content:"💳 ";}
 
   .page-divider{
     border:none;border-top:1.5px dashed var(--line);margin:30px 0 0;
@@ -176,6 +177,10 @@
       <div class="chapter-arrow">→</div>
     </a>
   </div>
+
+  <hr class="page-divider">
+  <div class="section-label ledger-label"><h2>다가오는 정기지출</h2></div>
+  <div class="anniv-widget" id="ledgerWidget"></div>
 
   <hr class="page-divider">
   <div class="section-label"><h2>다가오는 기념일</h2></div>
@@ -297,10 +302,64 @@ function renderAnnivWidget(){
   }
 }
 
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', renderAnnivWidget);
-} else {
+// ---- 정기지출 캘린더 위젯 (읽기 전용, card-ledger 저장소를 그대로 조회) ----
+const LEDGER_STORE_ID = '019fa6f8-6557-7ab4-a7e5-0b4ea40be264';
+
+function ledgerDdayFor(day, today){
+  const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  const clampedDay = Math.min(day, dim);
+  let diff = clampedDay - today.getDate();
+  if(diff < 0){
+    const daysInNextMonth = new Date(today.getFullYear(), today.getMonth()+2, 0).getDate();
+    const nextClamped = Math.min(day, daysInNextMonth);
+    diff = (dim - today.getDate()) + nextClamped;
+  }
+  return diff;
+}
+
+async function renderLedgerWidget(){
+  const el = document.getElementById('ledgerWidget');
+  try{
+    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${LEDGER_STORE_ID}`);
+    if(!res.ok) throw new Error('조회 실패');
+    const data = await res.json();
+    const entries = Array.isArray(data.entries) ? data.entries : [];
+    const active = entries.filter(e => !e.expired);
+    if(active.length === 0){
+      el.innerHTML = '<div style="padding:16px;color:var(--ink-soft);font-size:12.5px;">등록된 정기지출이 없어요.</div>';
+      return;
+    }
+    const today = getKSTToday();
+    const computed = active.map(e => ({ ...e, diffDays: ledgerDdayFor(e.day, today) }))
+      .sort((a,b)=> a.diffDays - b.diffDays);
+    const top = computed.slice(0, 3);
+    el.innerHTML = top.map(e => `
+      <div class="anniv-row">
+        <span class="anniv-emoji">💳</span>
+        <div class="anniv-body">
+          <div class="anniv-name">
+            <span class="anniv-owner o-${e.owner || '댕'}">${e.owner || '댕'}</span>
+            ${e.name || e.card || '정기지출'}
+          </div>
+          <div class="anniv-meta">${e.card || ''} · 매월 ${e.day}일</div>
+        </div>
+        <span class="anniv-dday ${e.diffDays===0?'today':''}">${e.diffDays===0?'D-DAY':'D-'+e.diffDays}</span>
+      </div>
+    `).join('');
+  }catch(err){
+    el.innerHTML = '<div style="padding:16px;color:#C23B32;font-size:12.5px;">정기지출 정보를 불러오지 못했어요.</div>';
+  }
+}
+
+function initWidgets(){
+  renderLedgerWidget();
   renderAnnivWidget();
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initWidgets);
+} else {
+  initWidgets();
 }
 </script>
 
