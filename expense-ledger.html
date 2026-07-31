@@ -537,7 +537,7 @@ async function saveEntries(){
     await window.firestoreSave({ entries, customCategories });
     return true;
   }catch(e){
-    showToast('저장에 실패했어요: ' + (e.message || ''));
+    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 인터넷 연결을 확인하고 다시 시도해주세요.');
     return false;
   }
 }
@@ -698,17 +698,24 @@ function renderTrash(){
     </div>
   `).join('');
   container.querySelectorAll('[data-restore]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', async ()=>{
       const entry = entries.find(e=>e.id===btn.dataset.restore);
-      if(entry){ entry.deleted = false; delete entry.deletedAt; saveEntries(); render(); showToast('복원했어요'); }
+      if(!entry) return;
+      entry.deleted = false; delete entry.deletedAt;
+      const ok = await saveEntries();
+      if(!ok){ entry.deleted = true; entry.deletedAt = new Date().toISOString(); return; }
+      render(); showToast('복원했어요');
     });
   });
   container.querySelectorAll('[data-permadel]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', async ()=>{
       const entry = entries.find(e=>e.id===btn.dataset.permadel);
       if(entry && confirm(`'${entry.detail||entry.category}' 항목을 완전히 삭제할까요? 되돌릴 수 없어요.`)){
+        const backup = JSON.parse(JSON.stringify(entries));
         entries = entries.filter(e=>e.id!==btn.dataset.permadel);
-        saveEntries(); render(); showToast('완전히 삭제했어요');
+        const ok = await saveEntries();
+        if(!ok){ entries = backup; return; }
+        render(); showToast('완전히 삭제했어요');
       }
     });
   });
@@ -802,7 +809,7 @@ function closeEntryModal(){
   $('entryModalBackdrop').classList.remove('open');
   editingId = null;
 }
-function saveEntry(){
+async function saveEntry(){
   const owner = selectedOwner;
   const date = $('f-date').value;
   const amount = parseInt($('f-amount').value, 10);
@@ -813,6 +820,11 @@ function saveEntry(){
     return;
   }
 
+  const saveBtn = $('entrySaveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '저장 중...';
+
+  const backup = JSON.parse(JSON.stringify(entries));
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
     entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType };
@@ -823,19 +835,24 @@ function saveEntry(){
       deleted: false, deletedAt: null
     });
   }
+  const ok = await saveEntries();
+  saveBtn.disabled = false;
+  saveBtn.textContent = '저장';
+  if(!ok){ entries = backup; return; }
+
   currentMonth = monthKey(date);
-  saveEntries();
   render();
   closeEntryModal();
   showToast('저장했어요');
 }
-function deleteEntry(){
+async function deleteEntry(){
   if(!editingId) return;
   const entry = entries.find(e=>e.id===editingId);
   if(entry && confirm(`'${entry.detail||entry.category}' 항목을 휴지통으로 보낼까요?`)){
     entry.deleted = true;
     entry.deletedAt = new Date().toISOString();
-    saveEntries();
+    const ok = await saveEntries();
+    if(!ok){ entry.deleted = false; delete entry.deletedAt; return; }
     render();
     closeEntryModal();
     showToast('휴지통으로 보냈어요');
@@ -975,9 +992,10 @@ async function handleOcrFile(file){
   }
 }
 
-function saveOcrRows(){
+async function saveOcrRows(){
   const owner = $('ocr-owner').value;
   const checks = $('ocrRows').querySelectorAll('[data-ocr-check]');
+  const backup = JSON.parse(JSON.stringify(entries));
   let count = 0;
   checks.forEach(chk=>{
     if(chk.checked){
@@ -996,7 +1014,8 @@ function saveOcrRows(){
     showToast('선택된 항목이 없어요');
     return;
   }
-  saveEntries();
+  const ok = await saveEntries();
+  if(!ok){ entries = backup; return; }
   render();
   closeOcrModal();
   showToast(`${count}개 항목을 추가했어요`);
@@ -1061,13 +1080,15 @@ function downloadBackup(){
 
 function restoreBackup(file){
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try{
       const data = JSON.parse(reader.result);
       if(!Array.isArray(data.entries)) throw new Error('형식이 올바르지 않아요');
       if(!confirm(`백업 파일에는 항목 ${data.entries.length}개가 있어요. 지금 데이터를 이걸로 덮어쓸까요?`)) return;
+      const backup = JSON.parse(JSON.stringify(entries));
       entries = data.entries;
-      saveEntries();
+      const ok = await saveEntries();
+      if(!ok){ entries = backup; return; }
       render();
       showToast('복원했어요');
     }catch(err){
