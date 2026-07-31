@@ -526,13 +526,6 @@ let editingId = null;
 let ownerFilter = 'all';
 let revealedAccounts = new Set();
 let expandedRows = new Set();
-const DEFAULT_ENTRIES = [
-  { id: 'seed1', owner: '댕', name: '취득세', card: '롯데카드(디지로카)', day: 25, account: '신한 110457762290', memo: '' },
-  { id: 'seed2', owner: '댕', name: '세탁기', card: '비씨카드(복지카드)', day: 25, account: '기업 161-086989-01-015', memo: '' },
-  { id: 'seed3', owner: '댕', name: '생활비', card: '신한카드(더모아)', day: 5, account: '신한 110457762290', memo: '' },
-  { id: 'seed4', owner: '댕', name: '생활비', card: '삼성카드(탭탭오)', day: 1, account: '신한 110457762290', memo: '' },
-  { id: 'seed5', owner: '댕', name: '교통비', card: '신한카드(K-패스)', day: 5, account: '신한 110457762290', memo: '' }
-];
 
 const $ = (id) => document.getElementById(id);
 
@@ -627,7 +620,7 @@ async function loadEntries(){
   try{
     const data = await window.firestoreLoad();
     if(!data){
-      entries = [...DEFAULT_ENTRIES];
+      entries = [];
       completions = {};
     } else {
       entries = Array.isArray(data.entries) ? data.entries : [];
