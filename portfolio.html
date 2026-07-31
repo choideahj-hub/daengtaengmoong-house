@@ -89,7 +89,11 @@
   }
   .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-  .holding-card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;cursor:pointer;}
+  .holding-card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;}
+  .holding-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;}
+  .holding-toggle-icon{font-size:12px;color:var(--muted);transition:transform .2s ease;flex-shrink:0;}
+  .holding-toggle-icon.open{transform:rotate(180deg);}
+  .holding-detail{border-top:1px dashed var(--line);margin-top:10px;padding-top:10px;}
   .holding-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
   .owner-tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;flex-shrink:0;}
   .owner-tag.o-댕{background:var(--blue-soft);color:var(--blue);}
@@ -100,7 +104,7 @@
   .holding-broker{font-size:11px;color:var(--muted);}
   .holding-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--ink-soft);}
   .holding-grid b{color:var(--ink);font-variant-numeric:tabular-nums;}
-  .holding-pl{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .holding-pl{display:flex;align-items:center;gap:8px;}
   .pl-amount{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
   .pl-amount.up{color:var(--red);}
   .pl-amount.down{color:var(--accent2);}
@@ -803,6 +807,8 @@ function savingsValueFor(s){
   return isInvestedPension(s) ? (Number(s.investedValue) || 0) : savingsPrincipalFor(s);
 }
 
+let expandedHoldings = new Set();
+
 function renderHoldings(){
   const holdings = computeHoldings().sort((a,b)=> (b.qty*b.avgCost) - (a.qty*a.avgCost));
   const el = $('holdingsList');
@@ -818,6 +824,7 @@ function renderHoldings(){
     const plPct = cost > 0 ? (pl / cost) * 100 : 0;
     const plClass = pl >= 0 ? 'up' : 'down';
     const key = priceKeyFor(h);
+    const isOpen = expandedHoldings.has(key);
     const marketLabel = h.market === 'coin' ? '코인' : (h.market === 'overseas' ? '해외주식' : '국내주식');
     let priceNote;
     if(h.market === 'coin'){
@@ -831,27 +838,34 @@ function renderHoldings(){
     }
     return `
       <div class="holding-card" data-key="${escapeHtml(key)}" data-market="${h.market}" data-txnids="${h.txnIds.join(',')}">
-        <div class="holding-top">
-          <span class="owner-tag o-${escapeHtml(h.owner)}">${escapeHtml(h.owner)}</span>
-          <span class="market-tag">${marketLabel}</span>
-          <span class="holding-name">${escapeHtml(h.name)}</span>
+        <div class="holding-summary" data-action="toggle">
+          <div>
+            <div class="holding-top">
+              <span class="owner-tag o-${escapeHtml(h.owner)}">${escapeHtml(h.owner)}</span>
+              <span class="market-tag">${marketLabel}</span>
+              <span class="holding-name">${escapeHtml(h.name)}</span>
+            </div>
+            <div class="holding-pl" style="margin-top:6px;">
+              <span class="pl-amount ${plClass}">${pl>=0?'+':''}${formatWon(pl)}</span>
+              <span class="pl-pct ${plClass}">${pl>=0?'+':''}${plPct.toFixed(1)}%</span>
+            </div>
+          </div>
+          <span class="holding-toggle-icon ${isOpen?'open':''}">▾</span>
         </div>
-        <div class="holding-broker">${escapeHtml(h.broker||'')}</div>
-        <div class="holding-grid" style="margin-top:8px;">
-          <div>수량 <b>${h.qty.toLocaleString('ko-KR', {maximumFractionDigits:8})}</b></div>
-          <div>평단가 <b>${Math.round(h.avgCost).toLocaleString('ko-KR')}원</b></div>
-          <div>현재가 <b>${Math.round(cp.price).toLocaleString('ko-KR')}원</b></div>
-          <div>평가금액 <b>${formatWon(evalAmt)}</b></div>
-        </div>
-        <div class="holding-pl">
-          <span class="pl-amount ${plClass}">${pl>=0?'+':''}${formatWon(pl)}</span>
-          <span class="pl-pct ${plClass}">${pl>=0?'+':''}${plPct.toFixed(1)}%</span>
-        </div>
-        <div class="price-stale">${priceNote}</div>
-        <div class="holding-actions">
-          <button type="button" class="holding-action-btn quick-buy" data-action="quickbuy">🔁 오늘 매수 추가</button>
-          <button type="button" class="holding-action-btn" data-action="history">✏️ 거래내역 수정</button>
-          ${h.market!=='coin' ? `<button type="button" class="holding-action-btn" data-action="price">💲 현재가 수정</button>` : ''}
+        <div class="holding-detail" style="display:${isOpen?'block':'none'};">
+          <div class="holding-broker">${escapeHtml(h.broker||'')}</div>
+          <div class="holding-grid" style="margin-top:8px;">
+            <div>수량 <b>${h.qty.toLocaleString('ko-KR', {maximumFractionDigits:8})}</b></div>
+            <div>평단가 <b>${Math.round(h.avgCost).toLocaleString('ko-KR')}원</b></div>
+            <div>현재가 <b>${Math.round(cp.price).toLocaleString('ko-KR')}원</b></div>
+            <div>평가금액 <b>${formatWon(evalAmt)}</b></div>
+          </div>
+          <div class="price-stale">${priceNote}</div>
+          <div class="holding-actions">
+            <button type="button" class="holding-action-btn quick-buy" data-action="quickbuy">🔁 오늘 매수 추가</button>
+            <button type="button" class="holding-action-btn" data-action="history">✏️ 거래내역 수정</button>
+            ${h.market!=='coin' ? `<button type="button" class="holding-action-btn" data-action="price">💲 현재가 수정</button>` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -859,6 +873,14 @@ function renderHoldings(){
 
   el.querySelectorAll('.holding-card').forEach(card=>{
     const h = holdings.find(h=>priceKeyFor(h)===card.dataset.key);
+
+    card.querySelector('.holding-summary').addEventListener('click', ()=>{
+      const key = card.dataset.key;
+      if(expandedHoldings.has(key)) expandedHoldings.delete(key);
+      else expandedHoldings.add(key);
+      renderHoldings();
+    });
+
     card.querySelectorAll('.holding-action-btn').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
