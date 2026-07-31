@@ -99,6 +99,19 @@
   .pl-pct.up{background:var(--red-soft);color:var(--red);}
   .pl-pct.down{background:var(--accent2-soft);color:var(--accent2);}
   .price-stale{font-size:10.5px;color:var(--muted);margin-top:4px;}
+  .holding-actions{display:flex;gap:6px;margin-top:10px;}
+  .holding-action-btn{
+    flex:1;padding:7px 4px;border-radius:100px;border:1.5px solid var(--line);background:#fff;
+    font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;
+  }
+  .holding-action-btn:active{background:var(--accent-soft);color:var(--accent);}
+  .history-row{padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;}
+  .history-row:active{background:var(--gray-soft);}
+  .history-row-main{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:3px;}
+  .history-type{font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;}
+  .history-type.buy{background:var(--red-soft);color:var(--red);}
+  .history-type.sell{background:var(--accent2-soft);color:var(--accent2);}
+  .history-row-detail{font-size:11.5px;color:var(--ink-soft);}
 
   .savings-card{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;cursor:pointer;}
   .savings-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
@@ -247,12 +260,13 @@
       <input type="date" id="txn-date">
     </div>
     <div class="field">
-      <label>수량</label>
+      <label>수량 (체결수량)</label>
       <input type="number" id="txn-qty" placeholder="예: 10" step="any" inputmode="decimal">
     </div>
     <div class="field">
-      <label>단가 (원)</label>
+      <label>단가 (체결가격, 원)</label>
       <input type="number" id="txn-price" placeholder="예: 72000" inputmode="numeric">
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">체결금액(수량×단가)은 저장하면 자동으로 계산돼요</p>
     </div>
     <div class="modal-actions">
       <button class="btn ghost" id="txnCancelBtn">취소</button>
@@ -274,6 +288,18 @@
     <div class="modal-actions">
       <button class="btn ghost" id="priceCancelBtn">취소</button>
       <button class="btn primary" id="priceSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 거래내역 보기 모달 -->
+<div class="modal-backdrop" id="historyModalBackdrop">
+  <div class="modal">
+    <h3 id="historyModalTitle">거래내역</h3>
+    <p style="font-size:12px;color:var(--ink-soft);margin:-10px 0 14px;">항목을 탭하면 수정할 수 있어요</p>
+    <div id="historyList"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="historyCloseBtn">닫기</button>
     </div>
   </div>
 </div>
@@ -563,7 +589,7 @@ function renderHoldings(){
       priceNote = '현재가 미입력 (평단가로 표시 중)';
     }
     return `
-      <div class="holding-card" data-key="${escapeHtml(key)}" data-market="${h.market}">
+      <div class="holding-card" data-key="${escapeHtml(key)}" data-market="${h.market}" data-txnids="${h.txnIds.join(',')}">
         <div class="holding-top">
           <span class="owner-tag o-${escapeHtml(h.owner)}">${escapeHtml(h.owner)}</span>
           <span class="market-tag">${marketLabel}</span>
@@ -580,21 +606,54 @@ function renderHoldings(){
           <span class="pl-amount ${plClass}">${pl>=0?'+':''}${formatWon(pl)}</span>
           <span class="pl-pct ${plClass}">${pl>=0?'+':''}${plPct.toFixed(1)}%</span>
         </div>
-        <div class="price-stale">${priceNote}${h.market!=='coin' ? ' · 탭해서 현재가 수동 조정' : ''}</div>
+        <div class="price-stale">${priceNote}</div>
+        <div class="holding-actions">
+          <button type="button" class="holding-action-btn" data-action="history">✏️ 거래내역 수정</button>
+          ${h.market!=='coin' ? `<button type="button" class="holding-action-btn" data-action="price">💲 현재가 수정</button>` : ''}
+        </div>
       </div>
     `;
   }).join('');
 
   el.querySelectorAll('.holding-card').forEach(card=>{
-    card.addEventListener('click', ()=>{
-      if(card.dataset.market !== 'coin'){
-        openPriceModal(card.dataset.key, holdings.find(h=>priceKeyFor(h)===card.dataset.key));
-      } else {
-        showToast('코인은 업비트 시세를 자동으로 사용해요');
-      }
+    const h = holdings.find(h=>priceKeyFor(h)===card.dataset.key);
+    card.querySelectorAll('.holding-action-btn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(btn.dataset.action === 'price'){
+          openPriceModal(card.dataset.key, h);
+        } else {
+          openHistoryModal(h);
+        }
+      });
     });
   });
 }
+
+// ---- 거래내역 보기/수정 모달 ----
+function openHistoryModal(h){
+  const rows = transactions
+    .filter(t => h.txnIds.includes(t.id))
+    .sort((a,b)=> b.date.localeCompare(a.date));
+  $('historyModalTitle').textContent = `${h.name} 거래내역`;
+  $('historyList').innerHTML = rows.map(t=>`
+    <div class="history-row" data-id="${t.id}">
+      <div class="history-row-main">
+        <span class="history-type ${t.type}">${t.type==='buy'?'매수':'매도'}</span>
+        <span>${escapeHtml(t.date)}</span>
+      </div>
+      <div class="history-row-detail">수량 ${Number(t.qty).toLocaleString('ko-KR',{maximumFractionDigits:8})} · 단가 ${Number(t.price).toLocaleString('ko-KR')}원</div>
+    </div>
+  `).join('');
+  $('historyList').querySelectorAll('.history-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      closeHistoryModal();
+      openTxnModal(row.dataset.id);
+    });
+  });
+  $('historyModalBackdrop').classList.add('open');
+}
+function closeHistoryModal(){ $('historyModalBackdrop').classList.remove('open'); }
 
 function renderSavings(){
   const list = filteredSavings().sort((a,b)=> (a.startDate||'').localeCompare(b.startDate||''));
@@ -862,6 +921,8 @@ function init(){
     $('txnModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='txnModalBackdrop') closeTxnModal(); });
 
     $('priceCancelBtn').addEventListener('click', closePriceModal);
+    $('historyCloseBtn').addEventListener('click', closeHistoryModal);
+    $('historyModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='historyModalBackdrop') closeHistoryModal(); });
     $('priceSaveBtn').addEventListener('click', savePrice);
     $('priceModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='priceModalBackdrop') closePriceModal(); });
 
