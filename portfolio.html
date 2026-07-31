@@ -1134,7 +1134,7 @@ function openTxnModal(id, prefill){
     selectedCoin = prefill.upbitCode ? { market: prefill.upbitCode, koreanName: prefill.name } : null;
     $('txn-coin-selected').textContent = selectedCoin ? `✓ 선택됨: ${selectedCoin.koreanName} (${selectedCoin.market})` : '';
   } else {
-    txnOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+    txnOwner = ownerFilter !== 'all' ? ownerFilter : '탱';
     txnType = 'buy'; txnMarket = 'domestic';
     $('txn-name').value = '';
     $('txn-domestic-code').value = '';
@@ -1227,7 +1227,7 @@ async function searchBulkCoin(query){
 }
 
 function openBulkModal(){
-  bulkOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
+  bulkOwner = ownerFilter !== 'all' ? ownerFilter : '탱';
   bulkType = 'buy'; bulkMarket = 'domestic';
   bulkSelectedCoin = null;
   $('bulk-name').value = '';
