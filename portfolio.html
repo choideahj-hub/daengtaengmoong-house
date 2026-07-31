@@ -70,6 +70,14 @@
   .summary-split-label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:2px;}
   .summary-split-amount{font-size:14.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
   .as-of{font-size:11px;color:var(--muted);margin-top:10px;text-align:right;}
+  .allocation-row{display:flex;align-items:center;gap:18px;}
+  .donut-svg{width:96px;height:96px;flex-shrink:0;}
+  .allocation-bars{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;}
+  .alloc-bar-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+  .alloc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .alloc-label{width:56px;flex-shrink:0;color:var(--ink-soft);font-weight:700;}
+  .alloc-pct{width:38px;flex-shrink:0;text-align:right;font-weight:800;color:var(--ink);}
+  .alloc-amt{font-size:10.5px;color:var(--muted);}
 
   .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
   .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
@@ -145,6 +153,11 @@
   .seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   .seg-btn{padding:9px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;}
   .seg-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .coin-result-btn{
+    text-align:left;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#fff;
+    font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;
+  }
+  .coin-result-btn:active{background:var(--accent-soft);}
   .modal-actions{display:flex;gap:8px;margin-top:16px;}
   .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
   .btn.primary{background:var(--ink);color:#fff;}
@@ -188,6 +201,14 @@
       </div>
     </div>
     <div class="as-of" id="asOfLabel">기준 시각 계산 중...</div>
+  </div>
+
+  <div class="summary-card" id="allocationCard" style="display:none;">
+    <div class="summary-label" style="margin-bottom:12px;">포트폴리오 구성</div>
+    <div class="allocation-row">
+      <svg viewBox="0 0 120 120" class="donut-svg" id="donutSvg"></svg>
+      <div class="allocation-bars" id="allocationBars"></div>
+    </div>
   </div>
 
   <div class="section-label">
@@ -248,12 +269,16 @@
       <input type="text" id="txn-overseas-symb" placeholder="예: AAPL">
     </div>
     <div class="field" id="txn-upbit-field" style="display:none;">
-      <label>업비트 마켓 코드 (코인 시세 자동 조회용)</label>
-      <input type="text" id="txn-upbit-code" placeholder="예: KRW-BTC">
+      <label>코인 검색</label>
+      <input type="text" id="txn-coin-search" placeholder="예: 비트코인, BTC">
+      <div id="txn-coin-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
+      <div id="txn-coin-selected" style="margin-top:8px;font-size:12.5px;font-weight:800;color:var(--accent);"></div>
+      <input type="hidden" id="txn-upbit-code">
     </div>
     <div class="field">
       <label>증권사/거래소</label>
-      <input type="text" id="txn-broker" placeholder="예: 미래에셋증권, 업비트">
+      <div class="seg-grid" id="txn-broker-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px;"></div>
+      <input type="text" id="txn-broker" placeholder="목록에 없으면 직접 입력">
     </div>
     <div class="field">
       <label>날짜</label>
@@ -387,6 +412,14 @@ let txnOwner = '댕';
 let txnType = 'buy';
 let txnMarket = 'domestic';
 let savingsOwner = '댕';
+let selectedCoin = null; // { market, koreanName }
+let upbitMarketList = []; // 업비트 전체 마켓 캐시
+
+const BROKER_PRESETS = {
+  domestic: ['미래에셋증권','삼성증권','키움증권','한국투자증권','NH투자증권','KB증권','신한투자증권','토스증권','대신증권','하나증권'],
+  overseas: ['미래에셋증권','삼성증권','키움증권','한국투자증권','NH투자증권','KB증권','신한투자증권','토스증권'],
+  coin: ['업비트','빗썸','코인원','코빗','고팍스']
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -522,8 +555,57 @@ function render(){
     p.classList.toggle('active', p.dataset.owner === ownerFilter);
   });
   renderSummary();
+  renderAllocation();
   renderHoldings();
   renderSavings();
+}
+
+function renderAllocation(){
+  const holdings = computeHoldings();
+  let domesticSum = 0, overseasSum = 0, coinSum = 0;
+  holdings.forEach(h=>{
+    const cp = currentPriceFor(h);
+    const amt = h.qty * cp.price;
+    if(h.market === 'domestic') domesticSum += amt;
+    else if(h.market === 'overseas') overseasSum += amt;
+    else coinSum += amt;
+  });
+  const savingsSum = filteredSavings().reduce((s,x)=> s + savingsPaidPrincipal(x), 0);
+  const total = domesticSum + overseasSum + coinSum + savingsSum;
+
+  const card = $('allocationCard');
+  if(total <= 0){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const segments = [
+    { label:'국내주식', amt:domesticSum, color:'#3E5AC7' },
+    { label:'해외주식', amt:overseasSum, color:'#2E8A78' },
+    { label:'코인', amt:coinSum, color:'#C08A2E' },
+    { label:'적금', amt:savingsSum, color:'#E0568F' }
+  ].filter(s => s.amt > 0);
+
+  const r = 50, c = 2 * Math.PI * r;
+  let offset = 0;
+  const circles = segments.map(s=>{
+    const frac = s.amt / total;
+    const len = frac * c;
+    const circle = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${s.color}" stroke-width="18" stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"/>`;
+    offset += len;
+    return circle;
+  }).join('');
+  $('donutSvg').innerHTML = circles;
+
+  $('allocationBars').innerHTML = segments.map(s=>{
+    const pct = (s.amt / total * 100).toFixed(1);
+    return `
+      <div class="alloc-bar-row">
+        <span class="alloc-dot" style="background:${s.color};"></span>
+        <span class="alloc-label">${s.label}</span>
+        <span class="alloc-pct">${pct}%</span>
+        <span class="alloc-amt">${formatWon(s.amt)}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderSummary(){
@@ -707,6 +789,64 @@ function updateTxnMarketFields(v){
   $('txn-domestic-field').style.display = v === 'domestic' ? 'block' : 'none';
   $('txn-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('txn-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
+  renderBrokerChips(v);
+}
+
+function renderBrokerChips(market){
+  const presets = BROKER_PRESETS[market] || [];
+  const current = $('txn-broker').value.trim();
+  $('txn-broker-grid').innerHTML = presets.map(b=>`
+    <button type="button" class="seg-btn broker-chip ${b===current?'active':''}" data-val="${escapeHtml(b)}">${escapeHtml(b)}</button>
+  `).join('');
+  $('txn-broker-grid').querySelectorAll('.broker-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      $('txn-broker').value = btn.dataset.val;
+      $('txn-broker-grid').querySelectorAll('.broker-chip').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+}
+
+// ---- 업비트 코인 검색 ----
+async function ensureUpbitMarketList(){
+  if(upbitMarketList.length) return upbitMarketList;
+  try{
+    const res = await fetch('https://api.upbit.com/v1/market/all?isDetails=false');
+    if(!res.ok) throw new Error('마켓 목록 조회 실패');
+    const data = await res.json();
+    upbitMarketList = data.filter(m => m.market.startsWith('KRW-'));
+  }catch(err){
+    showToast('코인 목록을 불러오지 못했어요');
+  }
+  return upbitMarketList;
+}
+
+async function searchCoin(query){
+  const q = query.trim();
+  const resultsEl = $('txn-coin-results');
+  if(!q){ resultsEl.innerHTML = ''; return; }
+  const list = await ensureUpbitMarketList();
+  const matched = list.filter(m =>
+    m.korean_name.includes(q) || m.english_name.toUpperCase().includes(q.toUpperCase()) || m.market.toUpperCase().includes(q.toUpperCase())
+  ).slice(0, 15);
+  if(matched.length === 0){
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">검색 결과가 없어요</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matched.map(m=>`
+    <button type="button" class="coin-result-btn" data-market="${m.market}" data-name="${escapeHtml(m.korean_name)}">
+      ${escapeHtml(m.korean_name)} <span style="color:var(--muted);">${m.market}</span>
+    </button>
+  `).join('');
+  resultsEl.querySelectorAll('.coin-result-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedCoin = { market: btn.dataset.market, koreanName: btn.dataset.name };
+      $('txn-upbit-code').value = selectedCoin.market;
+      $('txn-name').value = selectedCoin.koreanName;
+      $('txn-coin-selected').textContent = `✓ 선택됨: ${selectedCoin.koreanName} (${selectedCoin.market})`;
+      resultsEl.innerHTML = '';
+      $('txn-coin-search').value = '';
+    });
+  });
 }
 
 function openTxnModal(id){
@@ -727,6 +867,8 @@ function openTxnModal(id){
     $('txn-date').value = t.date;
     $('txn-qty').value = t.qty;
     $('txn-price').value = t.price;
+    selectedCoin = t.upbitCode ? { market: t.upbitCode, koreanName: t.name } : null;
+    $('txn-coin-selected').textContent = selectedCoin ? `✓ 선택됨: ${selectedCoin.koreanName} (${selectedCoin.market})` : '';
   } else {
     txnOwner = ownerFilter !== 'all' ? ownerFilter : '댕';
     txnType = 'buy'; txnMarket = 'domestic';
@@ -739,7 +881,11 @@ function openTxnModal(id){
     $('txn-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     $('txn-qty').value = '';
     $('txn-price').value = '';
+    selectedCoin = null;
+    $('txn-coin-selected').textContent = '';
   }
+  $('txn-coin-search').value = '';
+  $('txn-coin-results').innerHTML = '';
 
   renderSegGrid('txn-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), txnOwner, v=>txnOwner=v);
   renderSegGrid('txn-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], txnType, v=>txnType=v);
@@ -915,6 +1061,12 @@ function init(){
     });
 
     $('addTxnBtn').addEventListener('click', ()=> openTxnModal(null));
+    let coinSearchTimer = null;
+    $('txn-coin-search').addEventListener('input', (e)=>{
+      clearTimeout(coinSearchTimer);
+      const val = e.target.value;
+      coinSearchTimer = setTimeout(()=> searchCoin(val), 200);
+    });
     $('txnCancelBtn').addEventListener('click', closeTxnModal);
     $('txnSaveBtn').addEventListener('click', saveTxn);
     $('txnDeleteBtn').addEventListener('click', deleteTxn);
