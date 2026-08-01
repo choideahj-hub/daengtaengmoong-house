@@ -1155,7 +1155,7 @@ function searchDomesticStock(query){
   const resultsEl = $('txn-domestic-results');
   $('txn-name').value = query; // 검색창에 입력한 걸 그대로 종목명으로도 사용 (자유입력 대비)
   if(!q){ resultsEl.innerHTML = ''; return; }
-  const matched = DOMESTIC_STOCKS.filter(s => s.name.includes(q) || s.code.includes(q)).slice(0, 15);
+  const matched = DOMESTIC_STOCKS.filter(s => s.name.toUpperCase().includes(q.toUpperCase()) || s.code.toUpperCase().includes(q.toUpperCase())).slice(0, 15);
   if(matched.length === 0){
     resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 이대로 종목명으로 저장되고 코드는 아래에 직접 입력해주세요</div>`;
     return;
