@@ -291,7 +291,7 @@
       <input type="text" id="txn-domestic-search" placeholder="예: 삼성전자, 삼성">
       <div id="txn-domestic-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <label style="margin-top:10px;">종목코드 (6자리, 검색하면 자동입력 · 자동 시세 조회용)</label>
-      <input type="text" id="txn-domestic-code" placeholder="예: 005930" maxlength="6" inputmode="numeric">
+      <input type="text" id="txn-domestic-code" placeholder="예: 005930 (문자 섞인 ETF는 0067Y0처럼)" maxlength="6">
     </div>
     <div class="field" id="txn-overseas-field" style="display:none;">
       <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
@@ -380,7 +380,7 @@
     </div>
     <div class="field" id="bulk-domestic-field" style="display:none;">
       <label>종목코드 (6자리)</label>
-      <input type="text" id="bulk-domestic-code" placeholder="예: 005930" maxlength="6" inputmode="numeric">
+      <input type="text" id="bulk-domestic-code" placeholder="예: 005930" maxlength="6">
     </div>
     <div class="field" id="bulk-overseas-field" style="display:none;">
       <label>거래소코드</label>
@@ -556,7 +556,19 @@ const DOMESTIC_STOCKS = [
   {code:'024110', name:'기업은행'}, {code:'139480', name:'이마트'}, {code:'090430', name:'아모레퍼시픽'},
   {code:'051900', name:'LG생활건강'}, {code:'000100', name:'유한양행'}, {code:'196170', name:'알테오젠'},
   {code:'259960', name:'크래프톤'}, {code:'036570', name:'엔씨소프트'}, {code:'251270', name:'넷마블'},
-  {code:'293490', name:'카카오게임즈'}, {code:'352820', name:'하이브'}, {code:'069500', name:'KODEX 200(ETF)'},
+  {code:'293490', name:'카카오게임즈'}, {code:'352820', name:'하이브'},
+  {code:'069500', name:'KODEX 200(ETF)'}, {code:'229200', name:'KODEX 코스닥150(ETF)'},
+  {code:'122630', name:'KODEX 레버리지(ETF)'}, {code:'114800', name:'KODEX 인버스(ETF)'},
+  {code:'132030', name:'KODEX 골드선물(H)(ETF)'}, {code:'360750', name:'TIGER 미국S&P500(ETF)'},
+  {code:'133690', name:'TIGER 미국나스닥100(ETF)'}, {code:'379800', name:'KODEX 미국S&P500(ETF)'},
+  {code:'379810', name:'KODEX 미국나스닥100(ETF)'}, {code:'360200', name:'ACE 미국S&P500(ETF)'},
+  {code:'367380', name:'ACE 미국나스닥100(ETF)'},
+  {code:'381170', name:'TIGER 미국테크TOP10(ETF)'}, {code:'305540', name:'TIGER 2차전지테마(ETF)'},
+  {code:'091160', name:'KODEX 반도체(ETF)'}, {code:'278530', name:'KODEX 200TR(ETF)'},
+  {code:'292150', name:'TIGER TOP10(ETF)'}, {code:'153130', name:'KODEX 단기채권(ETF)'},
+  {code:'414780', name:'TIGER 차이나과창판STAR50(ETF)'}, {code:'415340', name:'KODEX 차이나과창판STAR50(ETF)'},
+  {code:'0067Y0', name:'TIGER 차이나AI소프트웨어(ETF)'}, {code:'0053L0', name:'TIGER 차이나휴머노이드로봇(ETF)'},
+  {code:'464310', name:'TIGER 글로벌AI로보틱스(ETF)'}, {code:'0038A0', name:'KODEX US휴머노이드로봇(ETF)'},
 ];
 
 const OVERSEAS_STOCKS = [
@@ -579,6 +591,17 @@ const OVERSEAS_STOCKS = [
   {symb:'PFE', excd:'NYS', name:'화이자'}, {symb:'UNH', excd:'NYS', name:'유나이티드헬스'},
   {symb:'GS', excd:'NYS', name:'골드만삭스'}, {symb:'IBM', excd:'NYS', name:'IBM'},
   {symb:'ORCL', excd:'NYS', name:'오라클'}, {symb:'CRM', excd:'NYS', name:'세일즈포스'},
+  {symb:'VOO', excd:'AMS', name:'뱅가드 S&P500(ETF)'}, {symb:'SPY', excd:'AMS', name:'SPDR S&P500(ETF)'},
+  {symb:'QQQ', excd:'NAS', name:'인베스코 나스닥100(ETF)'}, {symb:'QQQM', excd:'NAS', name:'인베스코 나스닥100 미니(ETF)'},
+  {symb:'VTI', excd:'AMS', name:'뱅가드 전체시장(ETF)'}, {symb:'VEA', excd:'AMS', name:'뱅가드 선진국(ETF)'},
+  {symb:'VWO', excd:'AMS', name:'뱅가드 신흥국(ETF)'}, {symb:'IVV', excd:'AMS', name:'아이셰어스 S&P500(ETF)'},
+  {symb:'GLD', excd:'AMS', name:'SPDR 골드(ETF)'}, {symb:'SLV', excd:'AMS', name:'아이셰어스 실버(ETF)'},
+  {symb:'ARKK', excd:'AMS', name:'ARK 이노베이션(ETF)'}, {symb:'SCHD', excd:'NYS', name:'슈왑 배당(ETF)'},
+  {symb:'JEPI', excd:'AMS', name:'JP모건 프리미엄인컴(ETF)'}, {symb:'TLT', excd:'NAS', name:'아이셰어스 20년+국채(ETF)'},
+  {symb:'BND', excd:'NAS', name:'뱅가드 종합채권(ETF)'}, {symb:'KWEB', excd:'AMS', name:'크레인셰어스 중국인터넷(ETF)'},
+  {symb:'ASHR', excd:'AMS', name:'Xtrackers 중국A주(ETF)'}, {symb:'EWY', excd:'NYS', name:'아이셰어스 한국(ETF)'},
+  {symb:'FXI', excd:'AMS', name:'아이셰어스 중국대형주(ETF)'}, {symb:'MCHI', excd:'AMS', name:'아이셰어스 MSCI China(ETF)'},
+  {symb:'CQQQ', excd:'AMS', name:'인베스코 중국기술(ETF)'}, {symb:'YINN', excd:'AMS', name:'차이나불 3배 레버리지(ETF)'},
 ];
 
 const BROKER_PRESETS = {
