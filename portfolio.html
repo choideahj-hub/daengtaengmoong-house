@@ -241,7 +241,10 @@
 
   <div class="section-label">
     <h2>📈 투자 자산 (주식·코인)</h2>
-    <button class="refresh-btn" id="refreshPricesBtn">🔄 코인 시세 새로고침</button>
+  </div>
+  <div class="add-row" style="flex-direction:row;gap:8px;">
+    <button class="refresh-btn" id="refreshPricesBtn" style="flex:1;">🔄 코인 시세 새로고침</button>
+    <button class="refresh-btn" id="refreshStockPricesBtn" style="flex:1;">📈 국내·해외 시세 수동조회</button>
   </div>
   <div class="add-row">
     <button class="add-btn" id="addTxnBtn">+ 매수/매도 내역 추가</button>
@@ -1746,6 +1749,24 @@ function init(){
       render();
       $('refreshPricesBtn').textContent = '🔄 코인 시세 새로고침';
       showToast('코인 시세를 갱신했어요');
+    });
+
+    $('refreshStockPricesBtn').addEventListener('click', async ()=>{
+      const btn = $('refreshStockPricesBtn');
+      btn.disabled = true;
+      btn.textContent = '조회 중... (몇 초 걸려요)';
+      try{
+        const res = await fetch('https://refreshpricesnow-74tingj67q-du.a.run.app');
+        const data = await res.json();
+        if(!data.success) throw new Error(data.message || '조회 실패');
+        await loadAll();
+        showToast(`시세 ${data.updated || 0}건 갱신했어요`);
+      }catch(err){
+        alert('⚠️ 국내·해외 시세 수동조회에 실패했어요\n\n' + (err.message || '') + '\n\n등록된 종목코드가 정확한지, 배치가 정상 배포됐는지 확인해주세요.');
+      }finally{
+        btn.disabled = false;
+        btn.textContent = '📈 국내·해외 시세 수동조회';
+      }
     });
 
     loadAll();
