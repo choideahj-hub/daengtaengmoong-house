@@ -71,6 +71,9 @@
   .summary-split-label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:2px;}
   .summary-split-amount{font-size:14.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
   .as-of{font-size:11px;color:var(--muted);margin-top:10px;text-align:right;}
+  .total-pl-row{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
+  .total-pl-label{font-size:11px;color:var(--muted);}
+  .summary-divider2{border:none;border-top:1.5px dashed var(--line);margin:16px 0;}
   .unpriced-warning{
     font-size:11.5px;font-weight:700;color:var(--red);background:var(--red-soft);
     padding:8px 12px;border-radius:10px;margin-top:8px;line-height:1.5;
@@ -166,6 +169,7 @@
   .seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   .seg-btn{padding:9px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;}
   .seg-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .broker-more-btn{border-style:dashed;color:var(--ink-soft);}
   .coin-result-btn{
     text-align:left;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#fff;
     font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;
@@ -203,6 +207,11 @@
   <div class="summary-card">
     <div class="summary-label">총 자산 (투자 평가액 + 적금·퇴직연금 원금)</div>
     <div class="summary-amount" id="summaryTotal">0원</div>
+    <div class="total-pl-row" id="totalPlRow">
+      <span class="pl-amount" id="totalPlAmount"></span>
+      <span class="pl-pct" id="totalPlPct"></span>
+      <span class="total-pl-label">누적 투자원금 대비</span>
+    </div>
     <div class="unpriced-warning" id="unpricedWarning" style="display:none;"></div>
     <div class="summary-split">
       <div class="summary-split-item">
@@ -219,13 +228,14 @@
       </div>
     </div>
     <div class="as-of" id="asOfLabel">기준 시각 계산 중...</div>
-  </div>
 
-  <div class="summary-card" id="allocationCard" style="display:none;">
-    <div class="summary-label" style="margin-bottom:12px;">포트폴리오 구성</div>
-    <div class="allocation-row">
-      <svg viewBox="0 0 120 120" class="donut-svg" id="donutSvg"></svg>
-      <div class="allocation-bars" id="allocationBars"></div>
+    <div class="summary-divider2" id="allocationDivider" style="display:none;"></div>
+    <div id="allocationCard" style="display:none;">
+      <div class="summary-label" style="margin-bottom:12px;">포트폴리오 구성</div>
+      <div class="allocation-row">
+        <svg viewBox="0 0 120 120" class="donut-svg" id="donutSvg"></svg>
+        <div class="allocation-bars" id="allocationBars"></div>
+      </div>
     </div>
   </div>
 
@@ -276,19 +286,15 @@
       <label>자산 종류</label>
       <div class="seg-grid" id="txn-market-grid" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
-    <div class="field">
-      <label>종목명</label>
-      <input type="text" id="txn-name" placeholder="예: 삼성전자, 애플, 비트코인">
-    </div>
     <div class="field" id="txn-domestic-field" style="display:none;">
-      <label>주요 종목 검색 (없으면 아래 코드 직접 입력)</label>
-      <input type="text" id="txn-domestic-search" placeholder="예: 삼성, 카카오">
+      <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
+      <input type="text" id="txn-domestic-search" placeholder="예: 삼성전자, 삼성">
       <div id="txn-domestic-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
-      <label style="margin-top:10px;">종목코드 (6자리, 자동 시세 조회용)</label>
+      <label style="margin-top:10px;">종목코드 (6자리, 검색하면 자동입력 · 자동 시세 조회용)</label>
       <input type="text" id="txn-domestic-code" placeholder="예: 005930" maxlength="6" inputmode="numeric">
     </div>
     <div class="field" id="txn-overseas-field" style="display:none;">
-      <label>주요 종목 검색 (없으면 아래 직접 입력)</label>
+      <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
       <input type="text" id="txn-overseas-search" placeholder="예: 애플, AAPL">
       <div id="txn-overseas-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <label style="margin-top:10px;">거래소코드</label>
@@ -297,16 +303,17 @@
         <option value="NYS">NYS (뉴욕)</option>
         <option value="AMS">AMS (아멕스)</option>
       </select>
-      <label style="margin-top:8px;">티커 (자동 시세 조회용)</label>
+      <label style="margin-top:8px;">티커 (검색하면 자동입력 · 자동 시세 조회용)</label>
       <input type="text" id="txn-overseas-symb" placeholder="예: AAPL">
     </div>
     <div class="field" id="txn-upbit-field" style="display:none;">
-      <label>코인 검색</label>
+      <label>종목명 (검색해서 선택)</label>
       <input type="text" id="txn-coin-search" placeholder="예: 비트코인, BTC">
       <div id="txn-coin-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <div id="txn-coin-selected" style="margin-top:8px;font-size:12.5px;font-weight:800;color:var(--accent);"></div>
       <input type="hidden" id="txn-upbit-code">
     </div>
+    <input type="hidden" id="txn-name">
     <div class="field">
       <label>증권사/거래소</label>
       <div class="seg-grid" id="txn-broker-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px;"></div>
@@ -319,6 +326,11 @@
     <div class="field">
       <label>수량 (체결수량)</label>
       <input type="number" id="txn-qty" placeholder="예: 10" step="any" inputmode="decimal">
+    </div>
+    <div class="field" id="txn-usd-field" style="display:none;">
+      <label>달러(USD)로 입력 (선택, 위 날짜 기준 환율로 자동 환산)</label>
+      <input type="number" id="txn-usd-price" placeholder="예: 520.50" step="any" inputmode="decimal">
+      <p style="font-size:11px;color:var(--accent);margin:6px 0 0;font-weight:700;" id="txn-fx-note"></p>
     </div>
     <div class="field">
       <label>단가 (체결가격, 원)</label>
@@ -570,10 +582,11 @@ const OVERSEAS_STOCKS = [
 ];
 
 const BROKER_PRESETS = {
-  domestic: ['미래에셋증권','삼성증권','키움증권','한국투자증권','NH투자증권','KB증권','신한투자증권','토스증권','대신증권','하나증권'],
-  overseas: ['미래에셋증권','삼성증권','키움증권','한국투자증권','NH투자증권','KB증권','신한투자증권','토스증권'],
+  domestic: ['미래에셋증권','키움증권','토스증권','NH투자증권','삼성증권','한국투자증권','KB증권','신한투자증권','대신증권','하나증권'],
+  overseas: ['미래에셋증권','키움증권','토스증권','NH투자증권','삼성증권','한국투자증권','KB증권','신한투자증권'],
   coin: ['업비트','빗썸','코인원','코빗','고팍스']
 };
+const BROKER_PRESETS_MAIN_COUNT = { domestic: 4, overseas: 4, coin: 5 }; // coin은 5개뿐이라 전부 바로 노출
 
 const $ = (id) => document.getElementById(id);
 
@@ -627,6 +640,25 @@ async function saveAll(){
 }
 
 // ---- 업비트 시세 ----
+// ---- 환율 (해외주식 달러 입력용, 매입일 기준 환율 사용) ----
+let fxRateCache = {}; // { 'latest' | 'YYYY-MM-DD': { rate, fetchedAt } }
+async function getUsdKrwRate(dateStr){
+  const key = dateStr || 'latest';
+  const cached = fxRateCache[key];
+  if(cached && (Date.now() - cached.fetchedAt) < 1000*60*30){
+    return cached.rate; // 30분 이내 캐시 재사용
+  }
+  const url = dateStr
+    ? `https://api.frankfurter.app/${dateStr}?from=USD&to=KRW`
+    : `https://api.frankfurter.app/latest?from=USD&to=KRW`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('환율 조회 실패');
+  const data = await res.json();
+  const rate = data.rates.KRW;
+  fxRateCache[key] = { rate, fetchedAt: Date.now() };
+  return rate;
+}
+
 async function refreshCoinPrices(){
   const codes = [...new Set(transactions.filter(t=>t.market==='coin' && t.upbitCode).map(t=>t.upbitCode))];
   if(codes.length === 0) return;
@@ -730,8 +762,10 @@ function renderAllocation(){
   const total = domesticSum + overseasSum + coinSum + savingsSum + pensionSum;
 
   const card = $('allocationCard');
-  if(total <= 0){ card.style.display = 'none'; return; }
+  const divider = $('allocationDivider');
+  if(total <= 0){ card.style.display = 'none'; divider.style.display = 'none'; return; }
   card.style.display = 'block';
+  divider.style.display = 'block';
 
   const segments = [
     { label:'국내주식', amt:domesticSum, color:'#3E5AC7' },
@@ -768,11 +802,13 @@ function renderAllocation(){
 function renderSummary(){
   const holdings = computeHoldings();
   let investTotal = 0;
+  let investCost = 0;
   let unpricedCount = 0;
   let unpricedNames = [];
   holdings.forEach(h=>{
     const cp = currentPriceFor(h);
     investTotal += h.qty * cp.price;
+    investCost += h.qty * h.avgCost;
     if(cp.source === 'none'){
       unpricedCount++;
       unpricedNames.push(h.name);
@@ -781,11 +817,28 @@ function renderSummary(){
   const allSavings = filteredSavings();
   const savingsTotal = allSavings.filter(s=>(s.kind||'installment')==='installment').reduce((sum,s)=> sum + savingsValueFor(s), 0);
   const pensionTotal = allSavings.filter(s=>s.kind==='pension').reduce((sum,s)=> sum + savingsValueFor(s), 0);
+  const pensionCost = allSavings.filter(s=>s.kind==='pension').reduce((sum,s)=> sum + savingsPrincipalFor(s), 0);
 
   $('summaryInvest').textContent = formatWon(investTotal);
   $('summarySavings').textContent = formatWon(savingsTotal);
   $('summaryPension').textContent = formatWon(pensionTotal);
   $('summaryTotal').textContent = formatWon(investTotal + savingsTotal + pensionTotal);
+
+  // 총 손익: 시장에 따라 변동하는 투자자산 + 퇴직연금(투자형)만 원가 대비 계산 (적금·원리금보장형은 손익 개념이 없어 원금=평가액)
+  const totalCost = investCost + savingsTotal + pensionCost;
+  const totalValue = investTotal + savingsTotal + pensionTotal;
+  const totalPl = totalValue - totalCost;
+  const totalPlPct = totalCost > 0 ? (totalPl / totalCost) * 100 : 0;
+  const plClass = totalPl >= 0 ? 'up' : 'down';
+  if(totalCost > 0){
+    $('totalPlRow').style.display = 'flex';
+    $('totalPlAmount').className = `pl-amount ${plClass}`;
+    $('totalPlAmount').textContent = `${totalPl>=0?'+':''}${formatWon(totalPl)}`;
+    $('totalPlPct').className = `pl-pct ${plClass}`;
+    $('totalPlPct').textContent = `${totalPl>=0?'+':''}${totalPlPct.toFixed(1)}%`;
+  } else {
+    $('totalPlRow').style.display = 'none';
+  }
 
   const warnEl = $('unpricedWarning');
   if(unpricedCount > 0){
@@ -1031,22 +1084,33 @@ function renderSegGrid(containerId, options, current, onPick){
 function updateTxnMarketFields(v){
   $('txn-domestic-field').style.display = v === 'domestic' ? 'block' : 'none';
   $('txn-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
+  $('txn-usd-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('txn-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
   renderBrokerChips(v);
 }
 
+let txnBrokerExpanded = false;
 function renderBrokerChips(market){
   const presets = BROKER_PRESETS[market] || [];
+  const mainCount = BROKER_PRESETS_MAIN_COUNT[market] || presets.length;
   const current = $('txn-broker').value.trim();
-  $('txn-broker-grid').innerHTML = presets.map(b=>`
+  const shown = txnBrokerExpanded ? presets : presets.slice(0, mainCount);
+  const hasMore = presets.length > mainCount;
+  $('txn-broker-grid').innerHTML = shown.map(b=>`
     <button type="button" class="seg-btn broker-chip ${b===current?'active':''}" data-val="${escapeHtml(b)}">${escapeHtml(b)}</button>
-  `).join('');
+  `).join('') + (hasMore ? `<button type="button" class="seg-btn broker-more-btn" id="txnBrokerMoreBtn">${txnBrokerExpanded ? '접기 ▴' : '더보기 ▾'}</button>` : '');
   $('txn-broker-grid').querySelectorAll('.broker-chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       $('txn-broker').value = btn.dataset.val;
       $('txn-broker-grid').querySelectorAll('.broker-chip').forEach(b=>b.classList.toggle('active', b===btn));
     });
   });
+  if(hasMore){
+    $('txnBrokerMoreBtn').addEventListener('click', ()=>{
+      txnBrokerExpanded = !txnBrokerExpanded;
+      renderBrokerChips(market);
+    });
+  }
 }
 
 // ---- 업비트 코인 검색 ----
@@ -1066,10 +1130,11 @@ async function ensureUpbitMarketList(){
 function searchDomesticStock(query){
   const q = query.trim();
   const resultsEl = $('txn-domestic-results');
+  $('txn-name').value = query; // 검색창에 입력한 걸 그대로 종목명으로도 사용 (자유입력 대비)
   if(!q){ resultsEl.innerHTML = ''; return; }
   const matched = DOMESTIC_STOCKS.filter(s => s.name.includes(q) || s.code.includes(q)).slice(0, 15);
   if(matched.length === 0){
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 아래에 코드를 직접 입력해주세요</div>`;
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 이대로 종목명으로 저장되고 코드는 아래에 직접 입력해주세요</div>`;
     return;
   }
   resultsEl.innerHTML = matched.map(s=>`
@@ -1081,8 +1146,8 @@ function searchDomesticStock(query){
     btn.addEventListener('click', ()=>{
       $('txn-domestic-code').value = btn.dataset.code;
       $('txn-name').value = btn.dataset.name;
+      $('txn-domestic-search').value = btn.dataset.name;
       resultsEl.innerHTML = '';
-      $('txn-domestic-search').value = '';
     });
   });
 }
@@ -1090,10 +1155,11 @@ function searchDomesticStock(query){
 function searchOverseasStock(query){
   const q = query.trim().toUpperCase();
   const resultsEl = $('txn-overseas-results');
+  $('txn-name').value = query;
   if(!q){ resultsEl.innerHTML = ''; return; }
   const matched = OVERSEAS_STOCKS.filter(s => s.name.toUpperCase().includes(q) || s.symb.includes(q)).slice(0, 15);
   if(matched.length === 0){
-    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 아래에 직접 입력해주세요</div>`;
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 2px;">목록에 없어요, 이대로 종목명으로 저장되고 티커는 아래에 직접 입력해주세요</div>`;
     return;
   }
   resultsEl.innerHTML = matched.map(s=>`
@@ -1106,8 +1172,8 @@ function searchOverseasStock(query){
       $('txn-overseas-symb').value = btn.dataset.symb;
       $('txn-overseas-excd').value = btn.dataset.excd;
       $('txn-name').value = btn.dataset.name;
+      $('txn-overseas-search').value = btn.dataset.name;
       resultsEl.innerHTML = '';
-      $('txn-overseas-search').value = '';
     });
   });
 }
@@ -1115,6 +1181,7 @@ function searchOverseasStock(query){
 async function searchCoin(query){
   const q = query.trim();
   const resultsEl = $('txn-coin-results');
+  $('txn-name').value = query;
   if(!q){ resultsEl.innerHTML = ''; return; }
   const list = await ensureUpbitMarketList();
   const matched = list.filter(m =>
@@ -1151,6 +1218,9 @@ function openTxnModal(id, prefill){
     const t = transactions.find(x=>x.id===id);
     txnOwner = t.owner; txnType = t.type; txnMarket = t.market;
     $('txn-name').value = t.name;
+    $('txn-domestic-search').value = t.market==='domestic' ? t.name : '';
+    $('txn-overseas-search').value = t.market==='overseas' ? t.name : '';
+    $('txn-coin-search').value = '';
     $('txn-domestic-code').value = t.domesticCode || '';
     $('txn-overseas-excd').value = t.excd || 'NAS';
     $('txn-overseas-symb').value = t.symb || '';
@@ -1164,6 +1234,9 @@ function openTxnModal(id, prefill){
   } else if(prefill){
     txnOwner = prefill.owner; txnType = 'buy'; txnMarket = prefill.market;
     $('txn-name').value = prefill.name;
+    $('txn-domestic-search').value = prefill.market==='domestic' ? prefill.name : '';
+    $('txn-overseas-search').value = prefill.market==='overseas' ? prefill.name : '';
+    $('txn-coin-search').value = '';
     $('txn-domestic-code').value = prefill.domesticCode || '';
     $('txn-overseas-excd').value = prefill.excd || 'NAS';
     $('txn-overseas-symb').value = prefill.symb || '';
@@ -1178,6 +1251,9 @@ function openTxnModal(id, prefill){
     txnOwner = ownerFilter !== 'all' ? ownerFilter : '탱';
     txnType = 'buy'; txnMarket = 'domestic';
     $('txn-name').value = '';
+    $('txn-domestic-search').value = '';
+    $('txn-overseas-search').value = '';
+    $('txn-coin-search').value = '';
     $('txn-domestic-code').value = '';
     $('txn-overseas-excd').value = 'NAS';
     $('txn-overseas-symb').value = '';
@@ -1189,12 +1265,11 @@ function openTxnModal(id, prefill){
     selectedCoin = null;
     $('txn-coin-selected').textContent = '';
   }
-  $('txn-coin-search').value = '';
   $('txn-coin-results').innerHTML = '';
-  $('txn-domestic-search').value = '';
   $('txn-domestic-results').innerHTML = '';
-  $('txn-overseas-search').value = '';
   $('txn-overseas-results').innerHTML = '';
+  $('txn-usd-price').value = '';
+  $('txn-fx-note').textContent = '';
 
   renderSegGrid('txn-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), txnOwner, v=>txnOwner=v);
   renderSegGrid('txn-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], txnType, v=>txnType=v);
@@ -1225,18 +1300,28 @@ function updateBulkMarketFields(v){
   $('bulk-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
   renderBulkBrokerChips(v);
 }
+let bulkBrokerExpanded = false;
 function renderBulkBrokerChips(market){
   const presets = BROKER_PRESETS[market] || [];
+  const mainCount = BROKER_PRESETS_MAIN_COUNT[market] || presets.length;
   const current = $('bulk-broker').value.trim();
-  $('bulk-broker-grid').innerHTML = presets.map(b=>`
+  const shown = bulkBrokerExpanded ? presets : presets.slice(0, mainCount);
+  const hasMore = presets.length > mainCount;
+  $('bulk-broker-grid').innerHTML = shown.map(b=>`
     <button type="button" class="seg-btn broker-chip ${b===current?'active':''}" data-val="${escapeHtml(b)}">${escapeHtml(b)}</button>
-  `).join('');
+  `).join('') + (hasMore ? `<button type="button" class="seg-btn broker-more-btn" id="bulkBrokerMoreBtn">${bulkBrokerExpanded ? '접기 ▴' : '더보기 ▾'}</button>` : '');
   $('bulk-broker-grid').querySelectorAll('.broker-chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       $('bulk-broker').value = btn.dataset.val;
       $('bulk-broker-grid').querySelectorAll('.broker-chip').forEach(b=>b.classList.toggle('active', b===btn));
     });
   });
+  if(hasMore){
+    $('bulkBrokerMoreBtn').addEventListener('click', ()=>{
+      bulkBrokerExpanded = !bulkBrokerExpanded;
+      renderBulkBrokerChips(market);
+    });
+  }
 }
 async function searchBulkCoin(query){
   const q = query.trim();
@@ -1567,8 +1652,9 @@ function init(){
     $('bulkAddBtn').addEventListener('click', openBulkModal);
     $('bulkCancelBtn').addEventListener('click', closeBulkModal);
     $('bulkSaveBtn').addEventListener('click', saveBulk);
-    $('bulkModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='bulkModalBackdrop') closeBulkModal(); });
+    // 입력 중 실수로 날아가지 않도록, 바깥 클릭으로는 안 닫히게 함 (취소 버튼으로만 닫힘)
     $('bulk-coin-search').addEventListener('input', (e)=> searchBulkCoin(e.target.value));
+    $('bulk-coin-search').addEventListener('compositionend', (e)=> searchBulkCoin(e.target.value));
     $('bulk-lines').addEventListener('input', (e)=>{
       const { results, errors } = parseBulkLines(e.target.value);
       $('bulkPreview').textContent = results.length
@@ -1576,30 +1662,60 @@ function init(){
         : '';
     });
     $('txn-domestic-search').addEventListener('input', (e)=> searchDomesticStock(e.target.value));
+    $('txn-domestic-search').addEventListener('compositionend', (e)=> searchDomesticStock(e.target.value));
+    let usdConvertTimer = null;
+    async function applyUsdConversion(){
+      const usd = parseFloat($('txn-usd-price').value);
+      if(!usd || usd <= 0){ $('txn-fx-note').textContent = ''; return; }
+      const dateVal = $('txn-date').value;
+      const now = getKSTNow();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const isToday = !dateVal || dateVal === todayStr;
+      try{
+        const rate = await getUsdKrwRate(isToday ? null : dateVal);
+        const krw = Math.round(usd * rate);
+        $('txn-price').value = krw;
+        $('txn-fx-note').textContent = `${isToday ? '오늘' : dateVal} 환율 1달러=${rate.toFixed(1)}원 적용 → ${krw.toLocaleString('ko-KR')}원`;
+      }catch(err){
+        $('txn-fx-note').textContent = '환율 조회 실패, 원화 단가를 직접 입력해주세요';
+      }
+    }
+    $('txn-usd-price').addEventListener('input', (e)=>{
+      clearTimeout(usdConvertTimer);
+      usdConvertTimer = setTimeout(applyUsdConversion, 300);
+    });
+    $('txn-date').addEventListener('change', ()=>{
+      if($('txn-usd-price').value) applyUsdConversion();
+    });
     $('txn-overseas-search').addEventListener('input', (e)=> searchOverseasStock(e.target.value));
+    $('txn-overseas-search').addEventListener('compositionend', (e)=> searchOverseasStock(e.target.value));
     let coinSearchTimer = null;
     $('txn-coin-search').addEventListener('input', (e)=>{
       clearTimeout(coinSearchTimer);
       const val = e.target.value;
       coinSearchTimer = setTimeout(()=> searchCoin(val), 200);
     });
+    $('txn-coin-search').addEventListener('compositionend', (e)=>{
+      clearTimeout(coinSearchTimer);
+      searchCoin(e.target.value);
+    });
     $('txnCancelBtn').addEventListener('click', closeTxnModal);
     $('txnSaveBtn').addEventListener('click', saveTxn);
     $('txnDeleteBtn').addEventListener('click', deleteTxn);
-    $('txnModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='txnModalBackdrop') closeTxnModal(); });
+    // 바깥 클릭으로 안 닫힘
 
     $('priceCancelBtn').addEventListener('click', closePriceModal);
     $('historyCloseBtn').addEventListener('click', closeHistoryModal);
     $('historyModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='historyModalBackdrop') closeHistoryModal(); });
     $('priceSaveBtn').addEventListener('click', savePrice);
-    $('priceModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='priceModalBackdrop') closePriceModal(); });
+    // 바깥 클릭으로 안 닫힘
 
     $('addSavingsBtn').addEventListener('click', ()=> openSavingsModal(null, 'installment'));
     $('addPensionBtn').addEventListener('click', ()=> openSavingsModal(null, 'pension'));
     $('savingsCancelBtn').addEventListener('click', closeSavingsModal);
     $('savingsSaveBtn').addEventListener('click', saveSavings);
     $('savingsDeleteBtn').addEventListener('click', deleteSavings);
-    $('savingsModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='savingsModalBackdrop') closeSavingsModal(); });
+    // 바깥 클릭으로 안 닫힘
 
     $('refreshPricesBtn').addEventListener('click', async ()=>{
       $('refreshPricesBtn').textContent = '조회 중...';
