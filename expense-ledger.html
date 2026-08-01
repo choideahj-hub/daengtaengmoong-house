@@ -360,6 +360,10 @@
       <label>상세명</label>
       <input type="text" id="f-detail" placeholder="예: 스타벅스 코엑스점">
     </div>
+    <div class="field">
+      <label>결제수단 (선택)</label>
+      <div class="cat-select-grid" id="f-payment-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn ghost" id="entryCancelBtn">취소</button>
       <button class="btn danger" id="entryDeleteBtn" style="display:none;">삭제</button>
@@ -450,6 +454,18 @@ const INCOME_CATEGORIES = [
   { key:'기타수입', emoji:'🗂️' }
 ];
 
+const PAYMENT_METHODS = [
+  { key:'카드', emoji:'💳' },
+  { key:'현금', emoji:'💵' },
+  { key:'계좌이체', emoji:'🏦' },
+  { key:'성동사랑상품권', emoji:'🎫' },
+  { key:'온누리상품권', emoji:'🎫' },
+];
+function paymentMethodEmoji(pm){
+  const found = PAYMENT_METHODS.find(p => p.key === pm);
+  return found ? found.emoji : '💳';
+}
+
 function categoryListFor(type){
   const base = type === 'income' ? INCOME_CATEGORIES : CATEGORIES;
   const custom = customCategories.filter(c => (c.type || 'expense') === type);
@@ -471,6 +487,7 @@ let currentMonth = '';
 let editingId = null;
 let selectedCategory = '식비';
 let selectedOwner = '댕';
+let selectedPayment = '';
 let currentEntryType = 'expense'; // 모달에서 지금 입력 중인 타입
 let trashOpen = false;
 const BIG_EXPENSE_THRESHOLD = 150000;
@@ -665,7 +682,7 @@ function renderEntryList(){
             ${isBig ? '<span class="big-tag">⚠️ 큰 지출</span>' : ''}
             ${escapeHtml(e.detail || e.category)}
           </div>
-          <div class="entry-meta">${escapeHtml(e.category)}</div>
+          <div class="entry-meta">${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}</div>
         </div>
         <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':'−'}${e.amount.toLocaleString('ko-KR')}원</div>
       </div>
@@ -775,6 +792,18 @@ function renderOwnerGrid(){
   });
 }
 
+function renderPaymentGrid(){
+  $('f-payment-grid').innerHTML = PAYMENT_METHODS.map(p=>`
+    <button type="button" class="cat-select-btn ${p.key===selectedPayment?'active':''}" data-pm="${escapeHtml(p.key)}">${p.emoji} ${p.key}</button>
+  `).join('') + `<button type="button" class="cat-select-btn ${selectedPayment===''?'active':''}" data-pm="">선택 안함</button>`;
+  $('f-payment-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedPayment = btn.dataset.pm;
+      $('f-payment-grid').querySelectorAll('.cat-select-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+}
+
 function openEntryModal(id, type){
   editingId = id || null;
   if(id){
@@ -794,15 +823,18 @@ function openEntryModal(id, type){
     $('f-amount').value = e.amount;
     selectedCategory = e.category;
     $('f-detail').value = e.detail || '';
+    selectedPayment = e.paymentMethod || '';
   } else {
     selectedOwner = ownerFilter !== 'all' && ownerFilter !== 'income-all' ? ownerFilter : '댕';
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
     $('f-amount').value = '';
     selectedCategory = categoryListFor(currentEntryType)[0].key;
     $('f-detail').value = '';
+    selectedPayment = '';
   }
   renderOwnerGrid();
   renderCategoryGrid();
+  renderPaymentGrid();
   $('entryModalBackdrop').classList.add('open');
 }
 function closeEntryModal(){
@@ -827,11 +859,11 @@ async function saveEntry(){
   const backup = JSON.parse(JSON.stringify(entries));
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
-    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType };
+    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment };
   } else {
     entries.push({
       id: 'e' + Date.now() + Math.floor(Math.random()*100000),
-      owner, date, amount, category: selectedCategory, detail, type: currentEntryType,
+      owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment,
       deleted: false, deletedAt: null
     });
   }
