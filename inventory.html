@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>댕탱 재고조사</title>
+<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css"></noscript>
+<style>
+  :root{
+    --bg:#F6F7FB;
+    --surface:#FFFFFF;
+    --ink:#2E2A3D;
+    --ink-soft:#6B647F;
+    --muted:#A79FBE;
+    --line:#E9E5F4;
+    --accent:#7C6FE0;
+    --accent-soft:#EDE9FC;
+    --accent2:#3DAE9C;
+    --accent2-soft:#E1F5F1;
+    --blue:#4C6FD6;
+    --blue-soft:#EAF0FF;
+    --pink:#E0568F;
+    --pink-soft:#FFE7F3;
+    --amber:#D9A441;
+    --amber-soft:#FBF0DC;
+    --red:#C23B32;
+    --red-soft:#FBEAE8;
+    --gray-soft:#F1EFF8;
+    --radius:20px;
+    --shadow:0 6px 18px -6px rgba(124,111,224,.18), 0 2px 6px -2px rgba(46,42,61,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  input, select, textarea{font-size:16px;}
+  body{
+    background:
+      radial-gradient(circle at 8% 4%, #EFEBFC 0%, transparent 40%),
+      radial-gradient(circle at 96% 12%, #E4F5F1 0%, transparent 38%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 70px 0;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:22px 16px 0;}
+
+  header{margin-bottom:14px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.08em;color:var(--accent);
+    text-transform:uppercase;font-weight:800;margin-bottom:8px;background:var(--accent-soft);padding:4px 11px;border-radius:100px;
+  }
+  h1{font-size:23px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
+  .sub{font-size:12px;color:var(--ink-soft);margin:0;line-height:1.6;}
+
+  /* Hero search */
+  .search-hero{
+    background:var(--surface);border-radius:24px;box-shadow:var(--shadow);
+    padding:22px 18px;margin-top:16px;text-align:center;
+  }
+  .search-hero-label{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:12px;}
+  .search-input-wrap{position:relative;}
+  .search-input-icon{
+    position:absolute;left:16px;top:50%;transform:translateY(-50%);
+    font-size:19px;pointer-events:none;
+  }
+  .search-hero-input{
+    width:100%;padding:15px 16px 15px 46px;border:2.5px solid var(--accent);border-radius:100px;
+    font-size:16px;font-weight:600;text-align:left;background:#fff;color:var(--ink);
+    box-shadow:0 4px 14px -6px rgba(124,111,224,.4);
+  }
+  .search-hero-input::placeholder{color:var(--muted);opacity:1;font-weight:500;}
+  .search-hero-input:focus{outline:none;box-shadow:0 0 0 4px rgba(124,111,224,.2);}
+  .search-clear-btn{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    width:22px;height:22px;border-radius:50%;border:none;background:var(--gray-soft);color:var(--ink-soft);
+    font-size:13px;font-weight:800;cursor:pointer;display:none;align-items:center;justify-content:center;
+  }
+
+  .search-results{margin-top:14px;display:flex;flex-direction:column;gap:10px;}
+  .search-hit{
+    background:var(--accent2-soft);border:2px solid var(--accent2);border-radius:16px;
+    padding:14px 16px;text-align:left;
+  }
+  .search-hit.out-of-stock{background:var(--gray-soft);border-color:var(--muted);}
+  .search-hit-name{font-size:15px;font-weight:800;margin-bottom:6px;}
+  .search-hit-location{
+    display:inline-flex;align-items:center;gap:6px;font-size:16px;font-weight:800;color:var(--accent2);
+    background:#fff;padding:6px 14px;border-radius:100px;
+  }
+  .search-hit-meta{font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+  .search-empty{font-size:13px;color:var(--muted);padding:10px 0;}
+
+  /* Filters */
+  .pill-row{display:flex;gap:6px;margin-top:14px;overflow-x:auto;padding-bottom:2px;}
+  .pill{
+    flex:0 0 auto;padding:8px 14px;border-radius:100px;border:1.5px solid var(--line);background:#fff;
+    font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap;
+  }
+  .pill.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+  .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
+  .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
+  .section-label .hint{font-size:11px;color:var(--muted);font-weight:700;}
+
+  .low-stock-banner{
+    background:var(--red-soft);border-radius:14px;padding:12px 14px;margin-top:14px;
+    font-size:12.5px;font-weight:700;color:var(--red);cursor:pointer;
+  }
+
+  .item-card{
+    background:var(--surface);border-radius:16px;box-shadow:var(--shadow);
+    padding:12px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;border-left:4px solid transparent;
+  }
+  .item-card.low{border-left-color:var(--red);}
+  .item-thumb{
+    width:52px;height:52px;border-radius:12px;background:var(--gray-soft);background-size:cover;background-position:center;
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .item-body{flex:1;min-width:0;}
+  .item-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;}
+  .item-name{font-size:14px;font-weight:800;}
+  .item-location-tag{font-size:10.5px;font-weight:800;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:100px;}
+  .low-tag{font-size:10px;font-weight:800;color:var(--red);background:var(--red-soft);padding:2px 8px;border-radius:100px;}
+  .expiry-tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;}
+  .expiry-tag.urgent{background:var(--red-soft);color:var(--red);}
+  .expiry-tag.soon{background:var(--amber-soft);color:var(--amber);}
+  .item-meta{font-size:11px;color:var(--ink-soft);}
+  .qty-controls{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .qty-btn{
+    width:30px;height:30px;border-radius:10px;border:1.5px solid var(--line);background:#fff;
+    font-size:16px;font-weight:800;color:var(--ink-soft);cursor:pointer;
+  }
+  .qty-btn:active{background:var(--accent-soft);color:var(--accent);}
+  .qty-num{font-size:15px;font-weight:800;min-width:28px;text-align:center;}
+
+  .empty{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;}
+  .empty b{display:block;color:var(--ink);font-size:14px;margin-bottom:4px;}
+
+  .add-btn{
+    width:100%;margin-top:14px;padding:13px;border-radius:100px;border:2px dashed #CFC6F5;
+    background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:800;cursor:pointer;
+  }
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(46,42,61,.42);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--surface);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));animation:slideup .2s ease;}
+  @media(min-width:540px){.modal-backdrop{align-items:center;}.modal{border-radius:24px;}}
+  @keyframes slideup{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal h3{margin:0 0 16px;font-size:16px;font-weight:800;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:11.5px;font-weight:800;color:var(--ink-soft);margin-bottom:5px;}
+  .field input, .field select{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:inherit;background:#FBFAFE;color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--accent);}
+  .cat-select-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .cat-select-btn{padding:8px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:11.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;}
+  .cat-select-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .keyword-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .keyword-chip{
+    display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;
+    background:var(--accent-soft);color:var(--accent);padding:5px 6px 5px 11px;border-radius:100px;cursor:pointer;
+  }
+  .keyword-chip .x{font-weight:800;opacity:.7;}
+  .keyword-chip:active{opacity:.6;}
+  .img-preview{
+    width:100%;aspect-ratio:1.6/1;border-radius:14px;background:var(--gray-soft);background-size:contain;background-repeat:no-repeat;background-position:center;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12.5px;margin-bottom:6px;overflow:hidden;
+  }
+  .img-preview.small{width:110px;aspect-ratio:1/1;font-size:11px;border-radius:12px;}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
+  .btn.primary{background:var(--ink);color:#fff;}
+  .btn.ghost{background:var(--gray-soft);color:var(--ink-soft);}
+  .btn.danger{background:var(--red-soft);color:var(--red);}
+
+  .footer-note{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.7;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;
+    padding:10px 18px;border-radius:100px;font-size:12.5px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="mainWrap">
+  <header>
+    <div class="eyebrow">🏠 댕탱뭉 하우스</div>
+    <h1>우리집 재고조사 📦</h1>
+    <p class="sub">뭐가 어디 있는지 검색 한 번으로</p>
+  </header>
+
+  <div class="search-hero">
+    <div class="search-hero-label">뭐 찾으세요?</div>
+    <div class="search-input-wrap">
+      <span class="search-input-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-hero-input" placeholder="휴지, 참기름, 치약...">
+      <button type="button" class="search-clear-btn" id="searchClearBtn">✕</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="section-label">
+    <h2>🛒 사야 할 것</h2>
+    <span class="hint" id="neededCountHint"></span>
+  </div>
+  <button class="add-btn" id="addNeededBtn" style="border-color:#F5C6D6;background:var(--pink-soft);color:var(--pink);margin-top:0;">+ 장보기 목록에 추가</button>
+  <div id="neededList" style="margin-top:10px;"></div>
+
+  <div class="low-stock-banner" id="lowStockBanner" style="display:none;"></div>
+
+  <div class="pill-row" id="locationFilterPills">
+    <button class="pill active" data-loc="all">전체 위치</button>
+  </div>
+  <div class="pill-row" id="categoryFilterPills">
+    <button class="pill active" data-cat="all">전체 카테고리</button>
+  </div>
+
+  <button class="add-btn" id="addItemBtn">+ 물품 추가</button>
+
+  <div class="section-label">
+    <h2>보유 물품</h2>
+    <span class="hint" id="itemCountHint"></span>
+  </div>
+  <div id="itemList"></div>
+
+  <p class="footer-note">검색창에 물건 이름 치면 어디 있는지 바로 알려줘요 🐾</p>
+</div>
+
+<div class="modal-backdrop" id="itemModalBackdrop">
+  <div class="modal">
+    <h3 id="itemModalTitle">물품 추가</h3>
+    <div class="field">
+      <label>물품명</label>
+      <input type="text" id="f-name" placeholder="예: 두루마리 휴지">
+    </div>
+    <div class="field">
+      <label>옵션 (선택, 같은 물품의 다른 종류 구분용)</label>
+      <input type="text" id="f-option" placeholder="예: 무향 3겹, 라지사이즈">
+    </div>
+    <div class="field">
+      <label>검색 키워드 (자동 생성, 탭하면 삭제돼요)</label>
+      <div class="keyword-chips" id="f-keyword-chips"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input type="text" id="f-keyword-add" placeholder="키워드 직접 추가">
+        <button type="button" class="btn ghost" id="keywordAddBtn" style="flex:0 0 auto;padding:0 16px;">추가</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>카테고리</label>
+      <div class="cat-select-grid" id="f-category-grid"></div>
+    </div>
+    <div class="field">
+      <label>보관 위치</label>
+      <div class="cat-select-grid" id="f-location-grid"></div>
+      <input type="text" id="f-location-custom" placeholder="목록에 없으면 직접 입력 (예: 안방 옷장)" style="margin-top:8px;">
+    </div>
+    <div class="field">
+      <label>현재 수량</label>
+      <input type="number" id="f-qty" placeholder="예: 3" inputmode="numeric" min="0">
+    </div>
+    <div class="field">
+      <label>최소 수량 (이 아래면 "구매 필요"로 표시)</label>
+      <input type="number" id="f-minqty" placeholder="예: 1" inputmode="numeric" min="0">
+    </div>
+    <div class="field">
+      <label>유통기한 (선택)</label>
+      <input type="date" id="f-expiry">
+    </div>
+    <div class="field">
+      <label>메모 (선택)</label>
+      <input type="text" id="f-memo" placeholder="예: 무향, 3겹">
+    </div>
+    <div class="field">
+      <label style="color:var(--muted);">사진 (선택)</label>
+      <div class="img-preview small" id="imgPreview">📷 사진 선택</div>
+      <input type="file" id="f-image" accept="image/*" style="display:none;">
+    </div>
+    <div class="field" id="usageFreqField" style="display:none;">
+      <label>사용 빈도</label>
+      <div id="usageFreqText" style="font-size:13px;font-weight:700;color:var(--accent);"></div>
+    </div>
+    <button type="button" class="btn ghost" id="itemUsedUpBtn" style="width:100%;display:none;">🔚 방금 다 썼어요 (기록에 남기기)</button>
+    <div class="modal-actions">
+      <button class="btn ghost" id="itemCancelBtn">취소</button>
+      <button class="btn danger" id="itemDeleteBtn" style="display:none;">삭제</button>
+      <button class="btn primary" id="itemSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="neededModalBackdrop">
+  <div class="modal">
+    <h3>장보기 목록에 추가</h3>
+    <div class="field">
+      <label>사야 할 것 (한 줄에 하나씩)</label>
+      <textarea id="needed-lines" rows="6" placeholder="휴지&#10;참기름&#10;치약" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;background:#FBFAFE;color:var(--ink);resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="neededCancelBtn">취소</button>
+      <button class="btn primary" id="neededSaveBtn">추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhrAS_axfkAyBV7_JTTJOQdB6szw2_BXU",
+    authDomain: "daengtaengmoonghouse.firebaseapp.com",
+    projectId: "daengtaengmoonghouse",
+    storageBucket: "daengtaengmoonghouse.firebasestorage.app",
+    messagingSenderId: "656550962777",
+    appId: "1:656550962777:web:8a9ae998f5a2c25448f348"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const DOC_ID = "inventory";
+
+  window.firestoreLoad = async function(){
+    const snap = await getDoc(doc(db, "appdata", DOC_ID));
+    return snap.exists() ? snap.data() : null;
+  };
+  window.firestoreSave = async function(data){
+    await setDoc(doc(db, "appdata", DOC_ID), data, { merge: true });
+    return true;
+  };
+</script>
+<script>
+const IMGBB_API_KEY = 'a6f5457d7a2d46e75af40a9575f7857d';
+
+const CATEGORIES = [
+  { key:'생필품', emoji:'🧻' }, { key:'식료품', emoji:'🍚' }, { key:'조미료', emoji:'🧂' },
+  { key:'욕실용품', emoji:'🧴' }, { key:'청소용품', emoji:'🧽' }, { key:'주방용품', emoji:'🍳' },
+  { key:'상비약', emoji:'💊' }, { key:'기타', emoji:'🗂️' },
+];
+const LOCATIONS = [
+  { key:'베란다', emoji:'🪟' }, { key:'해리포터방', emoji:'🪄' }, { key:'화장실', emoji:'🚿' },
+  { key:'화장대 윗칸', emoji:'💄' }, { key:'화장대 중간', emoji:'💄' }, { key:'화장대 아랫칸', emoji:'💄' },
+  { key:'신발장', emoji:'👟' }, { key:'현관', emoji:'🚪' }, { key:'주방 베란다', emoji:'🧺' },
+  { key:'팬트리', emoji:'🗄️' }, { key:'보일러실', emoji:'🔥' },
+  { key:'주방 윗칸 1번', emoji:'🍽️' }, { key:'주방 윗칸 2번', emoji:'🍽️' }, { key:'주방 윗칸 3번', emoji:'🍽️' },
+  { key:'주방 윗칸 4번', emoji:'🍽️' }, { key:'주방 윗칸 5번', emoji:'🍽️' },
+  { key:'주방 아랫칸 1번', emoji:'🍳' }, { key:'주방 아랫칸 2번', emoji:'🍳' }, { key:'주방 아랫칸 3번', emoji:'🍳' },
+  { key:'냉장실', emoji:'🧊' }, { key:'냉동실', emoji:'❄️' },
+  { key:'작업방 책상 아래 흰 상자', emoji:'📦' }, { key:'티비 아래 흰 상자', emoji:'📦' },
+  { key:'작업방 책상 아래 리빙박스', emoji:'📦' }, { key:'작업방 책꽂이', emoji:'📚' },
+  { key:'안방 붙박이장 1번', emoji:'🚪' }, { key:'안방 붙박이장 2번', emoji:'🚪' },
+  { key:'안방 붙박이장 3번', emoji:'🚪' }, { key:'안방 붙박이장 4번', emoji:'🚪' },
+  { key:'안방 침대 협탁', emoji:'🛏️' },
+];
+
+function categoryEmoji(key){ const f = CATEGORIES.find(c=>c.key===key); return f ? f.emoji : '🗂️'; }
+function locationEmoji(key){ const f = LOCATIONS.find(c=>c.key===key); return f ? f.emoji : '📍'; }
+
+// ---- 자동 키워드(동의어) 생성 ----
+// 같은 물건을 다르게 부를 때가 많아서, 대표적인 동의어는 자동으로 같이 등록해줘요
+const SYNONYM_MAP = [
+  { match:['휴지','화장지','두루마리'], add:['휴지','화장지','두루마리'] },
+  { match:['물티슈','휴대용티슈'], add:['물티슈','휴대용티슈'] },
+  { match:['각티슈','곽티슈','티슈'], add:['각티슈','곽티슈','티슈'] },
+  { match:['세제','세탁세제','파우더','섬유유연제'], add:['세제','세탁세제'] },
+  { match:['샴푸'], add:['샴푸','머리감는거'] },
+  { match:['바디워시','바디클렌저'], add:['바디워시','샤워젤','바디클렌저'] },
+  { match:['치약'], add:['치약'] },
+  { match:['칫솔'], add:['칫솔'] },
+  { match:['수세미'], add:['수세미','설거지'] },
+  { match:['주방세제','퐁퐁'], add:['주방세제','퐁퐁','설거지세제'] },
+  { match:['쓰레기봉투','종량제'], add:['쓰레기봉투','종량제봉투'] },
+  { match:['건전지','배터리'], add:['건전지','배터리'] },
+  { match:['밴드','대일밴드','반창고'], add:['밴드','대일밴드','반창고'] },
+  { match:['소금'], add:['소금'] },
+  { match:['설탕'], add:['설탕'] },
+  { match:['간장'], add:['간장'] },
+  { match:['참기름'], add:['참기름'] },
+  { match:['식용유'], add:['식용유','기름'] },
+  { match:['고추장'], add:['고추장'] },
+  { match:['된장'], add:['된장'] },
+  { match:['라면'], add:['라면'] },
+  { match:['생수','물'], add:['생수','물'] },
+  { match:['비닐장갑','위생장갑'], add:['비닐장갑','위생장갑'] },
+  { match:['면봉'], add:['면봉'] },
+  { match:['일회용접시','종이접시'], add:['일회용접시','종이접시'] },
+];
+
+function suggestKeywords(name, category){
+  const text = name.toLowerCase();
+  const found = new Set();
+  SYNONYM_MAP.forEach(entry=>{
+    if(entry.match.some(m => text.includes(m.toLowerCase()))){
+      entry.add.forEach(k=>found.add(k));
+    }
+  });
+  // 이름 자체를 단어 단위로 쪼개서도 추가 (검색 보강용)
+  name.split(/[\s,\/]+/).filter(w=>w.length>=2).forEach(w=>found.add(w));
+  if(category) found.add(category);
+  return [...found];
+}
+
+let items = [];
+let locationFilter = 'all';
+let categoryFilter = 'all';
+let editingId = null;
+let selectedCategory = '생필품';
+let selectedLocation = '냉장고';
+let pendingImageData = null;
+let currentKeywords = [];
+let showNeededOnly = false;
+
+const $ = (id) => document.getElementById(id);
+
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function getKSTToday(){
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  d.setHours(0,0,0,0);
+  return d;
+}
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const today = getKSTToday();
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m-1, d);
+  target.setHours(0,0,0,0);
+  return Math.round((target - today) / (1000*60*60*24));
+}
+
+// ---- 사용 빈도 ----
+function avgUsageDays(item){
+  const log = item.usageLog || [];
+  if(log.length < 2) return null;
+  const sorted = [...log].sort();
+  let totalDays = 0;
+  for(let i=1;i<sorted.length;i++){
+    totalDays += (new Date(sorted[i]) - new Date(sorted[i-1])) / (1000*60*60*24);
+  }
+  return Math.round(totalDays / (sorted.length - 1));
+}
+function usageFreqLabel(item){
+  const avg = avgUsageDays(item);
+  const count = (item.usageLog || []).length;
+  if(avg === null) return count === 1 ? '아직 기록 1건 (2건부터 평균 계산돼요)' : '아직 사용 기록 없음';
+  return `평균 ${avg}일마다 다 씀 (기록 ${count}건)`;
+}
+
+// ---- 저장/불러오기 ----
+async function loadAll(){
+  try{
+    // Firebase 연결 스크립트가 아직 로딩 중일 수 있어 잠깐 대기 (최대 5초)
+    let tries = 0;
+    while(!window.firestoreLoad && tries < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if(!window.firestoreLoad) throw new Error('저장소 연결 준비가 안 됐어요. 새로고침해주세요.');
+    const data = await window.firestoreLoad();
+    items = (data && Array.isArray(data.items)) ? data.items : [];
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+    return;
+  }
+  try{
+    render();
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 그리는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+async function saveAll(){
+  try{
+    await window.firestoreSave({ items });
+    return true;
+  }catch(e){
+    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 다시 시도해주세요.');
+    return false;
+  }
+}
+
+// ---- 이미지 업로드 (imgbb) ----
+function resizeImage(file, maxWidth, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxWidth){ h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('이미지를 읽지 못했어요'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('파일을 읽지 못했어요'));
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadToImgbb(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const formData = new FormData();
+  formData.append('key', IMGBB_API_KEY);
+  formData.append('image', base64);
+  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+  const data = await res.json();
+  if(!data.success) throw new Error(data.error && data.error.message ? data.error.message : '이미지 업로드 실패');
+  return data.data.url;
+}
+async function ensureImageUrl(pending){
+  if(pending && pending.startsWith('data:')) return await uploadToImgbb(pending);
+  return pending;
+}
+
+// ---- 데이터 헬퍼 ----
+function isLowStock(item){
+  return item.minQty != null && item.qty <= item.minQty;
+}
+function filteredItems(){
+  return items.filter(i=>{
+    if(locationFilter !== 'all' && i.location !== locationFilter) return false;
+    if(categoryFilter !== 'all' && i.category !== categoryFilter) return false;
+    return true;
+  });
+}
+
+// ---- 검색 (핵심 기능) ----
+function runSearch(query){
+  const q = query.trim();
+  const resultsEl = $('searchResults');
+  if(!q){ resultsEl.innerHTML = ''; return; }
+  const matched = items.filter(i =>
+    i.status !== 'needed' && (
+      i.name.includes(q) || (i.memo||'').includes(q) || (i.option||'').includes(q) ||
+      (i.keywords||[]).some(k => k.includes(q) || q.includes(k))
+    )
+  );
+  if(matched.length === 0){
+    resultsEl.innerHTML = `<div class="search-empty">"${escapeHtml(q)}" 아직 등록 안 됐어요. 아래 "+ 물품 추가"로 등록해보세요.</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matched.map(i=>{
+    const outOfStock = i.qty === 0;
+    return `
+    <div class="search-hit ${outOfStock?'out-of-stock':''}" data-id="${i.id}">
+      <div class="search-hit-name">${categoryEmoji(i.category)} ${escapeHtml(i.name)}${i.option ? ' <span style="color:var(--accent);font-weight:700;">('+escapeHtml(i.option)+')</span>' : ''}</div>
+      <div class="search-hit-location">${locationEmoji(i.location)} ${escapeHtml(i.location)}</div>
+      <div class="search-hit-meta">${outOfStock ? '❌ 재고 없음' : `수량 ${i.qty}개`}${!outOfStock && isLowStock(i) ? ' · ⚠️ 구매 필요' : ''}${i.memo ? ' · ' + escapeHtml(i.memo) : ''}</div>
+      <div class="search-hit-meta">📊 ${usageFreqLabel(i)}</div>
+    </div>
+  `;
+  }).join('');
+  resultsEl.querySelectorAll('.search-hit').forEach(el=>{
+    el.addEventListener('click', ()=> openItemModal(el.dataset.id));
+  });
+}
+
+// ---- 렌더 ----
+function render(){
+  renderNeededList();
+  renderFilterPills();
+  renderLowStockBanner();
+  renderItemList();
+}
+
+function renderFilterPills(){
+  const usedLocations = [...new Set(items.map(i=>i.location))];
+  $('locationFilterPills').innerHTML = `<button class="pill ${locationFilter==='all'?'active':''}" data-loc="all">전체 위치</button>` +
+    usedLocations.map(loc=>`<button class="pill ${locationFilter===loc?'active':''}" data-loc="${escapeHtml(loc)}">${locationEmoji(loc)} ${escapeHtml(loc)}</button>`).join('');
+  $('locationFilterPills').querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click', ()=>{ locationFilter = p.dataset.loc; render(); });
+  });
+
+  const usedCategories = [...new Set(items.map(i=>i.category))];
+  $('categoryFilterPills').innerHTML = `<button class="pill ${categoryFilter==='all'?'active':''}" data-cat="all">전체 카테고리</button>` +
+    usedCategories.map(cat=>`<button class="pill ${categoryFilter===cat?'active':''}" data-cat="${escapeHtml(cat)}">${categoryEmoji(cat)} ${escapeHtml(cat)}</button>`).join('');
+  $('categoryFilterPills').querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click', ()=>{ categoryFilter = p.dataset.cat; render(); });
+  });
+}
+
+function renderLowStockBanner(){
+  const lowItems = items.filter(i => i.status !== 'needed' && isLowStock(i));
+  const banner = $('lowStockBanner');
+  if(lowItems.length === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'block';
+  banner.textContent = `⚠️ 구매 필요: ${lowItems.map(i=>i.name).join(', ')}`;
+}
+
+function renderNeededList(){
+  const needed = items.filter(i => i.status === 'needed').sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+  $('neededCountHint').textContent = needed.length ? `${needed.length}개` : '';
+  const el = $('neededList');
+  if(needed.length === 0){
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = needed.map(i=>`
+    <div class="item-card" data-id="${i.id}" style="border-left-color:var(--pink);">
+      <div class="item-thumb" style="background:var(--pink-soft);">🛒</div>
+      <div class="item-body">
+        <div class="item-top"><span class="item-name">${escapeHtml(i.name)}</span></div>
+        <div class="item-meta">아직 장바구니에 없어요</div>
+      </div>
+      <button type="button" class="btn primary" style="flex:0 0 auto;padding:8px 14px;font-size:12px;" data-action="bought">✅ 샀어요</button>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-action="bought"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const card = btn.closest('.item-card');
+      markAsBought(card.dataset.id);
+    });
+  });
+}
+
+async function markAsBought(id){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  const backup = JSON.parse(JSON.stringify(items));
+  item.status = 'owned';
+  if(!item.qty) item.qty = 1;
+  const ok = await saveAll();
+  if(!ok){ items = backup; return; }
+  render();
+  showToast('보유로 옮겼어요, 위치·수량을 채워주세요');
+  openItemModal(id);
+}
+
+function openNeededModal(){
+  $('needed-lines').value = '';
+  $('neededModalBackdrop').classList.add('open');
+}
+function closeNeededModal(){
+  $('neededModalBackdrop').classList.remove('open');
+}
+async function saveNeeded(){
+  const lines = $('needed-lines').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length === 0){
+    showToast('물품명을 입력해주세요');
+    return;
+  }
+  const btn = $('neededSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '추가 중...';
+  const backup = JSON.parse(JSON.stringify(items));
+  const now = new Date().toISOString();
+  lines.forEach((name, idx)=>{
+    items.push({
+      id: 'i' + Date.now() + Math.floor(Math.random()*100000) + idx,
+      name, option:'', category:'기타', location:'', qty:0, minQty:null,
+      expiry:'', memo:'', image:null, keywords: suggestKeywords(name, ''),
+      status:'needed', addedAt: now
+    });
+  });
+  const ok = await saveAll();
+  btn.disabled = false;
+  btn.textContent = '추가';
+  if(!ok){ items = backup; return; }
+  render();
+  closeNeededModal();
+  showToast(`${lines.length}개 장보기 목록에 추가했어요`);
+}
+
+function renderItemList(){
+  const list = filteredItems().filter(i => i.status !== 'needed').sort((a,b)=>{
+    const aLow = isLowStock(a), bLow = isLowStock(b);
+    if(aLow !== bLow) return aLow ? -1 : 1;
+    return a.name.localeCompare(b.name, 'ko');
+  });
+  $('itemCountHint').textContent = list.length ? `${list.length}개` : '';
+  const el = $('itemList');
+  if(list.length === 0){
+    el.innerHTML = `<div class="empty"><b>등록된 물품이 없어요</b>위 버튼으로 추가해보세요.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(i=>{
+    const outOfStock = i.qty === 0;
+    const low = isLowStock(i);
+    const diff = daysUntil(i.expiry);
+    let expiryTag = '';
+    if(diff !== null){
+      const cls = diff <= 3 ? 'urgent' : (diff <= 7 ? 'soon' : '');
+      if(cls) expiryTag = `<span class="expiry-tag ${cls}">${diff<0?'만료':'D-'+diff}</span>`;
+    }
+    return `
+      <div class="item-card ${low?'low':''}" data-id="${i.id}">
+        <div class="item-thumb" style="${i.image?`background-image:url('${i.image}')`:''}">${i.image?'':categoryEmoji(i.category)}</div>
+        <div class="item-body">
+          <div class="item-top">
+            <span class="item-name">${escapeHtml(i.name)}${i.option ? ' <span style="color:var(--accent);font-weight:700;">('+escapeHtml(i.option)+')</span>' : ''}</span>
+            <span class="item-location-tag">${locationEmoji(i.location)} ${escapeHtml(i.location)}</span>
+            ${outOfStock ? '<span class="low-tag" style="background:var(--gray-soft);color:var(--ink-soft);">❌ 재고 없음</span>' : (low ? '<span class="low-tag">⚠️ 구매 필요</span>' : '')}
+            ${expiryTag}
+          </div>
+          <div class="item-meta">${escapeHtml(i.category)}${i.memo ? ' · ' + escapeHtml(i.memo) : ''}</div>
+        </div>
+        <div class="qty-controls">
+          <button type="button" class="qty-btn" data-action="dec">−</button>
+          <span class="qty-num">${i.qty}</span>
+          <button type="button" class="qty-btn" data-action="inc">+</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.item-card').forEach(card=>{
+    card.querySelectorAll('.qty-btn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        adjustQty(card.dataset.id, btn.dataset.action === 'inc' ? 1 : -1);
+      });
+    });
+    card.addEventListener('click', ()=> openItemModal(card.dataset.id));
+  });
+}
+
+async function adjustQty(id, delta){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  const prevQty = item.qty;
+  const prevLog = item.usageLog ? [...item.usageLog] : undefined;
+  item.qty = Math.max(0, item.qty + delta);
+  if(prevQty > 0 && item.qty === 0){
+    // 수량이 0이 된 시점을 "다 씀" 기록으로 자동 저장 (사용 빈도 계산용)
+    if(!item.usageLog) item.usageLog = [];
+    item.usageLog.push(new Date().toISOString());
+  }
+  const ok = await saveAll();
+  if(!ok){ item.qty = prevQty; item.usageLog = prevLog; return; }
+  render();
+}
+
+async function markUsedUp(){
+  if(!editingId) return;
+  const item = items.find(i=>i.id===editingId);
+  if(!item) return;
+  const prevQty = item.qty;
+  const prevLog = item.usageLog ? [...item.usageLog] : undefined;
+  if(!item.usageLog) item.usageLog = [];
+  item.usageLog.push(new Date().toISOString());
+  item.qty = 0;
+  const ok = await saveAll();
+  if(!ok){ item.qty = prevQty; item.usageLog = prevLog; return; }
+  $('usageFreqText').textContent = usageFreqLabel(item);
+  $('f-qty').value = 0;
+  render();
+  showToast('사용 기록에 남겼어요');
+}
+
+// ---- 모달 ----
+function renderKeywordChips(){
+  $('f-keyword-chips').innerHTML = currentKeywords.map((k,i)=>`
+    <span class="keyword-chip" data-idx="${i}">${escapeHtml(k)} <span class="x">✕</span></span>
+  `).join('') || '<span style="font-size:11.5px;color:var(--muted);">물품명 입력하면 자동으로 생겨요</span>';
+  $('f-keyword-chips').querySelectorAll('.keyword-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      currentKeywords.splice(Number(chip.dataset.idx), 1);
+      renderKeywordChips();
+    });
+  });
+}
+function refreshAutoKeywords(){
+  const name = $('f-name').value.trim();
+  if(!name) return;
+  const suggested = suggestKeywords(name, selectedCategory);
+  suggested.forEach(k=>{ if(!currentKeywords.includes(k)) currentKeywords.push(k); });
+  renderKeywordChips();
+}
+
+function renderCategoryGrid(){
+  $('f-category-grid').innerHTML = CATEGORIES.map(c=>`
+    <button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>
+  `).join('');
+  $('f-category-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedCategory = btn.dataset.cat;
+      $('f-category-grid').querySelectorAll('.cat-select-btn').forEach(b=>b.classList.toggle('active', b===btn));
+      refreshAutoKeywords();
+    });
+  });
+}
+function renderLocationGrid(){
+  $('f-location-grid').innerHTML = LOCATIONS.map(l=>`
+    <button type="button" class="cat-select-btn ${l.key===selectedLocation?'active':''}" data-loc="${l.key}">${l.emoji} ${l.key}</button>
+  `).join('');
+  $('f-location-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedLocation = btn.dataset.loc;
+      $('f-location-custom').value = '';
+      $('f-location-grid').querySelectorAll('.cat-select-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+}
+
+function openItemModal(id){
+  editingId = id || null;
+  pendingImageData = null;
+  $('itemModalTitle').textContent = id ? '물품 수정' : '물품 추가';
+  $('itemDeleteBtn').style.display = id ? 'block' : 'none';
+  $('usageFreqField').style.display = id ? 'block' : 'none';
+  $('itemUsedUpBtn').style.display = id ? 'block' : 'none';
+
+  if(id){
+    const i = items.find(x=>x.id===id);
+    pendingImageData = i.image || null;
+    $('imgPreview').style.backgroundImage = i.image ? `url('${i.image}')` : '';
+    $('imgPreview').textContent = i.image ? '' : '📷 눌러서 사진 선택';
+    $('f-name').value = i.name;
+    $('f-option').value = i.option || '';
+    selectedCategory = i.category;
+    selectedLocation = i.location;
+    $('f-location-custom').value = LOCATIONS.some(l=>l.key===i.location) ? '' : i.location;
+    $('f-qty').value = i.qty;
+    $('f-minqty').value = i.minQty != null ? i.minQty : '';
+    $('f-expiry').value = i.expiry || '';
+    $('f-memo').value = i.memo || '';
+    $('usageFreqText').textContent = usageFreqLabel(i);
+    currentKeywords = i.keywords ? [...i.keywords] : suggestKeywords(i.name, i.category);
+  } else {
+    $('imgPreview').style.backgroundImage = '';
+    $('imgPreview').textContent = '📷 눌러서 사진 선택';
+    $('f-name').value = '';
+    $('f-option').value = '';
+    selectedCategory = categoryFilter !== 'all' ? categoryFilter : '생필품';
+    selectedLocation = locationFilter !== 'all' ? locationFilter : '냉장고';
+    $('f-location-custom').value = '';
+    $('f-qty').value = 1;
+    $('f-minqty').value = '';
+    $('f-expiry').value = '';
+    $('f-memo').value = '';
+    currentKeywords = [];
+  }
+  renderKeywordChips();
+  renderCategoryGrid();
+  renderLocationGrid();
+  $('itemModalBackdrop').classList.add('open');
+}
+function closeItemModal(){
+  $('itemModalBackdrop').classList.remove('open');
+  editingId = null;
+}
+
+async function handleImageSelect(file){
+  if(!file) return;
+  try{
+    $('imgPreview').textContent = '이미지 처리 중...';
+    const dataUrl = await resizeImage(file, 900, 0.82);
+    pendingImageData = dataUrl;
+    $('imgPreview').style.backgroundImage = `url('${dataUrl}')`;
+    $('imgPreview').textContent = '';
+  }catch(err){
+    showToast('이미지 처리에 실패했어요');
+    $('imgPreview').textContent = '📷 눌러서 사진 선택';
+  }
+}
+
+async function saveItem(){
+  const name = $('f-name').value.trim();
+  const option = $('f-option').value.trim();
+  const customLoc = $('f-location-custom').value.trim();
+  const location = customLoc || selectedLocation;
+  const qty = parseInt($('f-qty').value, 10);
+  const minQtyRaw = $('f-minqty').value.trim();
+  const minQty = minQtyRaw ? parseInt(minQtyRaw, 10) : null;
+  const expiry = $('f-expiry').value;
+  const memo = $('f-memo').value.trim();
+
+  if(!name || isNaN(qty) || qty < 0){
+    showToast('물품명과 수량을 확인해주세요');
+    return;
+  }
+
+  const btn = $('itemSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  let imageUrl = null;
+  try{
+    imageUrl = await ensureImageUrl(pendingImageData);
+  }catch(err){
+    btn.disabled = false;
+    btn.textContent = '저장';
+    alert('⚠️ 이미지 업로드에 실패했어요\n\n' + (err.message || '') + '\n\n다시 시도해주세요.');
+    return;
+  }
+
+  const backup = JSON.parse(JSON.stringify(items));
+  const payload = { name, option, category: selectedCategory, location, qty, minQty, expiry, memo, image: imageUrl, keywords: currentKeywords };
+  if(editingId){
+    const idx = items.findIndex(i=>i.id===editingId);
+    items[idx] = { ...items[idx], ...payload };
+  } else {
+    items.push({ id: 'i' + Date.now() + Math.floor(Math.random()*100000), ...payload });
+  }
+
+  const ok = await saveAll();
+  btn.disabled = false;
+  btn.textContent = '저장';
+  if(!ok){ items = backup; return; }
+
+  render();
+  closeItemModal();
+  showToast('저장했어요');
+}
+
+async function deleteItem(){
+  if(!editingId) return;
+  const item = items.find(i=>i.id===editingId);
+  if(item && confirm(`'${item.name}' 물품을 삭제할까요? 되돌릴 수 없어요.`)){
+    const backup = JSON.parse(JSON.stringify(items));
+    items = items.filter(i=>i.id!==editingId);
+    const ok = await saveAll();
+    if(!ok){ items = backup; return; }
+    render();
+    closeItemModal();
+    showToast('삭제했어요');
+  }
+}
+
+// ---- init ----
+function init(){
+  try{
+    let searchTimer = null;
+    $('searchInput').addEventListener('input', (e)=>{
+      $('searchClearBtn').style.display = e.target.value ? 'flex' : 'none';
+      clearTimeout(searchTimer);
+      const val = e.target.value;
+      searchTimer = setTimeout(()=> runSearch(val), 150);
+    });
+    $('searchInput').addEventListener('compositionend', (e)=> runSearch(e.target.value));
+    $('searchClearBtn').addEventListener('click', ()=>{
+      $('searchInput').value = '';
+      $('searchClearBtn').style.display = 'none';
+      $('searchResults').innerHTML = '';
+      $('searchInput').focus();
+    });
+
+    $('addItemBtn').addEventListener('click', ()=> openItemModal(null));
+    $('addNeededBtn').addEventListener('click', openNeededModal);
+    $('neededCancelBtn').addEventListener('click', closeNeededModal);
+    $('neededSaveBtn').addEventListener('click', saveNeeded);
+    $('itemCancelBtn').addEventListener('click', closeItemModal);
+    $('itemSaveBtn').addEventListener('click', saveItem);
+    $('itemDeleteBtn').addEventListener('click', deleteItem);
+    $('itemUsedUpBtn').addEventListener('click', markUsedUp);
+    let nameKeywordTimer = null;
+    $('f-name').addEventListener('input', ()=>{
+      clearTimeout(nameKeywordTimer);
+      nameKeywordTimer = setTimeout(refreshAutoKeywords, 400);
+    });
+    $('keywordAddBtn').addEventListener('click', ()=>{
+      const val = $('f-keyword-add').value.trim();
+      if(val && !currentKeywords.includes(val)){
+        currentKeywords.push(val);
+        renderKeywordChips();
+      }
+      $('f-keyword-add').value = '';
+    });
+    $('imgPreview').addEventListener('click', ()=> $('f-image').click());
+    $('f-image').addEventListener('change', e=> handleImageSelect(e.target.files[0]));
+
+    $('lowStockBanner').addEventListener('click', ()=>{
+      locationFilter = 'all'; categoryFilter = 'all';
+      $('itemList').scrollIntoView({ behavior:'smooth' });
+      render();
+    });
+
+    loadAll();
+  }catch(err){
+    document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">화면을 불러오는 중 오류가 발생했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
+  }
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
