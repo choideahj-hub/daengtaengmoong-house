@@ -166,6 +166,14 @@
     font-family:inherit;background:#FBFCFE;color:var(--ink);
   }
   .field input:focus, .field select:focus{outline:none;border-color:var(--accent);}
+  .search-input{
+    border:2px solid var(--accent) !important;
+    background:var(--accent-soft) !important;
+    font-weight:700;
+    box-shadow:0 3px 10px -4px rgba(62,90,199,.35);
+  }
+  .search-input::placeholder{color:var(--accent);opacity:.75;font-weight:600;}
+  .search-input:focus{border-color:var(--accent) !important;box-shadow:0 0 0 3px rgba(62,90,199,.18);}
   .seg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   .seg-btn{padding:9px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;}
   .seg-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
@@ -291,14 +299,14 @@
     </div>
     <div class="field" id="txn-domestic-field" style="display:none;">
       <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
-      <input type="text" id="txn-domestic-search" placeholder="예: 삼성전자, 삼성">
+      <input type="text" id="txn-domestic-search" class="search-input" placeholder="🔍 예: 삼성전자, 삼성">
       <div id="txn-domestic-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <label style="margin-top:10px;">종목코드 (6자리, 검색하면 자동입력 · 자동 시세 조회용)</label>
       <input type="text" id="txn-domestic-code" placeholder="예: 005930 (문자 섞인 ETF는 0067Y0처럼)" maxlength="6">
     </div>
     <div class="field" id="txn-overseas-field" style="display:none;">
       <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
-      <input type="text" id="txn-overseas-search" placeholder="예: 애플, AAPL">
+      <input type="text" id="txn-overseas-search" class="search-input" placeholder="🔍 예: 애플, AAPL">
       <div id="txn-overseas-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <label style="margin-top:10px;">거래소코드</label>
       <select id="txn-overseas-excd">
@@ -311,7 +319,7 @@
     </div>
     <div class="field" id="txn-upbit-field" style="display:none;">
       <label>종목명 (검색해서 선택)</label>
-      <input type="text" id="txn-coin-search" placeholder="예: 비트코인, BTC">
+      <input type="text" id="txn-coin-search" class="search-input" placeholder="🔍 예: 비트코인, BTC">
       <div id="txn-coin-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <div id="txn-coin-selected" style="margin-top:8px;font-size:12.5px;font-weight:800;color:var(--accent);"></div>
       <input type="hidden" id="txn-upbit-code">
