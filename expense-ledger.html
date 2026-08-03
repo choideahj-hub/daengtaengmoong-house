@@ -213,6 +213,12 @@
   }
   .cat-select-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
   .cat-select-btn.add-cat{border-style:dashed;color:var(--accent);border-color:#F3D9A8;}
+  .cat-chip-wrap{display:flex;gap:3px;min-width:0;}
+  .cat-chip-wrap .cat-select-btn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cat-edit-btn{
+    flex:0 0 20px;width:20px;border-radius:8px;border:1.5px solid var(--line);
+    background:#fff;color:var(--ink-soft);font-size:9px;padding:0;cursor:pointer;
+  }
   .modal-actions{display:flex;gap:8px;margin-top:16px;}
   .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
   .btn.primary{background:var(--ink);color:#fff;}
@@ -750,13 +756,22 @@ function renderTrash(){
 // ---- Entry modal ----
 function renderCategoryGrid(){
   const list = categoryListFor(currentEntryType);
-  $('f-category-grid').innerHTML = list.map(c=>`
-    <button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>
-  `).join('') + `<button type="button" class="cat-select-btn add-cat" id="addCategoryBtn">➕ 추가</button>`;
+  $('f-category-grid').innerHTML = list.map(c=>{
+    const isCustom = customCategories.includes(c);
+    const btn = `<button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>`;
+    const editBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-edit-cat="${escapeHtml(c.key)}" title="이름 수정">✏️</button>` : '';
+    return `<span class="cat-chip-wrap">${btn}${editBtn}</span>`;
+  }).join('') + `<button type="button" class="cat-select-btn add-cat" id="addCategoryBtn">➕ 추가</button>`;
   $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selectedCategory = btn.dataset.cat;
       $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+  $('f-category-grid').querySelectorAll('[data-edit-cat]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      editCustomCategory(btn.dataset.editCat);
     });
   });
   $('addCategoryBtn').addEventListener('click', addCustomCategory);
@@ -786,6 +801,52 @@ async function addCustomCategory(){
   }
   renderCategoryGrid();
   showToast(`'${name}' 카테고리를 추가했어요`);
+}
+
+// 커스텀 카테고리 이름 수정 (기존에 이 카테고리로 기록된 항목들도 함께 반영)
+async function editCustomCategory(oldKey){
+  const type = currentEntryType;
+  const raw = prompt('새 카테고리 이름을 입력해주세요', oldKey);
+  if(raw === null) return;
+  const newKey = raw.trim();
+  if(!newKey){
+    showToast('이름을 입력해주세요');
+    return;
+  }
+  if(newKey.length > 8){
+    showToast('카테고리 이름은 8자 이내로 입력해주세요');
+    return;
+  }
+  if(newKey === oldKey) return;
+
+  const dupExists = categoryListFor(type).some(c => c.key === newKey);
+  if(dupExists){
+    showToast('이미 있는 카테고리 이름이에요');
+    return;
+  }
+
+  const idx = customCategories.findIndex(c => c.key === oldKey && (c.type || 'expense') === type);
+  if(idx === -1) return;
+
+  const catBackup = JSON.parse(JSON.stringify(customCategories));
+  const entriesBackup = JSON.parse(JSON.stringify(entries));
+
+  customCategories[idx] = { ...customCategories[idx], key: newKey };
+  entries.forEach(e=>{
+    if(e.category === oldKey && (e.type || 'expense') === type){
+      e.category = newKey;
+    }
+  });
+  if(selectedCategory === oldKey) selectedCategory = newKey;
+
+  const ok = await saveEntries();
+  if(!ok){
+    customCategories = catBackup;
+    entries = entriesBackup;
+    return;
+  }
+  renderCategoryGrid();
+  showToast(`'${oldKey}' → '${newKey}'로 수정했어요`);
 }
 
 const OWNER_EMOJI = { '댕':'🔵', '탱':'🌸', '공용':'🟡' };
