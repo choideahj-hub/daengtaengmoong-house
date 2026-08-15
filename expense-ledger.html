@@ -389,13 +389,13 @@
     <div class="accordion-header" id="searchToggle">
       <div class="accordion-left">
         <span class="accordion-icon icon-search">🔍</span>
-        <span class="accordion-title">상세명 검색</span>
+        <span class="accordion-title">검색</span>
       </div>
       <span class="toggle-icon" id="searchToggleIcon">▾</span>
     </div>
     <div id="searchPanel" class="accordion-body" style="display:none;">
       <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input type="text" id="searchInput" placeholder="예: 스타벅스" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
+        <input type="text" id="searchInput" placeholder="예: 스타벅스, 쿠팡, 카드, 댕용돈" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
         <button class="add-btn" id="searchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
       </div>
       <div id="searchResult"></div>
@@ -1919,7 +1919,11 @@ function runSearch(){
     return;
   }
   const matches = activeEntries().filter(e =>
-    (e.detail || '').includes(q) || (e.category || '').includes(q)
+    (e.detail || '').includes(q) ||
+    (e.category || '').includes(q) ||
+    (e.store || '').includes(q) ||
+    (e.paymentMethod || '').includes(q) ||
+    (Array.isArray(e.tags) && e.tags.some(t => tagLabel(t).includes(q) || t.includes(q)))
   ).sort((a,b)=> b.date.localeCompare(a.date));
 
   if(matches.length === 0){
