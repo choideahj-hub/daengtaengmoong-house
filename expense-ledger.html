@@ -277,6 +277,7 @@
     font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;
   }
   .cat-select-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .cat-select-btn.active[data-tag="현정용돈"]{background:var(--lime);border-color:var(--lime);color:#3E5A0E;}
   .cat-select-btn.add-cat{border-style:dashed;color:var(--accent);border-color:#F3D9A8;}
   .cat-chip-wrap{display:flex;gap:3px;min-width:0;}
   .cat-chip-wrap .cat-select-btn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -604,7 +605,7 @@ function paymentMethodEmoji(pm){
 // 태그: 결제수단(어디서 나갔는지)과 별개로, 여러 개 중복해서 붙일 수 있는 분류 (예: 댕용돈, 개인사업자)
 // key는 저장되는 실제 데이터 값(기존 항목과의 호환을 위해 유지), label은 화면에 보여지는 이름
 const TAGS = [
-  { key:'현정용돈', label:'댕용돈', emoji:'💰' },
+  { key:'현정용돈', label:'댕 용돈', emoji:'🟢' },
   { key:'개인사업자', emoji:'🧾' },
 ];
 function tagListAll(){
