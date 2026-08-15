@@ -125,7 +125,15 @@
 
   /* Section labels */
   .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
-  .shaded-section{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px 16px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+  .shaded-section{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:4px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+  .accordion-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0;cursor:pointer;}
+  .accordion-left{display:flex;align-items:center;gap:11px;}
+  .accordion-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 34px;}
+  .accordion-icon.icon-search{background:#E1F0FB;}
+  .accordion-icon.icon-biz{background:#FCEACB;}
+  .accordion-icon.icon-personal{background:#FBE0E9;}
+  .accordion-title{font-size:15px;font-weight:800;color:var(--ink);}
+  .accordion-body{padding:0 0 16px;}
   .scroll-bottom-btn{
     position:fixed;right:18px;bottom:24px;width:44px;height:44px;border-radius:50%;
     background:var(--accent);color:#fff;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);
@@ -321,11 +329,58 @@
     <button class="add-btn income" id="addIncomeBtn">💰 수입 추가</button>
   </div>
 
+  <div class="shaded-section">
+    <div class="accordion-header" id="searchToggle">
+      <div class="accordion-left">
+        <span class="accordion-icon icon-search">🔍</span>
+        <span class="accordion-title">상세명 검색</span>
+      </div>
+      <span class="toggle-icon" id="searchToggleIcon">▾</span>
+    </div>
+    <div id="searchPanel" class="accordion-body" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="searchInput" placeholder="예: 스타벅스" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
+        <button class="add-btn" id="searchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
+      </div>
+      <div id="searchResult"></div>
+    </div>
+  </div>
+
   <div class="section-label">
     <h2>지출 내역</h2>
     <span class="hint" id="entryCountHint"></span>
   </div>
   <div id="entryList"></div>
+
+  <div class="shaded-section">
+    <div class="accordion-header" id="bizToggle">
+      <div class="accordion-left">
+        <span class="accordion-icon icon-biz">🧾</span>
+        <span class="accordion-title">개인사업자 내역 (종소세용)</span>
+      </div>
+      <span class="toggle-icon" id="bizToggleIcon">▾</span>
+    </div>
+    <div id="bizPanel" class="accordion-body" style="display:none;">
+      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'개인사업자' 태그를 붙인 항목만 전체 기간에서 모아봐요 (월 필터와 무관하게 전체 표시)</p>
+      <div id="bizResult"></div>
+    </div>
+  </div>
+
+  <div class="shaded-section">
+    <div class="accordion-header" id="personalToggle">
+      <div class="accordion-left">
+        <span class="accordion-icon icon-personal">💰</span>
+        <span class="accordion-title">현정용돈 내역</span>
+      </div>
+      <span class="toggle-icon" id="personalToggleIcon">▾</span>
+    </div>
+    <div id="personalPanel" class="accordion-body" style="display:none;">
+      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'현정용돈' 태그 항목은 공용 자산이 아니라 개인자금이라 메인 집계(이번달 총지출·카테고리 차트·댕/탱/공용)에서는 빠지고 여기서 따로 봐요 (상단 월 이동과 연동돼요)</p>
+      <div id="personalResult"></div>
+    </div>
+  </div>
+
+  <hr class="summary-divider" style="margin:26px 0 18px;opacity:0.7;">
 
   <div class="section-label" id="trashToggle" style="cursor:pointer;">
     <h2>🗑️ 휴지통</h2>
@@ -337,42 +392,6 @@
     <button class="backup-link" id="backupDownloadBtn">⬇ 데이터 백업 다운로드</button>
     <button class="backup-link" id="backupRestoreBtn">⬆ 백업 파일 복원</button>
     <input type="file" id="backupFileInput" accept="application/json" style="display:none;">
-  </div>
-
-  <div class="shaded-section">
-    <div class="section-label" id="searchToggle" style="cursor:pointer;margin-top:0;">
-      <h2>🔍 상세명 검색</h2>
-      <span class="toggle-icon" id="searchToggleIcon">▾</span>
-    </div>
-    <div id="searchPanel" style="display:none;">
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input type="text" id="searchInput" placeholder="예: 스타벅스" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
-        <button class="add-btn" id="searchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
-      </div>
-      <div id="searchResult"></div>
-    </div>
-  </div>
-
-  <div class="shaded-section">
-    <div class="section-label" id="bizToggle" style="cursor:pointer;margin-top:0;">
-      <h2>🧾 개인사업자 내역 (종소세용)</h2>
-      <span class="toggle-icon" id="bizToggleIcon">▾</span>
-    </div>
-    <div id="bizPanel" style="display:none;">
-      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'개인사업자' 태그를 붙인 항목만 전체 기간에서 모아봐요 (월 필터와 무관하게 전체 표시)</p>
-      <div id="bizResult"></div>
-    </div>
-  </div>
-
-  <div class="shaded-section">
-    <div class="section-label" id="personalToggle" style="cursor:pointer;margin-top:0;">
-      <h2>💰 현정용돈 내역</h2>
-      <span class="toggle-icon" id="personalToggleIcon">▾</span>
-    </div>
-    <div id="personalPanel" style="display:none;">
-      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'현정용돈' 태그 항목은 공용 자산이 아니라 개인자금이라 메인 집계(이번달 총지출·카테고리 차트·댕/탱/공용)에서는 빠지고 여기서 따로 봐요 (상단 월 이동과 연동돼요)</p>
-      <div id="personalResult"></div>
-    </div>
   </div>
 
 </div>
