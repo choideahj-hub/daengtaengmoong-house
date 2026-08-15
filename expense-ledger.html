@@ -24,6 +24,8 @@
     --pink-soft:#FFE7F3;
     --amber:#D9A441;
     --amber-soft:#FBF0DC;
+    --lime:#A8C24A;
+    --lime-soft:#EEF3DD;
     --red:#C23B32;
     --red-soft:#FBEAE8;
     --gray-soft:#F0EFEA;
@@ -73,9 +75,9 @@
   .month-nav .month-label{font-size:15px;font-weight:800;}
 
   /* Filter pills */
-  .pill-row{display:flex;gap:6px;margin-top:10px;}
+  .pill-row{display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;margin-top:10px;}
   .pill{
-    flex:1;padding:8px 6px;border-radius:100px;border:1.5px solid var(--line);
+    padding:8px 6px;border-radius:100px;border:1.5px solid var(--line);
     background:#fff;font-size:12.5px;font-weight:700;color:var(--ink-soft);
     cursor:pointer;transition:all .15s ease;text-align:center;
   }
@@ -83,6 +85,7 @@
   .pill.active[data-owner="댕"]{background:var(--blue);border-color:var(--blue);}
   .pill.active[data-owner="탱"]{background:var(--pink);border-color:var(--pink);}
   .pill.active[data-owner="공용"]{background:var(--amber);border-color:var(--amber);}
+  .pill.active[data-owner="personal"]{background:var(--lime);border-color:var(--lime);color:#3E5A0E;}
 
   /* Summary card */
   .summary-card{
@@ -102,6 +105,16 @@
   .summary-net-amount.plus{color:#2E8A78;}
   .summary-net-amount.minus{color:var(--red);}
   .ratio-section{margin-top:14px;}
+  .allowance-box{margin-top:14px;background:var(--lime-soft);border:1.5px solid #D6E4B5;border-radius:14px;padding:14px 16px;}
+  .allowance-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .allowance-row span:last-child{font-weight:800;color:var(--ink);}
+  .allowance-row.allowance-remain{margin-top:8px;margin-bottom:0;font-size:14px;}
+  .allowance-row.allowance-remain span:last-child{font-size:17px;font-weight:900;color:#5C7A1E;}
+  .allowance-row.allowance-remain.over span:last-child{color:var(--red);}
+  .allowance-bar-track{height:10px;background:#fff;border-radius:100px;overflow:hidden;margin:2px 0;}
+  .allowance-bar-fill{height:100%;background:var(--lime);border-radius:100px;transition:width .3s ease;}
+  .allowance-bar-fill.over{background:var(--red);}
+  .allowance-note{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5;}
   .ratio-bar{display:flex;width:100%;height:26px;border-radius:9px;overflow:hidden;background:var(--gray-soft);}
   .ratio-bar-seg{height:100%;transition:width .3s ease, opacity .3s ease;}
   .ratio-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;}
@@ -323,12 +336,22 @@
     <button class="pill" data-owner="공용">🟡 공용</button>
     <button class="pill" data-owner="탱">🌸 탱</button>
     <button class="pill" data-owner="댕">🔵 댕</button>
+    <button class="pill" data-owner="personal">🟢 댕 용돈</button>
   </div>
 
   <div class="summary-card">
-    <div class="summary-total">이번 달 총 지출</div>
+    <div class="summary-total" id="summaryTotalLabel">이번 달 총 지출</div>
     <div class="summary-amount" id="summaryTotal">0원</div>
     <div class="summary-compare" id="summaryCompare"></div>
+
+    <div class="allowance-box" id="allowanceBox" style="display:none;">
+      <div class="allowance-row"><span>💚 이번 달 용돈 한도</span><span id="allowanceBudget">0원</span></div>
+      <div class="allowance-row"><span>사용액</span><span id="allowanceUsed">0원</span></div>
+      <div class="allowance-bar-track"><div class="allowance-bar-fill" id="allowanceBarFill"></div></div>
+      <div class="allowance-row allowance-remain"><span>남은 용돈</span><span id="allowanceRemain">0원</span></div>
+      <div class="allowance-note" id="allowanceNote"></div>
+    </div>
+
     <div class="ratio-section" id="ratioSection">
       <div class="ratio-bar" id="ratioBar"></div>
       <div class="ratio-legend" id="ratioLegend"></div>
@@ -389,20 +412,6 @@
     <div id="bizPanel" class="accordion-body" style="display:none;">
       <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'개인사업자' 태그를 붙인 항목만 전체 기간에서 모아봐요 (월 필터와 무관하게 전체 표시)</p>
       <div id="bizResult"></div>
-    </div>
-  </div>
-
-  <div class="shaded-section">
-    <div class="accordion-header" id="personalToggle">
-      <div class="accordion-left">
-        <span class="accordion-icon icon-personal">💰</span>
-        <span class="accordion-title">현정 용돈 태그 모아보기</span>
-      </div>
-      <span class="toggle-icon" id="personalToggleIcon">▾</span>
-    </div>
-    <div id="personalPanel" class="accordion-body" style="display:none;">
-      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'현정용돈' 태그 항목은 공용 자산이 아니라 개인자금이라 메인 집계(이번달 총지출·카테고리 차트·댕/탱/공용)에서는 빠지고 여기서 따로 봐요 (상단 월 이동과 연동돼요)</p>
-      <div id="personalResult"></div>
     </div>
   </div>
 
@@ -583,9 +592,10 @@ function paymentMethodEmoji(pm){
   return found ? found.emoji : '💳';
 }
 
-// 태그: 결제수단(어디서 나갔는지)과 별개로, 여러 개 중복해서 붙일 수 있는 분류 (예: 현정용돈, 개인사업자)
+// 태그: 결제수단(어디서 나갔는지)과 별개로, 여러 개 중복해서 붙일 수 있는 분류 (예: 댕용돈, 개인사업자)
+// key는 저장되는 실제 데이터 값(기존 항목과의 호환을 위해 유지), label은 화면에 보여지는 이름
 const TAGS = [
-  { key:'현정용돈', emoji:'💰' },
+  { key:'현정용돈', label:'댕용돈', emoji:'💰' },
   { key:'개인사업자', emoji:'🧾' },
 ];
 function tagListAll(){
@@ -595,9 +605,13 @@ function tagEmoji(tagKey){
   const found = tagListAll().find(t => t.key === tagKey);
   return found ? found.emoji : '🏷️';
 }
+function tagLabel(tagKey){
+  const found = tagListAll().find(t => t.key === tagKey);
+  return found ? (found.label || found.key) : tagKey;
+}
 function tagBadges(e){
   if(!e.tags || e.tags.length === 0) return '';
-  return e.tags.map(t => ` · ${tagEmoji(t)} ${escapeHtml(t)}`).join('');
+  return e.tags.map(t => ` · ${tagEmoji(t)} ${escapeHtml(tagLabel(t))}`).join('');
 }
 
 // 구매처: 어디서 샀는지 (결제수단과 별개, 단일 선택, 선택사항)
@@ -712,7 +726,11 @@ let editingId = null;
 let selectedCategory = '식비';
 let selectedOwner = '댕';
 let selectedPayment = '';
-let lastPaymentMethod = ''; // 마지막으로 사용한 결제수단 (다음 입력 시 기본값으로)
+// 결제수단/담당자 마지막 선택값: 기기(브라우저)별로 기억 - localStorage 사용 (Firestore 아님, 다른 기기끼리 공유 안 됨)
+const LS_LAST_PAYMENT_KEY = 'daengtaeng_last_payment_method';
+const LS_LAST_OWNER_KEY = 'daengtaeng_last_owner';
+let lastPaymentMethod = localStorage.getItem(LS_LAST_PAYMENT_KEY) || '';
+let lastOwner = localStorage.getItem(LS_LAST_OWNER_KEY) || '댕';
 let selectedTags = [];
 let selectedStore = '';
 let categoryAutoApplied = false; // 상세명 기반 자동 추천이 아직 유효한지
@@ -771,7 +789,6 @@ async function loadEntries(){
     customCategories = (data && Array.isArray(data.customCategories)) ? data.customCategories : [];
     customTags = (data && Array.isArray(data.customTags)) ? data.customTags : [];
     customStores = (data && Array.isArray(data.customStores)) ? data.customStores : [];
-    lastPaymentMethod = (data && typeof data.lastPaymentMethod === 'string') ? data.lastPaymentMethod : '';
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
@@ -785,7 +802,7 @@ async function loadEntries(){
 
 async function saveEntries(){
   try{
-    await window.firestoreSave({ entries, customCategories, customTags, customStores, lastPaymentMethod });
+    await window.firestoreSave({ entries, customCategories, customTags, customStores });
     return true;
   }catch(e){
     alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 인터넷 연결을 확인하고 다시 시도해주세요.');
@@ -808,21 +825,36 @@ function monthEntries(){
 }
 function entriesForMonth(mk){
   let list = activeEntries().filter(e => monthKey(e.date) === mk);
-  if(ownerFilter !== 'all') list = list.filter(e => e.owner === ownerFilter);
+  if(ownerFilter === 'personal'){
+    list = list.filter(e => Array.isArray(e.tags) && e.tags.includes('현정용돈'));
+  } else if(ownerFilter !== 'all'){
+    list = list.filter(e => e.owner === ownerFilter);
+  }
   return list;
 }
 function excludePersonalTag(list){
   return list.filter(e => !(Array.isArray(e.tags) && e.tags.includes('현정용돈')));
 }
 function monthExpenseEntries(){
-  return excludePersonalTag(monthEntries().filter(e => entryType(e) === 'expense'));
+  const list = monthEntries().filter(e => entryType(e) === 'expense');
+  return ownerFilter === 'personal' ? list : excludePersonalTag(list);
 }
 function monthIncomeEntries(){
-  return excludePersonalTag(monthEntries().filter(e => entryType(e) === 'income'));
+  const list = monthEntries().filter(e => entryType(e) === 'income');
+  return ownerFilter === 'personal' ? list : excludePersonalTag(list);
 }
 // 담당자 필터와 무관하게 이번 달 전체 지출 (비율 바용 - 항상 3명 다 보여주기 위함)
 function monthExpenseEntriesAllOwners(){
   return excludePersonalTag(activeEntries().filter(e => monthKey(e.date) === currentMonth && entryType(e) === 'expense'));
+}
+
+// 댕 용돈 한도 = 전월 (담당자:댕, 카테고리:월급) 수입의 20%
+function daengAllowanceBudget(mk){
+  const prevMk = shiftMonth(mk, -1);
+  const prevSalary = activeEntries()
+    .filter(e => monthKey(e.date) === prevMk && entryType(e) === 'income' && e.owner === '댕' && e.category === '월급')
+    .reduce((s,e)=>s+e.amount, 0);
+  return Math.round(prevSalary * 0.2);
 }
 
 // ---- Render ----
@@ -834,10 +866,7 @@ function render(){
   renderSummary();
   renderEntryList();
   renderTrash();
-  renderPersonalTagReport();
 }
-
-const RATIO_FOCUS_MIN_PCT = 55; // 선택된 담당자 영역의 최소 강조 비율
 
 function renderOwnerRatio(data, total, focusKey){
   const bar = $('ratioBar');
@@ -845,26 +874,11 @@ function renderOwnerRatio(data, total, focusKey){
   if(total <= 0){
     bar.innerHTML = '';
   } else {
-    // 실제 비율 계산
-    const real = data.map(d => ({ ...d, realPct: (d.amt / total) * 100 }));
-    let widths;
-    if(!focusKey){
-      widths = real.map(d => ({ ...d, pct: d.realPct }));
-    } else {
-      const focus = real.find(d => d.key === focusKey);
-      const others = real.filter(d => d.key !== focusKey);
-      const focusPct = Math.max(focus ? focus.realPct : 0, RATIO_FOCUS_MIN_PCT);
-      const remain = 100 - focusPct;
-      const othersTotal = others.reduce((s,d)=>s+d.amt, 0);
-      widths = real.map(d=>{
-        if(d.key === focusKey) return { ...d, pct: focusPct };
-        const share = othersTotal > 0 ? (d.amt / othersTotal) * remain : remain / Math.max(others.length,1);
-        return { ...d, pct: share };
-      });
-    }
-    bar.innerHTML = widths.filter(d => d.pct > 0).map(d=>{
+    // 항상 실제 비율 그대로, 선택된 담당자만 원래 색 유지하고 나머지는 옅게
+    bar.innerHTML = data.filter(d => d.amt > 0).map(d=>{
+      const pct = (d.amt / total) * 100;
       const isDimmed = focusKey && d.key !== focusKey;
-      return `<div class="ratio-bar-seg" style="width:${d.pct}%;background:${d.color};opacity:${isDimmed ? 0.35 : 1}"></div>`;
+      return `<div class="ratio-bar-seg" style="width:${pct}%;background:${d.color};opacity:${isDimmed ? 0.3 : 1}"></div>`;
     }).join('');
   }
 
@@ -887,18 +901,46 @@ function renderSummary(){
   const total = list.reduce((s,e)=>s+e.amount, 0);
   const incomeTotal = incomeList.reduce((s,e)=>s+e.amount, 0);
   const net = incomeTotal - total;
+  $('summaryTotalLabel').textContent = ownerFilter === 'personal' ? '이번 달 댕 용돈 지출' : '이번 달 총 지출';
   $('summaryTotal').textContent = formatWon(total);
 
-  const allOwnersList = monthExpenseEntriesAllOwners();
-  const allOwnersTotal = allOwnersList.reduce((s,e)=>s+e.amount, 0);
-  const allDaeng = allOwnersList.filter(e=>e.owner==='댕').reduce((s,e)=>s+e.amount, 0);
-  const allTaeng = allOwnersList.filter(e=>e.owner==='탱').reduce((s,e)=>s+e.amount, 0);
-  const allGongyong = allOwnersList.filter(e=>e.owner==='공용').reduce((s,e)=>s+e.amount, 0);
-  renderOwnerRatio([
-    { key:'공용', amt: allGongyong, color:'var(--amber)' },
-    { key:'탱', amt: allTaeng, color:'var(--pink)' },
-    { key:'댕', amt: allDaeng, color:'var(--blue)' }
-  ], allOwnersTotal, ownerFilter === 'all' ? null : ownerFilter);
+  const allowanceBox = $('allowanceBox');
+  if(ownerFilter === 'personal'){
+    allowanceBox.style.display = 'block';
+    const budget = daengAllowanceBudget(currentMonth);
+    const used = total; // 이번 달 댕 용돈 태그 지출 합계
+    const remain = budget - used;
+    const usedPct = budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : (used > 0 ? 100 : 0);
+    const prevMk = shiftMonth(currentMonth, -1);
+    $('allowanceBudget').textContent = formatWon(budget);
+    $('allowanceUsed').textContent = formatWon(used);
+    $('allowanceRemain').textContent = (remain < 0 ? '−' : '') + formatWon(Math.abs(remain));
+    document.querySelector('.allowance-remain').classList.toggle('over', remain < 0);
+    $('allowanceBarFill').style.width = `${usedPct}%`;
+    $('allowanceBarFill').classList.toggle('over', remain < 0);
+    $('allowanceNote').textContent = budget > 0
+      ? `${monthLabel(prevMk)} 댕 월급의 20% 기준이에요`
+      : `${monthLabel(prevMk)}에 댕 월급 기록이 없어서 한도가 0원으로 계산돼요`;
+  } else {
+    allowanceBox.style.display = 'none';
+  }
+
+  const ratioSection = $('ratioSection');
+  if(ownerFilter === 'personal'){
+    ratioSection.style.display = 'none';
+  } else {
+    ratioSection.style.display = 'block';
+    const allOwnersList = monthExpenseEntriesAllOwners();
+    const allOwnersTotal = allOwnersList.reduce((s,e)=>s+e.amount, 0);
+    const allDaeng = allOwnersList.filter(e=>e.owner==='댕').reduce((s,e)=>s+e.amount, 0);
+    const allTaeng = allOwnersList.filter(e=>e.owner==='탱').reduce((s,e)=>s+e.amount, 0);
+    const allGongyong = allOwnersList.filter(e=>e.owner==='공용').reduce((s,e)=>s+e.amount, 0);
+    renderOwnerRatio([
+      { key:'공용', amt: allGongyong, color:'var(--amber)' },
+      { key:'탱', amt: allTaeng, color:'var(--pink)' },
+      { key:'댕', amt: allDaeng, color:'var(--blue)' }
+    ], allOwnersTotal, ownerFilter === 'all' ? null : ownerFilter);
+  }
 
   $('summaryIncomeTotal').textContent = formatWon(incomeTotal);
   const netEl = $('summaryNet');
@@ -906,7 +948,8 @@ function renderSummary(){
   netEl.className = 'summary-net-amount ' + (net >= 0 ? 'plus' : 'minus');
 
   const prevMonth = shiftMonth(currentMonth, -1);
-  const prevTotal = excludePersonalTag(entriesForMonth(prevMonth).filter(e=>entryType(e)==='expense')).reduce((s,e)=>s+e.amount, 0);
+  const prevMonthExpense = entriesForMonth(prevMonth).filter(e=>entryType(e)==='expense');
+  const prevTotal = (ownerFilter === 'personal' ? prevMonthExpense : excludePersonalTag(prevMonthExpense)).reduce((s,e)=>s+e.amount, 0);
   const compareEl = $('summaryCompare');
   if(prevTotal === 0){
     compareEl.textContent = total > 0 ? '지난달 기록이 없어 비교할 수 없어요' : '';
@@ -947,11 +990,16 @@ function renderSummary(){
       : '';
     const rowsHtml = visible.map(([cat, amt])=>{
       const totalPct = Math.max(4, amt/maxAmt*100);
-      const owners = byCatOwner[cat] || { '공용':0, '탱':0, '댕':0 };
-      const segsHtml = Object.entries(owners)
-        .filter(([, oAmt]) => oAmt > 0)
-        .map(([owner, oAmt]) => `<div class="cat-bar-seg" style="width:${(oAmt/amt*100)}%;background:${OWNER_COLOR[owner]}"></div>`)
-        .join('');
+      let segsHtml;
+      if(ownerFilter === 'personal'){
+        segsHtml = `<div class="cat-bar-seg" style="width:100%;background:var(--lime)"></div>`;
+      } else {
+        const owners = byCatOwner[cat] || { '공용':0, '탱':0, '댕':0 };
+        segsHtml = Object.entries(owners)
+          .filter(([, oAmt]) => oAmt > 0)
+          .map(([owner, oAmt]) => `<div class="cat-bar-seg" style="width:${(oAmt/amt*100)}%;background:${OWNER_COLOR[owner]}"></div>`)
+          .join('');
+      }
       return `
       <div class="cat-bar-row">
         <div class="cat-bar-label">${categoryEmoji(cat,'expense')} ${cat}</div>
@@ -996,7 +1044,7 @@ function renderEntryList(){
       const isIncome = entryType(e) === 'income';
       const isPending = !e.amount || e.amount === 0;
       const isBig = !isIncome && !isPending && e.amount >= BIG_EXPENSE_THRESHOLD;
-      const isPersonal = Array.isArray(e.tags) && e.tags.includes('현정용돈');
+      const isPersonal = ownerFilter !== 'personal' && Array.isArray(e.tags) && e.tags.includes('현정용돈');
       return `
       <div class="entry-row ${isBig?'big-expense':''} ${isIncome?'income-row':''} ${isPending?'pending-row':''} ${isPersonal?'personal-row':''}" data-id="${e.id}">
         <span class="entry-emoji">${categoryEmoji(e.category, e.type)}</span>
@@ -1275,7 +1323,7 @@ function renderTagGrid(){
   $('f-tag-grid').innerHTML = list.map(t=>{
     const isCustom = customTags.includes(t);
     const active = selectedTags.includes(t.key);
-    const btn = `<button type="button" class="cat-select-btn ${active?'active':''}" data-tag="${escapeHtml(t.key)}">${t.emoji} ${t.key}</button>`;
+    const btn = `<button type="button" class="cat-select-btn ${active?'active':''}" data-tag="${escapeHtml(t.key)}">${t.emoji} ${escapeHtml(t.label || t.key)}</button>`;
     const editBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-edit-tag="${escapeHtml(t.key)}" title="이름 수정">✏️</button>` : '';
     return `<span class="cat-chip-wrap">${btn}${editBtn}</span>`;
   }).join('') + `<button type="button" class="cat-select-btn add-cat" id="addTagBtn">➕ 추가</button>`;
@@ -1515,7 +1563,7 @@ function openEntryModal(id, type){
     selectedTags = Array.isArray(e.tags) ? [...e.tags] : [];
     categoryAutoApplied = false;
   } else {
-    selectedOwner = ownerFilter !== 'all' && ownerFilter !== 'income-all' ? ownerFilter : '댕';
+    selectedOwner = lastOwner || '댕';
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
     $('f-amount').value = '';
     selectedCategory = categoryListFor(currentEntryType)[0].key;
@@ -1564,8 +1612,6 @@ async function saveEntry(){
   saveBtn.textContent = '저장 중...';
 
   const backup = JSON.parse(JSON.stringify(entries));
-  const lastPaymentBackup = lastPaymentMethod;
-  lastPaymentMethod = selectedPayment;
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
     entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, store: selectedStore, tags: [...selectedTags] };
@@ -1579,7 +1625,15 @@ async function saveEntry(){
   const ok = await saveEntries();
   saveBtn.disabled = false;
   saveBtn.textContent = '저장';
-  if(!ok){ entries = backup; lastPaymentMethod = lastPaymentBackup; return; }
+  if(!ok){ entries = backup; return; }
+
+  // 저장 성공 시에만 이 기기(브라우저)에 마지막 선택값 기록
+  lastPaymentMethod = selectedPayment;
+  lastOwner = owner;
+  try{
+    localStorage.setItem(LS_LAST_PAYMENT_KEY, selectedPayment);
+    localStorage.setItem(LS_LAST_OWNER_KEY, owner);
+  }catch(e){ /* localStorage 사용 불가 환경이면 조용히 무시 */ }
 
   currentMonth = monthKey(date);
   render();
@@ -1763,43 +1817,6 @@ async function saveOcrRows(){
 }
 
 // ---- Init & events ----
-// ---- 현정용돈(개인자금) 내역 ----
-function renderPersonalTagReport(){
-  const resultEl = $('personalResult');
-  if(!resultEl) return; // 아직 DOM 준비 전 (init 순서 방어)
-  const list = entriesForMonth(currentMonth).filter(e => Array.isArray(e.tags) && e.tags.includes('현정용돈'));
-  const expenseList = list.filter(e => entryType(e) === 'expense');
-  const incomeList = list.filter(e => entryType(e) === 'income');
-  const total = expenseList.reduce((s,e)=>s+e.amount, 0);
-  const incomeTotal = incomeList.reduce((s,e)=>s+e.amount, 0);
-
-  if(list.length === 0){
-    resultEl.innerHTML = `<div class="empty"><b>${monthLabel(currentMonth)}엔 '현정용돈' 태그 항목이 없어요</b></div>`;
-    return;
-  }
-
-  const byCat = {};
-  expenseList.forEach(e=>{ byCat[e.category] = (byCat[e.category]||0) + e.amount; });
-  const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-  const maxAmt = sorted.length ? sorted[0][1] : 1;
-
-  const chartHtml = sorted.length === 0
-    ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">이번 달 지출 내역이 없어요</div>'
-    : sorted.map(([cat, amt])=>`
-      <div class="cat-bar-row">
-        <div class="cat-bar-label">${categoryEmoji(cat,'expense')} ${cat}</div>
-        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4, amt/maxAmt*100)}%"></div></div>
-        <div class="cat-bar-amount">${amt.toLocaleString('ko-KR')}</div>
-      </div>
-    `).join('');
-
-  resultEl.innerHTML =
-    `<div style="font-size:13px;font-weight:800;margin-bottom:10px;">${monthLabel(currentMonth)} 지출 ${formatWon(total)}${incomeTotal ? ' · 수입 ' + formatWon(incomeTotal) : ''}</div>` +
-    `<div style="background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;">
-      ${chartHtml}
-    </div>`;
-}
-
 // ---- 개인사업자(종소세용) 내역 ----
 function renderBizReport(){
   const resultEl = $('bizResult');
@@ -2032,15 +2049,6 @@ function init(){
       panel.style.display = isOpen ? 'none' : 'block';
       icon.classList.toggle('open', !isOpen);
       if(!isOpen) renderBizReport();
-    });
-
-    $('personalToggle').addEventListener('click', ()=>{
-      const panel = $('personalPanel');
-      const icon = $('personalToggleIcon');
-      const isOpen = panel.style.display !== 'none';
-      panel.style.display = isOpen ? 'none' : 'block';
-      icon.classList.toggle('open', !isOpen);
-      if(!isOpen) renderPersonalTagReport();
     });
 
     $('backupDownloadBtn').addEventListener('click', downloadBackup);
