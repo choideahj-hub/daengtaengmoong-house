@@ -107,6 +107,7 @@
   .summary-net-amount.minus{color:var(--red);}
   .ratio-section{margin-top:14px;}
   .section-subtitle{font-size:11px;color:var(--muted);font-weight:800;margin-bottom:10px;letter-spacing:0.2px;}
+  .summary-total-with-personal{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:2px;}
   .allowance-box{margin-top:14px;background:var(--lime-soft);border:1.5px solid #D6E4B5;border-radius:14px;padding:14px 16px;}
   .allowance-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
   .allowance-row span:last-child{font-weight:800;color:var(--ink);}
@@ -344,9 +345,10 @@
   <div class="summary-card">
     <div class="summary-total" id="summaryTotalLabel">이번 달 총 지출</div>
     <div class="summary-amount" id="summaryTotal">0원</div>
+    <div class="summary-total-with-personal" id="summaryTotalWithPersonal" style="display:none;"></div>
     <div class="summary-compare" id="summaryCompare"></div>
 
-    <div class="income-net-row">
+    <div class="income-net-row" id="incomeNetRow">
       <div class="income-net-item">
         <div class="summary-total">이번 달 총 수입</div>
         <div class="summary-amount income" id="summaryIncomeTotal">0원</div>
@@ -852,7 +854,7 @@ function monthIncomeEntries(){
 }
 // 담당자 필터와 무관하게 이번 달 전체 지출 (비율 바용 - 항상 3명 다 보여주기 위함)
 function monthExpenseEntriesAllOwners(){
-  return excludePersonalTag(activeEntries().filter(e => monthKey(e.date) === currentMonth && entryType(e) === 'expense'));
+  return activeEntries().filter(e => monthKey(e.date) === currentMonth && entryType(e) === 'expense');
 }
 
 // 댕 용돈 한도 = 전월 (담당자:댕, 카테고리:월급) 수입의 20%
@@ -911,6 +913,18 @@ function renderSummary(){
   $('summaryTotalLabel').textContent = ownerFilter === 'personal' ? '이번 달 댕 용돈 지출' : '이번 달 총 지출';
   $('summaryTotal').textContent = formatWon(total);
 
+  // 지출 내역 목록/카테고리 차트/담당자 비율은 댕용돈 포함해서 보여주되(색으로 구분되니까),
+  // 헤드라인 "총 지출" 숫자만 댕용돈 제외 기준을 유지하고 옆에 포함 시 금액을 괄호로 안내
+  const listWithPersonal = ownerFilter === 'personal' ? list : monthEntries().filter(e => entryType(e) === 'expense');
+  const totalWithPersonal = listWithPersonal.reduce((s,e)=>s+e.amount, 0);
+  const withPersonalEl = $('summaryTotalWithPersonal');
+  if(ownerFilter !== 'personal' && totalWithPersonal > total){
+    withPersonalEl.style.display = 'block';
+    withPersonalEl.textContent = `(댕 용돈 포함 시 총 ${formatWon(totalWithPersonal)})`;
+  } else {
+    withPersonalEl.style.display = 'none';
+  }
+
   const allowanceBox = $('allowanceBox');
   if(ownerFilter === 'personal'){
     allowanceBox.style.display = 'block';
@@ -955,6 +969,7 @@ function renderSummary(){
     ], allOwnersTotal, ownerFilter === 'all' ? null : ownerFilter);
   }
 
+  $('incomeNetRow').style.display = ownerFilter === 'personal' ? 'none' : 'flex';
   $('summaryIncomeTotal').textContent = formatWon(incomeTotal);
   const netEl = $('summaryNet');
   netEl.textContent = (net >= 0 ? '+' : '−') + formatWon(Math.abs(net));
@@ -984,7 +999,7 @@ function renderSummary(){
   const byCat = {};
   const byCatOwner = {};
   const OWNER_COLOR = { '공용':'var(--amber)', '탱':'var(--pink)', '댕':'var(--blue)' };
-  list.forEach(e=>{
+  listWithPersonal.forEach(e=>{
     byCat[e.category] = (byCat[e.category]||0) + e.amount;
     if(!byCatOwner[e.category]) byCatOwner[e.category] = { '공용':0, '탱':0, '댕':0 };
     byCatOwner[e.category][e.owner] = (byCatOwner[e.category][e.owner]||0) + e.amount;
