@@ -113,7 +113,7 @@
   .cat-bar-amount{width:64px;flex-shrink:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-soft);}
 
   /* Add buttons */
-  .add-row{display:flex;gap:8px;margin-top:14px;}
+  .add-row{display:flex;gap:14px;margin-top:14px;}
   .add-btn{
     flex:1;padding:13px;border-radius:100px;
     border:2px dashed #F3D9A8;background:var(--accent-soft);color:var(--accent);
@@ -135,12 +135,17 @@
   .accordion-title{font-size:15px;font-weight:800;color:var(--ink);}
   .accordion-body{padding:0 0 16px;}
   .scroll-bottom-btn{
-    position:fixed;right:18px;bottom:24px;width:44px;height:44px;border-radius:50%;
-    background:var(--accent);color:#fff;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);
-    font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;
-    opacity:0.92;
+    position:fixed;left:20px;bottom:26px;width:56px;height:56px;border-radius:50%;
+    background:var(--accent);color:#fff;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,0.28);
+    font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;
+    opacity:1;
   }
   .scroll-bottom-btn:active{transform:scale(0.94);}
+  .scroll-top-btn{bottom:92px;background:#fff;color:var(--accent);border:2px solid var(--accent);box-shadow:0 6px 18px rgba(0,0,0,0.16);}
+  @media (min-width:600px){
+    .scroll-bottom-btn{width:60px;height:60px;font-size:24px;left:32px;bottom:32px;}
+    .scroll-top-btn{bottom:104px;}
+  }
   .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
   .toggle-icon{font-size:12px;color:var(--muted);transition:transform .2s ease;}
   .toggle-icon.open{transform:rotate(180deg);}
@@ -223,6 +228,13 @@
   }
   .field input:focus, .field select:focus{outline:none;border-color:var(--accent);}
   .cat-select-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .more-options-toggle{
+    display:block;width:100%;background:none;border:none;color:var(--muted);
+    font-size:12px;font-weight:800;text-align:left;padding:2px 0 13px;cursor:pointer;
+  }
+  .cat-select-btn.none-option{background:#F4F1EC;border-color:var(--line);color:var(--ink-soft);}
+  .cat-select-btn.none-option.active{background:#E4E0D8;border-color:#CFC9BC;color:var(--ink-soft);}
+  .cat-select-btn.more-cat-btn{background:#fff;border-style:solid;color:var(--ink-soft);}
   .cat-select-btn{
     padding:8px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;
     font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;
@@ -352,11 +364,14 @@
   </div>
   <div id="entryList"></div>
 
+  <hr class="summary-divider" style="margin:28px 0 14px;opacity:0.7;">
+  <div style="font-size:11px;color:var(--muted);font-weight:800;margin-bottom:10px;letter-spacing:0.2px;">📌 태그별 모아보기</div>
+
   <div class="shaded-section">
     <div class="accordion-header" id="bizToggle">
       <div class="accordion-left">
         <span class="accordion-icon icon-biz">🧾</span>
-        <span class="accordion-title">개인사업자 내역 (종소세용)</span>
+        <span class="accordion-title">개인사업자 태그 모아보기</span>
       </div>
       <span class="toggle-icon" id="bizToggleIcon">▾</span>
     </div>
@@ -370,7 +385,7 @@
     <div class="accordion-header" id="personalToggle">
       <div class="accordion-left">
         <span class="accordion-icon icon-personal">💰</span>
-        <span class="accordion-title">현정용돈 내역</span>
+        <span class="accordion-title">현정 용돈 태그 모아보기</span>
       </div>
       <span class="toggle-icon" id="personalToggleIcon">▾</span>
     </div>
@@ -396,6 +411,7 @@
 
 </div>
 
+<button type="button" class="scroll-bottom-btn scroll-top-btn" id="scrollTopBtn" title="맨 위로">⬆</button>
 <button type="button" class="scroll-bottom-btn" id="scrollBottomBtn" title="맨 아래로">⬇</button>
 
 <div class="modal-backdrop" id="entryModalBackdrop">
@@ -410,26 +426,36 @@
       <input type="date" id="f-date">
     </div>
     <div class="field">
+      <label>상세명</label>
+      <input type="text" id="f-detail" placeholder="예: 스타벅스 코엑스점">
+    </div>
+    <div class="field">
+      <label>카테고리</label>
+      <div class="cat-select-grid" id="f-category-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+      <p id="categorySuggestHint" style="font-size:11px;color:var(--accent);margin:6px 0 0;display:none;">🔮 상세명 기반으로 자동 선택했어요, 다르면 눌러서 바꿔주세요</p>
+    </div>
+    <div class="field">
       <label>가격 (원)</label>
       <input type="number" id="f-amount" placeholder="예: 12000 (모르면 비워두고 나중에 입력)" inputmode="numeric">
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">해외결제처럼 원화 금액이 아직 확실하지 않으면 비워두고 저장했다가, 나중에 이 항목을 열어서 금액만 채워도 돼요</p>
     </div>
     <div class="field">
-      <label>카테고리</label>
-      <div class="cat-select-grid" id="f-category-grid"></div>
-    </div>
-    <div class="field">
-      <label>상세명</label>
-      <input type="text" id="f-detail" placeholder="예: 스타벅스 코엑스점">
-    </div>
-    <div class="field">
-      <label>결제수단</label>
+      <label id="paymentLabel">결제수단</label>
       <div class="cat-select-grid" id="f-payment-grid" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
-    <div class="field">
-      <label>태그 (선택, 중복 가능)</label>
-      <div class="cat-select-grid" id="f-tag-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+
+    <button type="button" id="moreOptionsToggle" class="more-options-toggle">🔽 옵션 더보기 (구매처·태그)</button>
+    <div id="moreOptionsPanel" style="display:none;">
+      <div class="field">
+        <label>구매처 (선택)</label>
+        <div class="cat-select-grid" id="f-store-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+      </div>
+      <div class="field">
+        <label>태그 (선택, 중복 가능)</label>
+        <div class="cat-select-grid" id="f-tag-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+      </div>
     </div>
+
     <div class="modal-actions">
       <button class="btn ghost" id="entryCancelBtn">취소</button>
       <button class="btn danger" id="entryDeleteBtn" style="display:none;">삭제</button>
@@ -562,10 +588,66 @@ function tagBadges(e){
   return e.tags.map(t => ` · ${tagEmoji(t)} ${escapeHtml(t)}`).join('');
 }
 
+// 구매처: 어디서 샀는지 (결제수단과 별개, 단일 선택, 선택사항)
+const STORES = [
+  { key:'쿠팡', emoji:'🛒' },
+  { key:'네이버쇼핑', emoji:'🟢' },
+  { key:'배달의민족', emoji:'🛵' },
+  { key:'다이소', emoji:'🏪' },
+  { key:'무신사', emoji:'👕' },
+  { key:'29CM', emoji:'🎽' },
+  { key:'올리브영', emoji:'💄' },
+];
+function storeListAll(){
+  return [...STORES, ...customStores];
+}
+function storeEmoji(key){
+  const found = storeListAll().find(s => s.key === key);
+  return found ? found.emoji : '🏬';
+}
+function storeBadge(e){
+  if(!e.store) return '';
+  return ` · ${storeEmoji(e.store)} ${escapeHtml(e.store)}`;
+}
+
 function categoryListFor(type){
   const base = type === 'income' ? INCOME_CATEGORIES : CATEGORIES;
   const custom = customCategories.filter(c => (c.type || 'expense') === type);
   return [...base, ...custom];
+}
+
+// ---- 상세명 기반 카테고리 자동 추천 (외부 API 없이, 과거 입력을 학습) ----
+function longestCommonSubstringLen(a, b){
+  a = a.toLowerCase().trim();
+  b = b.toLowerCase().trim();
+  if(!a || !b) return 0;
+  let max = 0;
+  for(let i=0;i<a.length;i++){
+    for(let j=i+1;j<=a.length;j++){
+      const sub = a.slice(i,j);
+      if(sub.length > max && b.includes(sub)) max = sub.length;
+    }
+  }
+  return max;
+}
+function suggestCategoryFromDetail(detailText, type){
+  const query = (detailText || '').trim();
+  if(query.length < 2) return null;
+  const history = activeEntries().filter(e => (e.type||'expense') === type && e.detail);
+  if(history.length === 0) return null;
+
+  const scores = {};
+  history.forEach(e=>{
+    const overlap = longestCommonSubstringLen(query, e.detail);
+    if(overlap >= 2){
+      scores[e.category] = (scores[e.category] || 0) + overlap;
+    }
+  });
+  let best = null, bestScore = 0;
+  Object.entries(scores).forEach(([cat, score])=>{
+    if(score > bestScore){ bestScore = score; best = cat; }
+  });
+  return best;
 }
 
 function categoryEmoji(cat, type){
@@ -584,7 +666,10 @@ let editingId = null;
 let selectedCategory = '식비';
 let selectedOwner = '댕';
 let selectedPayment = '';
+let lastPaymentMethod = ''; // 마지막으로 사용한 결제수단 (다음 입력 시 기본값으로)
 let selectedTags = [];
+let selectedStore = '';
+let categoryAutoApplied = false; // 상세명 기반 자동 추천이 아직 유효한지
 let currentEntryType = 'expense'; // 모달에서 지금 입력 중인 타입
 let trashOpen = false;
 const BIG_EXPENSE_THRESHOLD = 150000;
@@ -630,6 +715,7 @@ function escapeHtml(str){
 
 let customCategories = []; // [{key, emoji, type}]
 let customTags = []; // [{key, emoji}]
+let customStores = []; // [{key, emoji}]
 
 async function loadEntries(){
   try{
@@ -637,6 +723,8 @@ async function loadEntries(){
     entries = (data && Array.isArray(data.entries)) ? data.entries : [];
     customCategories = (data && Array.isArray(data.customCategories)) ? data.customCategories : [];
     customTags = (data && Array.isArray(data.customTags)) ? data.customTags : [];
+    customStores = (data && Array.isArray(data.customStores)) ? data.customStores : [];
+    lastPaymentMethod = (data && typeof data.lastPaymentMethod === 'string') ? data.lastPaymentMethod : '';
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
@@ -650,7 +738,7 @@ async function loadEntries(){
 
 async function saveEntries(){
   try{
-    await window.firestoreSave({ entries, customCategories, customTags });
+    await window.firestoreSave({ entries, customCategories, customTags, customStores, lastPaymentMethod });
     return true;
   }catch(e){
     alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 인터넷 연결을 확인하고 다시 시도해주세요.');
@@ -787,7 +875,7 @@ function renderEntryList(){
             ${isPending ? '<span class="pending-tag">⏳ 금액 미확정</span>' : ''}
             ${escapeHtml(e.detail || e.category)}
           </div>
-          <div class="entry-meta">${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}${tagBadges(e)}</div>
+          <div class="entry-meta">${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}${storeBadge(e)}${tagBadges(e)}</div>
         </div>
         <div class="entry-amount ${isIncome?'income':''} ${isPending?'pending':''}">${isPending ? '탭해서 입력' : (isIncome?'+':'−') + e.amount.toLocaleString('ko-KR') + '원'}</div>
       </div>
@@ -844,17 +932,49 @@ function renderTrash(){
 }
 
 // ---- Entry modal ----
+const CATEGORY_TOP_N = 8;
+let categoryExpanded = false; // '더보기'로 펼쳐진 상태인지
+
+function categoryFrequencyMap(type){
+  const map = {};
+  activeEntries().filter(e => (e.type||'expense') === type).forEach(e=>{
+    map[e.category] = (map[e.category] || 0) + 1;
+  });
+  return map;
+}
+// 실제 사용 빈도 내림차순으로 정렬 (동률이면 기존 배열 순서 유지 - stable sort)
+function sortedCategoryListFor(type){
+  const list = categoryListFor(type);
+  const freq = categoryFrequencyMap(type);
+  return [...list].sort((a, b) => (freq[b.key] || 0) - (freq[a.key] || 0));
+}
+
 function renderCategoryGrid(){
-  const list = categoryListFor(currentEntryType);
-  $('f-category-grid').innerHTML = list.map(c=>{
+  const fullList = sortedCategoryListFor(currentEntryType);
+  const selectedInTop = fullList.slice(0, CATEGORY_TOP_N).some(c => c.key === selectedCategory);
+  const expand = categoryExpanded || !selectedInTop || fullList.length <= CATEGORY_TOP_N;
+  const visibleList = expand ? fullList : fullList.slice(0, CATEGORY_TOP_N);
+
+  const chips = visibleList.map(c=>{
     const isCustom = customCategories.includes(c);
     const btn = `<button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>`;
     const manageBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-manage-cat="${escapeHtml(c.key)}" title="관리">✏️</button>` : '';
     return `<span class="cat-chip-wrap">${btn}${manageBtn}</span>`;
-  }).join('') + `<button type="button" class="cat-select-btn add-cat" id="addCategoryBtn">➕ 추가</button>`;
+  }).join('');
+
+  const hiddenCount = fullList.length - CATEGORY_TOP_N;
+  const moreBtn = fullList.length > CATEGORY_TOP_N
+    ? `<button type="button" class="cat-select-btn more-cat-btn" id="categoryMoreBtn">${expand ? '🔼 접기' : `➕ 더보기 (${hiddenCount})`}</button>`
+    : '';
+  const addBtn = expand ? `<button type="button" class="cat-select-btn add-cat" id="addCategoryBtn">➕ 추가</button>` : '';
+
+  $('f-category-grid').innerHTML = chips + moreBtn + addBtn;
+
   $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selectedCategory = btn.dataset.cat;
+      categoryAutoApplied = false;
+      $('categorySuggestHint').style.display = 'none';
       $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(b=>b.classList.toggle('active', b===btn));
     });
   });
@@ -864,13 +984,25 @@ function renderCategoryGrid(){
       openCatActionModal(btn.dataset.manageCat);
     });
   });
-  $('addCategoryBtn').addEventListener('click', addCustomCategory);
+  const moreBtnEl = document.getElementById('categoryMoreBtn');
+  if(moreBtnEl){
+    moreBtnEl.addEventListener('click', ()=>{
+      categoryExpanded = !categoryExpanded;
+      renderCategoryGrid();
+    });
+  }
+  const addBtnEl = document.getElementById('addCategoryBtn');
+  if(addBtnEl){
+    addBtnEl.addEventListener('click', addCustomCategory);
+  }
 }
 
 let catActionTarget = null;
-function openCatActionModal(key){
+let catActionType = 'category'; // 'category' | 'store'
+function openCatActionModal(key, type){
   catActionTarget = key;
-  $('catActionTitle').textContent = `'${key}' 카테고리`;
+  catActionType = type || 'category';
+  $('catActionTitle').textContent = catActionType === 'store' ? `'${key}' 구매처` : `'${key}' 카테고리`;
   $('catActionModalBackdrop').classList.add('open');
 }
 function closeCatActionModal(){
@@ -990,9 +1122,14 @@ function renderOwnerGrid(){
 }
 
 function renderPaymentGrid(){
+  const isIncome = currentEntryType === 'income';
+  $('paymentLabel').textContent = isIncome ? '결제수단 (선택)' : '결제수단';
+  const noneBtn = isIncome
+    ? `<button type="button" class="cat-select-btn none-option ${selectedPayment===''?'active':''}" data-pm="">선택 안함</button>`
+    : '';
   $('f-payment-grid').innerHTML = PAYMENT_METHODS.map(p=>`
     <button type="button" class="cat-select-btn ${p.key===selectedPayment?'active':''}" data-pm="${escapeHtml(p.key)}">${p.emoji} ${p.key}</button>
-  `).join('');
+  `).join('') + noneBtn;
   $('f-payment-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selectedPayment = btn.dataset.pm;
@@ -1102,6 +1239,126 @@ async function editCustomTag(oldKey){
   showToast(`'${oldKey}' → '${newKey}'로 수정했어요`);
 }
 
+// ---- 구매처 ----
+function renderStoreGrid(){
+  const list = storeListAll();
+  $('f-store-grid').innerHTML = list.map(s=>{
+    const isCustom = customStores.includes(s);
+    const active = s.key === selectedStore;
+    const btn = `<button type="button" class="cat-select-btn ${active?'active':''}" data-store="${escapeHtml(s.key)}">${s.emoji} ${s.key}</button>`;
+    const manageBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-manage-store="${escapeHtml(s.key)}" title="관리">✏️</button>` : '';
+    return `<span class="cat-chip-wrap">${btn}${manageBtn}</span>`;
+  }).join('')
+    + `<button type="button" class="cat-select-btn none-option ${selectedStore===''?'active':''}" data-store="">선택 안함</button>`
+    + `<button type="button" class="cat-select-btn add-cat" id="addStoreBtn">➕ 추가</button>`;
+
+  $('f-store-grid').querySelectorAll('.cat-select-btn[data-store]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedStore = btn.dataset.store;
+      $('f-store-grid').querySelectorAll('.cat-select-btn[data-store]').forEach(b=>b.classList.toggle('active', b.dataset.store===selectedStore));
+    });
+  });
+  $('f-store-grid').querySelectorAll('[data-manage-store]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openCatActionModal(btn.dataset.manageStore, 'store');
+    });
+  });
+  $('addStoreBtn').addEventListener('click', addCustomStore);
+}
+
+async function addCustomStore(){
+  const raw = prompt('추가할 구매처 이름을 입력해주세요\n(예: 지그재그, 컬리)');
+  if(!raw) return;
+  const name = raw.trim();
+  if(!name) return;
+  if(name.length > 8){
+    showToast('구매처 이름은 8자 이내로 입력해주세요');
+    return;
+  }
+  const exists = storeListAll().some(s => s.key === name);
+  if(exists){
+    selectedStore = name;
+    renderStoreGrid();
+    return;
+  }
+  customStores.push({ key: name, emoji: '🏬' });
+  selectedStore = name;
+  const ok = await saveEntries();
+  if(!ok){
+    customStores = customStores.filter(s => s.key !== name);
+    return;
+  }
+  renderStoreGrid();
+  showToast(`'${name}' 구매처를 추가했어요`);
+}
+
+async function editCustomStore(oldKey){
+  const raw = prompt('새 구매처 이름을 입력해주세요', oldKey);
+  if(raw === null) return;
+  const newKey = raw.trim();
+  if(!newKey){
+    showToast('이름을 입력해주세요');
+    return;
+  }
+  if(newKey.length > 8){
+    showToast('구매처 이름은 8자 이내로 입력해주세요');
+    return;
+  }
+  if(newKey === oldKey) return;
+
+  const dupExists = storeListAll().some(s => s.key === newKey);
+  if(dupExists){
+    showToast('이미 있는 구매처 이름이에요');
+    return;
+  }
+
+  const idx = customStores.findIndex(s => s.key === oldKey);
+  if(idx === -1) return;
+
+  const storeBackup = JSON.parse(JSON.stringify(customStores));
+  const entriesBackup = JSON.parse(JSON.stringify(entries));
+
+  customStores[idx] = { ...customStores[idx], key: newKey };
+  entries.forEach(e=>{
+    if(e.store === oldKey) e.store = newKey;
+  });
+  if(selectedStore === oldKey) selectedStore = newKey;
+
+  const ok = await saveEntries();
+  if(!ok){
+    customStores = storeBackup;
+    entries = entriesBackup;
+    return;
+  }
+  renderStoreGrid();
+  showToast(`'${oldKey}' → '${newKey}'로 수정했어요`);
+}
+
+async function deleteCustomStore(key){
+  const idx = customStores.findIndex(s => s.key === key);
+  if(idx === -1) return;
+
+  const usedCount = activeEntries().filter(e => e.store === key).length;
+  const msg = usedCount > 0
+    ? `'${key}' 구매처를 삭제할까요?\n\n이미 ${usedCount}개 항목에서 사용 중이에요. 삭제해도 그 항목들의 기록은 그대로 남지만, 목록에서는 사라지고 다시 선택할 수 없어요.`
+    : `'${key}' 구매처를 삭제할까요?`;
+  if(!confirm(msg)) return;
+
+  const storeBackup = JSON.parse(JSON.stringify(customStores));
+  customStores.splice(idx, 1);
+  if(selectedStore === key) selectedStore = '';
+
+  const ok = await saveEntries();
+  if(!ok){
+    customStores = storeBackup;
+    return;
+  }
+  renderStoreGrid();
+  showToast(`'${key}' 구매처를 삭제했어요`);
+}
+
+
 function openEntryModal(id, type){
   editingId = id || null;
   if(id){
@@ -1122,20 +1379,32 @@ function openEntryModal(id, type){
     selectedCategory = e.category;
     $('f-detail').value = e.detail || '';
     selectedPayment = e.paymentMethod || '';
+    selectedStore = e.store || '';
     selectedTags = Array.isArray(e.tags) ? [...e.tags] : [];
+    categoryAutoApplied = false;
   } else {
     selectedOwner = ownerFilter !== 'all' && ownerFilter !== 'income-all' ? ownerFilter : '댕';
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
     $('f-amount').value = '';
     selectedCategory = categoryListFor(currentEntryType)[0].key;
     $('f-detail').value = '';
-    selectedPayment = '';
+    selectedPayment = lastPaymentMethod || '';
+    selectedStore = '';
     selectedTags = [];
+    categoryAutoApplied = true; // 상세명 입력 시 자동 추천을 적용할 준비 상태
   }
+  $('categorySuggestHint').style.display = 'none';
+  categoryExpanded = false;
+  $('f-detail').placeholder = currentEntryType === 'income' ? '예: 미래에셋 계좌 배당금 입금' : '예: 스타벅스 코엑스점';
   renderOwnerGrid();
   renderCategoryGrid();
   renderPaymentGrid();
+  renderStoreGrid();
   renderTagGrid();
+  // 구매처나 태그가 이미 채워진 항목을 열 때는 옵션 패널을 자동으로 펼쳐줌
+  const hasOptions = !!selectedStore || selectedTags.length > 0;
+  $('moreOptionsPanel').style.display = hasOptions ? 'block' : 'none';
+  $('moreOptionsToggle').textContent = hasOptions ? '🔼 옵션 접기' : '🔽 옵션 더보기 (구매처·태그)';
   $('entryModalBackdrop').classList.add('open');
 }
 function closeEntryModal(){
@@ -1153,7 +1422,7 @@ async function saveEntry(){
     showToast('날짜를 확인해주세요 (금액은 나중에 채워도 돼요)');
     return;
   }
-  if(!selectedPayment){
+  if(currentEntryType === 'expense' && !selectedPayment){
     showToast('결제수단을 선택해주세요');
     return;
   }
@@ -1163,20 +1432,22 @@ async function saveEntry(){
   saveBtn.textContent = '저장 중...';
 
   const backup = JSON.parse(JSON.stringify(entries));
+  const lastPaymentBackup = lastPaymentMethod;
+  lastPaymentMethod = selectedPayment;
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
-    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, tags: [...selectedTags] };
+    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, store: selectedStore, tags: [...selectedTags] };
   } else {
     entries.push({
       id: 'e' + Date.now() + Math.floor(Math.random()*100000),
-      owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, tags: [...selectedTags],
+      owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, store: selectedStore, tags: [...selectedTags],
       deleted: false, deletedAt: null
     });
   }
   const ok = await saveEntries();
   saveBtn.disabled = false;
   saveBtn.textContent = '저장';
-  if(!ok){ entries = backup; return; }
+  if(!ok){ entries = backup; lastPaymentMethod = lastPaymentBackup; return; }
 
   currentMonth = monthKey(date);
   render();
@@ -1444,7 +1715,7 @@ function renderBizReport(){
             <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
             ${escapeHtml(e.detail || e.category)}
           </div>
-          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}${tagBadges(e)}</div>
+          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}${storeBadge(e)}${tagBadges(e)}</div>
         </div>
         <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':''}${formatWon(e.amount)}</div>
       </div>`;
@@ -1493,7 +1764,7 @@ function runSearch(){
             <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
             ${escapeHtml(e.detail || e.category)}
           </div>
-          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}${tagBadges(e)}</div>
+          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}${storeBadge(e)}${tagBadges(e)}</div>
         </div>
         <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':'−'}${e.amount.toLocaleString('ko-KR')}원</div>
       </div>
@@ -1555,6 +1826,28 @@ function init(){
     $('addExpenseBtn').addEventListener('click', ()=> openEntryModal(null, 'expense'));
     $('addIncomeBtn').addEventListener('click', ()=> openEntryModal(null, 'income'));
     $('entryCancelBtn').addEventListener('click', closeEntryModal);
+
+    let detailSuggestTimer = null;
+    $('f-detail').addEventListener('input', ()=>{
+      if(!categoryAutoApplied) return; // 사용자가 카테고리를 이미 직접 골랐으면 더 이상 자동 변경 안 함
+      clearTimeout(detailSuggestTimer);
+      detailSuggestTimer = setTimeout(()=>{
+        const suggested = suggestCategoryFromDetail($('f-detail').value, currentEntryType);
+        if(suggested && suggested !== selectedCategory){
+          selectedCategory = suggested;
+          renderCategoryGrid();
+          $('categorySuggestHint').style.display = 'block';
+        } else if(suggested){
+          $('categorySuggestHint').style.display = 'block';
+        }
+      }, 400);
+    });
+    $('moreOptionsToggle').addEventListener('click', ()=>{
+      const panel = $('moreOptionsPanel');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      $('moreOptionsToggle').textContent = isOpen ? '🔽 옵션 더보기 (구매처·태그)' : '🔼 옵션 접기';
+    });
     $('entrySaveBtn').addEventListener('click', saveEntry);
     $('entryDeleteBtn').addEventListener('click', deleteEntry);
     $('entryModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='entryModalBackdrop') closeEntryModal(); });
@@ -1569,16 +1862,23 @@ function init(){
     $('scrollBottomBtn').addEventListener('click', ()=>{
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     });
+    $('scrollTopBtn').addEventListener('click', ()=>{
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 
     $('catActionRenameBtn').addEventListener('click', ()=>{
       const key = catActionTarget;
+      const type = catActionType;
       closeCatActionModal();
-      if(key) editCustomCategory(key);
+      if(!key) return;
+      if(type === 'store') editCustomStore(key); else editCustomCategory(key);
     });
     $('catActionDeleteBtn').addEventListener('click', ()=>{
       const key = catActionTarget;
+      const type = catActionType;
       closeCatActionModal();
-      if(key) deleteCustomCategory(key);
+      if(!key) return;
+      if(type === 'store') deleteCustomStore(key); else deleteCustomCategory(key);
     });
     $('catActionCancelBtn').addEventListener('click', closeCatActionModal);
     $('catActionModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='catActionModalBackdrop') closeCatActionModal(); });
