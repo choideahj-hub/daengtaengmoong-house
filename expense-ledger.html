@@ -1589,14 +1589,14 @@ function openEntryModal(id, type){
     selectedTags = Array.isArray(e.tags) ? [...e.tags] : [];
     categoryAutoApplied = false;
   } else {
-    selectedOwner = lastOwner || '댕';
+    selectedOwner = ownerFilter === 'personal' ? '댕' : (lastOwner || '댕');
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
     $('f-amount').value = '';
     selectedCategory = categoryListFor(currentEntryType)[0].key;
     $('f-detail').value = '';
     selectedPayment = lastPaymentMethod || '';
     selectedStore = '';
-    selectedTags = [];
+    selectedTags = ownerFilter === 'personal' ? ['현정용돈'] : [];
     categoryAutoApplied = true; // 상세명 입력 시 자동 추천을 적용할 준비 상태
   }
   $('categorySuggestHint').style.display = 'none';
