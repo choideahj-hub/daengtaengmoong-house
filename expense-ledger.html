@@ -125,6 +125,14 @@
 
   /* Section labels */
   .section-label{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
+  .shaded-section{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px 16px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+  .scroll-bottom-btn{
+    position:fixed;right:18px;bottom:24px;width:44px;height:44px;border-radius:50%;
+    background:var(--accent);color:#fff;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);
+    font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;
+    opacity:0.92;
+  }
+  .scroll-bottom-btn:active{transform:scale(0.94);}
   .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
   .toggle-icon{font-size:12px;color:var(--muted);transition:transform .2s ease;}
   .toggle-icon.open{transform:rotate(180deg);}
@@ -268,7 +276,6 @@
     <span class="month-label" id="monthLabel">2026년 7월</span>
     <button id="nextMonthBtn">▶</button>
   </div>
-  <div id="periodRange" style="text-align:center;font-size:11px;color:var(--muted);margin:-4px 0 10px;">기간 계산 중...</div>
 
   <div class="pill-row" id="ownerFilterPills">
     <button class="pill active" data-owner="all">전체</button>
@@ -314,37 +321,6 @@
     <button class="add-btn income" id="addIncomeBtn">💰 수입 추가</button>
   </div>
 
-  <div class="section-label" id="searchToggle" style="cursor:pointer;">
-    <h2>🔍 상세명 검색</h2>
-    <span class="toggle-icon" id="searchToggleIcon">▾</span>
-  </div>
-  <div id="searchPanel" style="display:none;">
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <input type="text" id="searchInput" placeholder="예: 스타벅스" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
-      <button class="add-btn" id="searchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
-    </div>
-    <div id="searchResult"></div>
-  </div>
-
-  <div class="section-label" id="bizToggle" style="cursor:pointer;">
-    <h2>🧾 개인사업자 내역 (종소세용)</h2>
-    <span class="toggle-icon" id="bizToggleIcon">▾</span>
-  </div>
-  <div id="bizPanel" style="display:none;">
-    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'개인사업자' 태그를 붙인 항목만 전체 기간에서 모아봐요 (월 필터와 무관하게 전체 표시)</p>
-    <div id="bizResult"></div>
-  </div>
-
-  <div class="section-label" id="personalToggle" style="cursor:pointer;">
-    <h2>💰 현정용돈 내역</h2>
-    <span class="toggle-icon" id="personalToggleIcon">▾</span>
-  </div>
-  <div id="personalPanel" style="display:none;">
-    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'현정용돈' 태그 항목은 공용 자산이 아니라 개인자금이라 메인 집계(이번달 총지출·카테고리 차트·댕/탱/공용)에서는 빠지고 여기서 따로 봐요 (상단 월 이동과 연동돼요)</p>
-    <div id="personalResult"></div>
-  </div>
-
-
   <div class="section-label">
     <h2>지출 내역</h2>
     <span class="hint" id="entryCountHint"></span>
@@ -363,7 +339,45 @@
     <input type="file" id="backupFileInput" accept="application/json" style="display:none;">
   </div>
 
+  <div class="shaded-section">
+    <div class="section-label" id="searchToggle" style="cursor:pointer;margin-top:0;">
+      <h2>🔍 상세명 검색</h2>
+      <span class="toggle-icon" id="searchToggleIcon">▾</span>
+    </div>
+    <div id="searchPanel" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="searchInput" placeholder="예: 스타벅스" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;">
+        <button class="add-btn" id="searchBtn" style="flex:0 0 auto;padding:0 16px;">검색</button>
+      </div>
+      <div id="searchResult"></div>
+    </div>
+  </div>
+
+  <div class="shaded-section">
+    <div class="section-label" id="bizToggle" style="cursor:pointer;margin-top:0;">
+      <h2>🧾 개인사업자 내역 (종소세용)</h2>
+      <span class="toggle-icon" id="bizToggleIcon">▾</span>
+    </div>
+    <div id="bizPanel" style="display:none;">
+      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'개인사업자' 태그를 붙인 항목만 전체 기간에서 모아봐요 (월 필터와 무관하게 전체 표시)</p>
+      <div id="bizResult"></div>
+    </div>
+  </div>
+
+  <div class="shaded-section">
+    <div class="section-label" id="personalToggle" style="cursor:pointer;margin-top:0;">
+      <h2>💰 현정용돈 내역</h2>
+      <span class="toggle-icon" id="personalToggleIcon">▾</span>
+    </div>
+    <div id="personalPanel" style="display:none;">
+      <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'현정용돈' 태그 항목은 공용 자산이 아니라 개인자금이라 메인 집계(이번달 총지출·카테고리 차트·댕/탱/공용)에서는 빠지고 여기서 따로 봐요 (상단 월 이동과 연동돼요)</p>
+      <div id="personalResult"></div>
+    </div>
+  </div>
+
 </div>
+
+<button type="button" class="scroll-bottom-btn" id="scrollBottomBtn" title="맨 아래로">⬇</button>
 
 <div class="modal-backdrop" id="entryModalBackdrop">
   <div class="modal">
@@ -390,7 +404,7 @@
       <input type="text" id="f-detail" placeholder="예: 스타벅스 코엑스점">
     </div>
     <div class="field">
-      <label>결제수단 (선택)</label>
+      <label>결제수단</label>
       <div class="cat-select-grid" id="f-payment-grid" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
     <div class="field">
@@ -401,6 +415,17 @@
       <button class="btn ghost" id="entryCancelBtn">취소</button>
       <button class="btn danger" id="entryDeleteBtn" style="display:none;">삭제</button>
       <button class="btn primary" id="entrySaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="catActionModalBackdrop">
+  <div class="modal" style="max-width:300px;">
+    <h3 id="catActionTitle">카테고리</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px;">
+      <button type="button" class="btn primary" id="catActionRenameBtn" style="width:100%;">✏️ 이름 수정</button>
+      <button type="button" class="btn danger" id="catActionDeleteBtn" style="width:100%;">🗑️ 삭제</button>
+      <button type="button" class="btn ghost" id="catActionCancelBtn" style="width:100%;">취소</button>
     </div>
   </div>
 </div>
@@ -645,9 +670,6 @@ function monthIncomeEntries(){
 // ---- Render ----
 function render(){
   $('monthLabel').textContent = monthLabel(currentMonth);
-  const [py, pm] = currentMonth.split('-').map(Number);
-  const lastDay = new Date(py, pm, 0).getDate();
-  $('periodRange').textContent = `${pm}/1 ~ ${pm}/${lastDay} 집계`;
   document.querySelectorAll('#ownerFilterPills .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.owner === ownerFilter);
   });
@@ -808,8 +830,8 @@ function renderCategoryGrid(){
   $('f-category-grid').innerHTML = list.map(c=>{
     const isCustom = customCategories.includes(c);
     const btn = `<button type="button" class="cat-select-btn ${c.key===selectedCategory?'active':''}" data-cat="${c.key}">${c.emoji} ${c.key}</button>`;
-    const editBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-edit-cat="${escapeHtml(c.key)}" title="이름 수정">✏️</button>` : '';
-    return `<span class="cat-chip-wrap">${btn}${editBtn}</span>`;
+    const manageBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-manage-cat="${escapeHtml(c.key)}" title="관리">✏️</button>` : '';
+    return `<span class="cat-chip-wrap">${btn}${manageBtn}</span>`;
   }).join('') + `<button type="button" class="cat-select-btn add-cat" id="addCategoryBtn">➕ 추가</button>`;
   $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -817,13 +839,50 @@ function renderCategoryGrid(){
       $('f-category-grid').querySelectorAll('.cat-select-btn[data-cat]').forEach(b=>b.classList.toggle('active', b===btn));
     });
   });
-  $('f-category-grid').querySelectorAll('[data-edit-cat]').forEach(btn=>{
+  $('f-category-grid').querySelectorAll('[data-manage-cat]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      editCustomCategory(btn.dataset.editCat);
+      openCatActionModal(btn.dataset.manageCat);
     });
   });
   $('addCategoryBtn').addEventListener('click', addCustomCategory);
+}
+
+let catActionTarget = null;
+function openCatActionModal(key){
+  catActionTarget = key;
+  $('catActionTitle').textContent = `'${key}' 카테고리`;
+  $('catActionModalBackdrop').classList.add('open');
+}
+function closeCatActionModal(){
+  $('catActionModalBackdrop').classList.remove('open');
+  catActionTarget = null;
+}
+
+async function deleteCustomCategory(key){
+  const type = currentEntryType;
+  const idx = customCategories.findIndex(c => c.key === key && (c.type || 'expense') === type);
+  if(idx === -1) return;
+
+  const usedCount = activeEntries().filter(e => e.category === key && (e.type||'expense') === type).length;
+  const msg = usedCount > 0
+    ? `'${key}' 카테고리를 삭제할까요?\n\n이미 ${usedCount}개 항목에서 사용 중이에요. 삭제해도 그 항목들의 기록은 그대로 남지만, 카테고리 목록에서는 사라지고 다시 선택할 수 없어요.`
+    : `'${key}' 카테고리를 삭제할까요?`;
+  if(!confirm(msg)) return;
+
+  const catBackup = JSON.parse(JSON.stringify(customCategories));
+  customCategories.splice(idx, 1);
+  if(selectedCategory === key){
+    selectedCategory = categoryListFor(type)[0].key;
+  }
+
+  const ok = await saveEntries();
+  if(!ok){
+    customCategories = catBackup;
+    return;
+  }
+  renderCategoryGrid();
+  showToast(`'${key}' 카테고리를 삭제했어요`);
 }
 
 async function addCustomCategory(){
@@ -914,7 +973,7 @@ function renderOwnerGrid(){
 function renderPaymentGrid(){
   $('f-payment-grid').innerHTML = PAYMENT_METHODS.map(p=>`
     <button type="button" class="cat-select-btn ${p.key===selectedPayment?'active':''}" data-pm="${escapeHtml(p.key)}">${p.emoji} ${p.key}</button>
-  `).join('') + `<button type="button" class="cat-select-btn ${selectedPayment===''?'active':''}" data-pm="">선택 안함</button>`;
+  `).join('');
   $('f-payment-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selectedPayment = btn.dataset.pm;
@@ -1073,6 +1132,10 @@ async function saveEntry(){
 
   if(!date || (amountRaw && (isNaN(amount) || amount < 0))){
     showToast('날짜를 확인해주세요 (금액은 나중에 채워도 돼요)');
+    return;
+  }
+  if(!selectedPayment){
+    showToast('결제수단을 선택해주세요');
     return;
   }
 
@@ -1483,6 +1546,23 @@ function init(){
     $('ocrModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='ocrModalBackdrop') closeOcrModal(); });
 
     $('trashToggle').addEventListener('click', ()=>{ trashOpen = !trashOpen; renderTrash(); });
+
+    $('scrollBottomBtn').addEventListener('click', ()=>{
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    $('catActionRenameBtn').addEventListener('click', ()=>{
+      const key = catActionTarget;
+      closeCatActionModal();
+      if(key) editCustomCategory(key);
+    });
+    $('catActionDeleteBtn').addEventListener('click', ()=>{
+      const key = catActionTarget;
+      closeCatActionModal();
+      if(key) deleteCustomCategory(key);
+    });
+    $('catActionCancelBtn').addEventListener('click', closeCatActionModal);
+    $('catActionModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='catActionModalBackdrop') closeCatActionModal(); });
 
     $('searchToggle').addEventListener('click', ()=>{
       const panel = $('searchPanel');
