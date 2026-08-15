@@ -268,6 +268,7 @@
     <span class="month-label" id="monthLabel">2026년 7월</span>
     <button id="nextMonthBtn">▶</button>
   </div>
+  <div id="periodRange" style="text-align:center;font-size:11px;color:var(--muted);margin:-4px 0 10px;">기간 계산 중...</div>
 
   <div class="pill-row" id="ownerFilterPills">
     <button class="pill active" data-owner="all">전체</button>
@@ -312,10 +313,6 @@
     <button class="add-btn expense" id="addExpenseBtn">💸 지출 추가</button>
     <button class="add-btn income" id="addIncomeBtn">💰 수입 추가</button>
   </div>
-  <div class="add-row">
-    <button class="add-btn ocr" id="addOcrBtn" style="flex:1;">📷 캡처로 지출 추가</button>
-  </div>
-  <p style="font-size:11px;color:var(--muted);text-align:center;margin:8px 0 0;line-height:1.6;">📷 캡처 자동인식은 참고용이에요, 저장 전에 꼭 확인해주세요</p>
 
   <div class="section-label" id="searchToggle" style="cursor:pointer;">
     <h2>🔍 상세명 검색</h2>
@@ -328,6 +325,25 @@
     </div>
     <div id="searchResult"></div>
   </div>
+
+  <div class="section-label" id="bizToggle" style="cursor:pointer;">
+    <h2>🧾 개인사업자 내역 (종소세용)</h2>
+    <span class="toggle-icon" id="bizToggleIcon">▾</span>
+  </div>
+  <div id="bizPanel" style="display:none;">
+    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'개인사업자' 태그를 붙인 항목만 전체 기간에서 모아봐요 (월 필터와 무관하게 전체 표시)</p>
+    <div id="bizResult"></div>
+  </div>
+
+  <div class="section-label" id="personalToggle" style="cursor:pointer;">
+    <h2>💰 현정용돈 내역</h2>
+    <span class="toggle-icon" id="personalToggleIcon">▾</span>
+  </div>
+  <div id="personalPanel" style="display:none;">
+    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">'현정용돈' 태그 항목은 공용 자산이 아니라 개인자금이라 메인 집계(이번달 총지출·카테고리 차트·댕/탱/공용)에서는 빠지고 여기서 따로 봐요 (상단 월 이동과 연동돼요)</p>
+    <div id="personalResult"></div>
+  </div>
+
 
   <div class="section-label">
     <h2>지출 내역</h2>
@@ -376,6 +392,10 @@
     <div class="field">
       <label>결제수단 (선택)</label>
       <div class="cat-select-grid" id="f-payment-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+    </div>
+    <div class="field">
+      <label>태그 (선택, 중복 가능)</label>
+      <div class="cat-select-grid" id="f-tag-grid" style="grid-template-columns:repeat(3,1fr);"></div>
     </div>
     <div class="modal-actions">
       <button class="btn ghost" id="entryCancelBtn">취소</button>
@@ -448,6 +468,7 @@ const CATEGORIES = [
   { key:'마트', emoji:'🛒' },
   { key:'통신', emoji:'📱' },
   { key:'구독', emoji:'📺' },
+  { key:'뭉띠', emoji:'🐶' },
   { key:'문화생활', emoji:'🎬' },
   { key:'운동', emoji:'💪' },
   { key:'의료', emoji:'🏥' },
@@ -470,13 +491,31 @@ const INCOME_CATEGORIES = [
 const PAYMENT_METHODS = [
   { key:'카드', emoji:'💳' },
   { key:'현금', emoji:'💵' },
-  { key:'계좌이체', emoji:'🏦' },
+  { key:'계좌이체·현영O', emoji:'🧾' },
+  { key:'계좌이체·현영X', emoji:'🏦' },
   { key:'성동사랑상품권', emoji:'🎫' },
   { key:'온누리상품권', emoji:'🎫' },
 ];
 function paymentMethodEmoji(pm){
   const found = PAYMENT_METHODS.find(p => p.key === pm);
   return found ? found.emoji : '💳';
+}
+
+// 태그: 결제수단(어디서 나갔는지)과 별개로, 여러 개 중복해서 붙일 수 있는 분류 (예: 현정용돈, 개인사업자)
+const TAGS = [
+  { key:'현정용돈', emoji:'💰' },
+  { key:'개인사업자', emoji:'🧾' },
+];
+function tagListAll(){
+  return [...TAGS, ...customTags];
+}
+function tagEmoji(tagKey){
+  const found = tagListAll().find(t => t.key === tagKey);
+  return found ? found.emoji : '🏷️';
+}
+function tagBadges(e){
+  if(!e.tags || e.tags.length === 0) return '';
+  return e.tags.map(t => ` · ${tagEmoji(t)} ${escapeHtml(t)}`).join('');
 }
 
 function categoryListFor(type){
@@ -501,6 +540,7 @@ let editingId = null;
 let selectedCategory = '식비';
 let selectedOwner = '댕';
 let selectedPayment = '';
+let selectedTags = [];
 let currentEntryType = 'expense'; // 모달에서 지금 입력 중인 타입
 let trashOpen = false;
 const BIG_EXPENSE_THRESHOLD = 150000;
@@ -545,12 +585,14 @@ function escapeHtml(str){
 // ---- Firebase Firestore storage (no login, no token in source) ----
 
 let customCategories = []; // [{key, emoji, type}]
+let customTags = []; // [{key, emoji}]
 
 async function loadEntries(){
   try{
     const data = await window.firestoreLoad();
     entries = (data && Array.isArray(data.entries)) ? data.entries : [];
     customCategories = (data && Array.isArray(data.customCategories)) ? data.customCategories : [];
+    customTags = (data && Array.isArray(data.customTags)) ? data.customTags : [];
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
@@ -564,7 +606,7 @@ async function loadEntries(){
 
 async function saveEntries(){
   try{
-    await window.firestoreSave({ entries, customCategories });
+    await window.firestoreSave({ entries, customCategories, customTags });
     return true;
   }catch(e){
     alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요. 인터넷 연결을 확인하고 다시 시도해주세요.');
@@ -590,22 +632,29 @@ function entriesForMonth(mk){
   if(ownerFilter !== 'all') list = list.filter(e => e.owner === ownerFilter);
   return list;
 }
+function excludePersonalTag(list){
+  return list.filter(e => !(Array.isArray(e.tags) && e.tags.includes('현정용돈')));
+}
 function monthExpenseEntries(){
-  return monthEntries().filter(e => entryType(e) === 'expense');
+  return excludePersonalTag(monthEntries().filter(e => entryType(e) === 'expense'));
 }
 function monthIncomeEntries(){
-  return monthEntries().filter(e => entryType(e) === 'income');
+  return excludePersonalTag(monthEntries().filter(e => entryType(e) === 'income'));
 }
 
 // ---- Render ----
 function render(){
   $('monthLabel').textContent = monthLabel(currentMonth);
+  const [py, pm] = currentMonth.split('-').map(Number);
+  const lastDay = new Date(py, pm, 0).getDate();
+  $('periodRange').textContent = `${pm}/1 ~ ${pm}/${lastDay} 집계`;
   document.querySelectorAll('#ownerFilterPills .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.owner === ownerFilter);
   });
   renderSummary();
   renderEntryList();
   renderTrash();
+  renderPersonalTagReport();
 }
 
 function renderSummary(){
@@ -628,7 +677,7 @@ function renderSummary(){
   netEl.className = 'summary-net-amount ' + (net >= 0 ? 'plus' : 'minus');
 
   const prevMonth = shiftMonth(currentMonth, -1);
-  const prevTotal = entriesForMonth(prevMonth).filter(e=>entryType(e)==='expense').reduce((s,e)=>s+e.amount, 0);
+  const prevTotal = excludePersonalTag(entriesForMonth(prevMonth).filter(e=>entryType(e)==='expense')).reduce((s,e)=>s+e.amount, 0);
   const compareEl = $('summaryCompare');
   if(prevTotal === 0){
     compareEl.textContent = total > 0 ? '지난달 기록이 없어 비교할 수 없어요' : '';
@@ -697,7 +746,7 @@ function renderEntryList(){
             ${isPending ? '<span class="pending-tag">⏳ 금액 미확정</span>' : ''}
             ${escapeHtml(e.detail || e.category)}
           </div>
-          <div class="entry-meta">${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}</div>
+          <div class="entry-meta">${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}${tagBadges(e)}</div>
         </div>
         <div class="entry-amount ${isIncome?'income':''} ${isPending?'pending':''}">${isPending ? '탭해서 입력' : (isIncome?'+':'−') + e.amount.toLocaleString('ko-KR') + '원'}</div>
       </div>
@@ -874,6 +923,107 @@ function renderPaymentGrid(){
   });
 }
 
+function renderTagGrid(){
+  const list = tagListAll();
+  $('f-tag-grid').innerHTML = list.map(t=>{
+    const isCustom = customTags.includes(t);
+    const active = selectedTags.includes(t.key);
+    const btn = `<button type="button" class="cat-select-btn ${active?'active':''}" data-tag="${escapeHtml(t.key)}">${t.emoji} ${t.key}</button>`;
+    const editBtn = isCustom ? `<button type="button" class="cat-edit-btn" data-edit-tag="${escapeHtml(t.key)}" title="이름 수정">✏️</button>` : '';
+    return `<span class="cat-chip-wrap">${btn}${editBtn}</span>`;
+  }).join('') + `<button type="button" class="cat-select-btn add-cat" id="addTagBtn">➕ 추가</button>`;
+
+  $('f-tag-grid').querySelectorAll('.cat-select-btn[data-tag]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.tag;
+      if(selectedTags.includes(key)){
+        selectedTags = selectedTags.filter(t => t !== key);
+      }else{
+        selectedTags = [...selectedTags, key];
+      }
+      btn.classList.toggle('active');
+    });
+  });
+  $('f-tag-grid').querySelectorAll('[data-edit-tag]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      editCustomTag(btn.dataset.editTag);
+    });
+  });
+  $('addTagBtn').addEventListener('click', addCustomTag);
+}
+
+async function addCustomTag(){
+  const raw = prompt('추가할 태그 이름을 입력해주세요\n(예: 여행경비, 선물)');
+  if(!raw) return;
+  const name = raw.trim();
+  if(!name) return;
+  if(name.length > 8){
+    showToast('태그 이름은 8자 이내로 입력해주세요');
+    return;
+  }
+  const exists = tagListAll().some(t => t.key === name);
+  if(exists){
+    if(!selectedTags.includes(name)) selectedTags = [...selectedTags, name];
+    renderTagGrid();
+    return;
+  }
+  customTags.push({ key: name, emoji: '🏷️' });
+  selectedTags = [...selectedTags, name];
+  const ok = await saveEntries();
+  if(!ok){
+    customTags = customTags.filter(t => t.key !== name);
+    selectedTags = selectedTags.filter(t => t !== name);
+    return;
+  }
+  renderTagGrid();
+  showToast(`'${name}' 태그를 추가했어요`);
+}
+
+async function editCustomTag(oldKey){
+  const raw = prompt('새 태그 이름을 입력해주세요', oldKey);
+  if(raw === null) return;
+  const newKey = raw.trim();
+  if(!newKey){
+    showToast('이름을 입력해주세요');
+    return;
+  }
+  if(newKey.length > 8){
+    showToast('태그 이름은 8자 이내로 입력해주세요');
+    return;
+  }
+  if(newKey === oldKey) return;
+
+  const dupExists = tagListAll().some(t => t.key === newKey);
+  if(dupExists){
+    showToast('이미 있는 태그 이름이에요');
+    return;
+  }
+
+  const idx = customTags.findIndex(t => t.key === oldKey);
+  if(idx === -1) return;
+
+  const tagBackup = JSON.parse(JSON.stringify(customTags));
+  const entriesBackup = JSON.parse(JSON.stringify(entries));
+
+  customTags[idx] = { ...customTags[idx], key: newKey };
+  entries.forEach(e=>{
+    if(Array.isArray(e.tags) && e.tags.includes(oldKey)){
+      e.tags = e.tags.map(t => t === oldKey ? newKey : t);
+    }
+  });
+  selectedTags = selectedTags.map(t => t === oldKey ? newKey : t);
+
+  const ok = await saveEntries();
+  if(!ok){
+    customTags = tagBackup;
+    entries = entriesBackup;
+    return;
+  }
+  renderTagGrid();
+  showToast(`'${oldKey}' → '${newKey}'로 수정했어요`);
+}
+
 function openEntryModal(id, type){
   editingId = id || null;
   if(id){
@@ -894,6 +1044,7 @@ function openEntryModal(id, type){
     selectedCategory = e.category;
     $('f-detail').value = e.detail || '';
     selectedPayment = e.paymentMethod || '';
+    selectedTags = Array.isArray(e.tags) ? [...e.tags] : [];
   } else {
     selectedOwner = ownerFilter !== 'all' && ownerFilter !== 'income-all' ? ownerFilter : '댕';
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
@@ -901,10 +1052,12 @@ function openEntryModal(id, type){
     selectedCategory = categoryListFor(currentEntryType)[0].key;
     $('f-detail').value = '';
     selectedPayment = '';
+    selectedTags = [];
   }
   renderOwnerGrid();
   renderCategoryGrid();
   renderPaymentGrid();
+  renderTagGrid();
   $('entryModalBackdrop').classList.add('open');
 }
 function closeEntryModal(){
@@ -930,11 +1083,11 @@ async function saveEntry(){
   const backup = JSON.parse(JSON.stringify(entries));
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
-    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment };
+    entries[idx] = { ...entries[idx], owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, tags: [...selectedTags] };
   } else {
     entries.push({
       id: 'e' + Date.now() + Math.floor(Math.random()*100000),
-      owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment,
+      owner, date, amount, category: selectedCategory, detail, type: currentEntryType, paymentMethod: selectedPayment, tags: [...selectedTags],
       deleted: false, deletedAt: null
     });
   }
@@ -1125,6 +1278,110 @@ async function saveOcrRows(){
 }
 
 // ---- Init & events ----
+// ---- 현정용돈(개인자금) 내역 ----
+function renderPersonalTagReport(){
+  const resultEl = $('personalResult');
+  if(!resultEl) return; // 아직 DOM 준비 전 (init 순서 방어)
+  const list = entriesForMonth(currentMonth).filter(e => Array.isArray(e.tags) && e.tags.includes('현정용돈'));
+  const expenseList = list.filter(e => entryType(e) === 'expense');
+  const incomeList = list.filter(e => entryType(e) === 'income');
+  const total = expenseList.reduce((s,e)=>s+e.amount, 0);
+  const incomeTotal = incomeList.reduce((s,e)=>s+e.amount, 0);
+
+  if(list.length === 0){
+    resultEl.innerHTML = `<div class="empty"><b>${monthLabel(currentMonth)}엔 '현정용돈' 태그 항목이 없어요</b></div>`;
+    return;
+  }
+
+  const byCat = {};
+  expenseList.forEach(e=>{ byCat[e.category] = (byCat[e.category]||0) + e.amount; });
+  const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const maxAmt = sorted.length ? sorted[0][1] : 1;
+
+  const chartHtml = sorted.length === 0
+    ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">이번 달 지출 내역이 없어요</div>'
+    : sorted.map(([cat, amt])=>`
+      <div class="cat-bar-row">
+        <div class="cat-bar-label">${categoryEmoji(cat,'expense')} ${cat}</div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4, amt/maxAmt*100)}%"></div></div>
+        <div class="cat-bar-amount">${amt.toLocaleString('ko-KR')}</div>
+      </div>
+    `).join('');
+
+  resultEl.innerHTML =
+    `<div style="font-size:13px;font-weight:800;margin-bottom:10px;">${monthLabel(currentMonth)} 지출 ${formatWon(total)}${incomeTotal ? ' · 수입 ' + formatWon(incomeTotal) : ''}</div>` +
+    `<div style="background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;">
+      ${chartHtml}
+    </div>`;
+}
+
+// ---- 개인사업자(종소세용) 내역 ----
+function renderBizReport(){
+  const resultEl = $('bizResult');
+  const matches = activeEntries()
+    .filter(e => Array.isArray(e.tags) && e.tags.includes('개인사업자'))
+    .sort((a,b)=> b.date.localeCompare(a.date));
+
+  if(matches.length === 0){
+    resultEl.innerHTML = `<div class="empty"><b>'개인사업자' 태그를 붙인 내역이 아직 없어요</b></div>`;
+    return;
+  }
+
+  const expenseMatches = matches.filter(e => entryType(e) === 'expense');
+  const incomeMatches = matches.filter(e => entryType(e) === 'income');
+  const expenseTotal = expenseMatches.reduce((s,e)=>s+e.amount, 0);
+  const incomeTotal = incomeMatches.reduce((s,e)=>s+e.amount, 0);
+
+  const byMonth = {};
+  matches.forEach(e=>{
+    const mk = monthKey(e.date);
+    if(!byMonth[mk]) byMonth[mk] = { expense:0, income:0 };
+    byMonth[mk][entryType(e)] += e.amount;
+  });
+  const monthRows = Object.keys(byMonth).sort().reverse().map(mk=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--line);">
+      <span style="font-weight:700;">${monthLabel(mk)}</span>
+      <span>지출 ${formatWon(byMonth[mk].expense)} · 수입 ${formatWon(byMonth[mk].income)}</span>
+    </div>
+  `).join('');
+
+  resultEl.innerHTML =
+    `<div style="font-size:13px;font-weight:800;margin-bottom:8px;">총 ${matches.length}건 · 지출 ${formatWon(expenseTotal)} · 수입 ${formatWon(incomeTotal)}</div>` +
+    `<div style="background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px;">
+      <div style="font-size:11.5px;color:var(--ink-soft);font-weight:700;margin-bottom:4px;">월별 합계</div>
+      ${monthRows}
+    </div>` +
+    `<button type="button" class="add-btn" id="bizCopyBtn" style="width:100%;margin-bottom:10px;">📋 목록 복사하기 (엑셀 붙여넣기용)</button>` +
+    matches.map(e=>{
+      const isIncome = entryType(e) === 'income';
+      return `
+      <div class="entry-row ${isIncome?'income-row':''}">
+        <span class="entry-emoji">${categoryEmoji(e.category, e.type)}</span>
+        <div class="entry-body">
+          <div class="entry-detail">
+            <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
+            ${escapeHtml(e.detail || e.category)}
+          </div>
+          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}${e.paymentMethod ? ' · ' + paymentMethodEmoji(e.paymentMethod) + ' ' + escapeHtml(e.paymentMethod) : ''}${tagBadges(e)}</div>
+        </div>
+        <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':''}${formatWon(e.amount)}</div>
+      </div>`;
+    }).join('');
+
+  $('bizCopyBtn').addEventListener('click', ()=>{
+    const header = '날짜\t구분\t카테고리\t상세명\t결제수단\t금액';
+    const lines = matches.map(e=>
+      `${e.date}\t${entryType(e)==='income'?'수입':'지출'}\t${e.category}\t${e.detail||''}\t${e.paymentMethod||''}\t${e.amount}`
+    );
+    const text = [header, ...lines].join('\n');
+    navigator.clipboard.writeText(text).then(()=>{
+      showToast('복사했어요! 엑셀에 붙여넣기 해보세요');
+    }).catch(()=>{
+      showToast('복사에 실패했어요 (브라우저 권한 확인 필요)');
+    });
+  });
+}
+
 // ---- Search ----
 function runSearch(){
   const q = $('searchInput').value.trim();
@@ -1154,7 +1411,7 @@ function runSearch(){
             <span class="owner-tag o-${escapeHtml(e.owner)}">${escapeHtml(e.owner)}</span>
             ${escapeHtml(e.detail || e.category)}
           </div>
-          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}</div>
+          <div class="entry-meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)}${tagBadges(e)}</div>
         </div>
         <div class="entry-amount ${isIncome?'income':''}">${isIncome?'+':'−'}${e.amount.toLocaleString('ko-KR')}원</div>
       </div>
@@ -1220,7 +1477,6 @@ function init(){
     $('entryDeleteBtn').addEventListener('click', deleteEntry);
     $('entryModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='entryModalBackdrop') closeEntryModal(); });
 
-    $('addOcrBtn').addEventListener('click', openOcrModal);
     $('ocrCancelBtn').addEventListener('click', closeOcrModal);
     $('ocrSaveBtn').addEventListener('click', saveOcrRows);
     $('ocrFileInput').addEventListener('change', e=> handleOcrFile(e.target.files[0]));
@@ -1237,6 +1493,24 @@ function init(){
     });
     $('searchBtn').addEventListener('click', runSearch);
     $('searchInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runSearch(); });
+
+    $('bizToggle').addEventListener('click', ()=>{
+      const panel = $('bizPanel');
+      const icon = $('bizToggleIcon');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      icon.classList.toggle('open', !isOpen);
+      if(!isOpen) renderBizReport();
+    });
+
+    $('personalToggle').addEventListener('click', ()=>{
+      const panel = $('personalPanel');
+      const icon = $('personalToggleIcon');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      icon.classList.toggle('open', !isOpen);
+      if(!isOpen) renderPersonalTagReport();
+    });
 
     $('backupDownloadBtn').addEventListener('click', downloadBackup);
     $('backupRestoreBtn').addEventListener('click', ()=> $('backupFileInput').click());
