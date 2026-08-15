@@ -1911,19 +1911,23 @@ function renderBizReport(){
 }
 
 // ---- Search ----
+function normalizeForSearch(str){
+  return (str || '').replace(/\s+/g, '').toLowerCase();
+}
 function runSearch(){
-  const q = $('searchInput').value.trim();
+  const qRaw = $('searchInput').value.trim();
   const resultEl = $('searchResult');
-  if(!q){
+  if(!qRaw){
     resultEl.innerHTML = '';
     return;
   }
+  const q = normalizeForSearch(qRaw);
   const matches = activeEntries().filter(e =>
-    (e.detail || '').includes(q) ||
-    (e.category || '').includes(q) ||
-    (e.store || '').includes(q) ||
-    (e.paymentMethod || '').includes(q) ||
-    (Array.isArray(e.tags) && e.tags.some(t => tagLabel(t).includes(q) || t.includes(q)))
+    normalizeForSearch(e.detail).includes(q) ||
+    normalizeForSearch(e.category).includes(q) ||
+    normalizeForSearch(e.store).includes(q) ||
+    normalizeForSearch(e.paymentMethod).includes(q) ||
+    (Array.isArray(e.tags) && e.tags.some(t => normalizeForSearch(tagLabel(t)).includes(q) || normalizeForSearch(t).includes(q)))
   ).sort((a,b)=> b.date.localeCompare(a.date));
 
   if(matches.length === 0){
@@ -1932,7 +1936,7 @@ function runSearch(){
   }
   const total = matches.reduce((s,e)=>s+e.amount, 0);
   resultEl.innerHTML =
-    `<div style="font-size:13px;font-weight:800;margin-bottom:8px;">'${escapeHtml(q)}' 검색 결과 ${matches.length}건 · ${formatWon(total)}</div>` +
+    `<div style="font-size:13px;font-weight:800;margin-bottom:8px;">'${escapeHtml(qRaw)}' 검색 결과 ${matches.length}건 · ${formatWon(total)}</div>` +
     matches.map(e=>{
       const isIncome = entryType(e) === 'income';
       return `
