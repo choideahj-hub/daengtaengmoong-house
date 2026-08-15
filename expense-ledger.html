@@ -43,7 +43,7 @@
     -webkit-font-smoothing:antialiased;
     padding:0 0 70px 0;
   }
-  .wrap{max-width:640px;margin:0 auto;padding:22px 16px 0;}
+  .wrap{max-width:640px;margin:0 auto;padding:22px 16px 110px;}
 
   /* Setup screen */
                 
@@ -98,22 +98,32 @@
   .summary-net-amount{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);}
   .summary-net-amount.plus{color:#2E8A78;}
   .summary-net-amount.minus{color:var(--red);}
-  .summary-split{display:flex;gap:10px;margin-top:12px;}
-  .summary-split-item{flex:1;background:var(--gray-soft);border-radius:12px;padding:10px 12px;}
-  .summary-split-item.o-댕{background:var(--blue-soft);}
-  .summary-split-item.o-탱{background:var(--pink-soft);}
-  .summary-split-item.o-공용{background:var(--amber-soft);}
-  .summary-split-label{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:2px;}
-  .summary-split-amount{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .donut-section{display:flex;align-items:center;gap:16px;margin-top:14px;}
+  .donut-wrap{position:relative;width:112px;height:112px;flex:0 0 112px;}
+  .donut-svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+  .donut-center-label{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px;}
+  .donut-center-amount{font-size:13px;font-weight:800;color:var(--ink);}
+  .donut-legend{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;}
+  .donut-legend-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;}
+  .donut-legend-left{display:flex;align-items:center;gap:7px;font-weight:800;color:var(--ink-soft);min-width:0;}
+  .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .donut-legend-amount{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .donut-legend-pct{font-size:10.5px;color:var(--muted);font-weight:700;margin-left:4px;}
   .cat-bars{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
   .cat-bar-row{display:flex;align-items:center;gap:8px;font-size:12px;}
   .cat-bar-label{width:64px;flex-shrink:0;color:var(--ink-soft);font-weight:700;}
   .cat-bar-track{flex:1;height:8px;background:var(--gray-soft);border-radius:100px;overflow:hidden;}
   .cat-bar-fill{height:100%;background:var(--accent);border-radius:100px;}
   .cat-bar-amount{width:64px;flex-shrink:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-soft);}
+  .cat-bar-toggle{
+    width:100%;margin-top:4px;padding:9px;border-radius:10px;
+    border:1.5px dashed #F3D9A8;background:var(--accent-soft);color:var(--accent);
+    font-size:12px;font-weight:800;cursor:pointer;
+  }
 
   /* Add buttons */
-  .add-row{display:flex;gap:14px;margin-top:14px;}
+  .add-row{display:flex;gap:14px;margin-top:14px;margin-bottom:18px;}
   .add-btn{
     flex:1;padding:13px;border-radius:100px;
     border:2px dashed #F3D9A8;background:var(--accent-soft);color:var(--accent);
@@ -178,6 +188,9 @@
   .entry-amount{font-size:14px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;flex-shrink:0;}
   .entry-amount.income{color:#2E8A78;}
   .entry-row.income-row{border-left:4px solid #6FCFC0;}
+  .entry-row.personal-row{background:var(--gray-soft);box-shadow:none;opacity:.78;}
+  .entry-row.personal-row .entry-detail{color:var(--ink-soft);font-weight:600;}
+  .entry-row.personal-row .entry-amount{color:var(--ink-soft);}
   .owner-tag{
     display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:100px;flex-shrink:0;
   }
@@ -234,7 +247,7 @@
   }
   .cat-select-btn.none-option{background:#F4F1EC;border-color:var(--line);color:var(--ink-soft);}
   .cat-select-btn.none-option.active{background:#E4E0D8;border-color:#CFC9BC;color:var(--ink-soft);}
-  .cat-select-btn.more-cat-btn{background:#fff;border-style:solid;color:var(--ink-soft);}
+  .cat-select-btn.more-cat-btn{background:var(--accent-soft);border-style:dashed;border-color:#F3D9A8;color:var(--accent);font-weight:800;}
   .cat-select-btn{
     padding:8px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;
     font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;text-align:center;
@@ -300,27 +313,23 @@
   <div class="pill-row" id="ownerFilterPills">
     <button class="pill active" data-owner="all">전체</button>
     <button class="pill" data-owner="공용">공용</button>
-    <button class="pill" data-owner="댕">댕</button>
     <button class="pill" data-owner="탱">탱</button>
+    <button class="pill" data-owner="댕">댕</button>
   </div>
 
   <div class="summary-card">
     <div class="summary-total">이번 달 총 지출</div>
     <div class="summary-amount" id="summaryTotal">0원</div>
     <div class="summary-compare" id="summaryCompare"></div>
-    <div class="summary-split">
-      <div class="summary-split-item o-공용">
-        <div class="summary-split-label">공용</div>
-        <div class="summary-split-amount" id="summaryGongyong">0원</div>
+    <div class="donut-section">
+      <div class="donut-wrap">
+        <svg viewBox="0 0 120 120" class="donut-svg" id="ownerDonutSvg"></svg>
+        <div class="donut-center">
+          <div class="donut-center-label">총지출</div>
+          <div class="donut-center-amount" id="donutCenterAmount">0원</div>
+        </div>
       </div>
-      <div class="summary-split-item o-댕">
-        <div class="summary-split-label">댕</div>
-        <div class="summary-split-amount" id="summaryDaeng">0원</div>
-      </div>
-      <div class="summary-split-item o-탱">
-        <div class="summary-split-label">탱</div>
-        <div class="summary-split-amount" id="summaryTaeng">0원</div>
-      </div>
+      <div class="donut-legend" id="ownerLegend"></div>
     </div>
     <hr class="summary-divider">
     <div class="income-net-row">
@@ -427,7 +436,8 @@
     </div>
     <div class="field">
       <label>상세명</label>
-      <input type="text" id="f-detail" placeholder="예: 스타벅스 코엑스점">
+      <input type="text" id="f-detail" placeholder="예: 점심 맥도날드">
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">💡 상세명을 먼저 입력하면 카테고리가 알아서 선택돼요, 다르면 아래에서 눌러 바꿔주세요</p>
     </div>
     <div class="field">
       <label>카테고리</label>
@@ -670,6 +680,7 @@ let lastPaymentMethod = ''; // 마지막으로 사용한 결제수단 (다음 �
 let selectedTags = [];
 let selectedStore = '';
 let categoryAutoApplied = false; // 상세명 기반 자동 추천이 아직 유효한지
+let catBarsExpanded = false; // 대시보드 카테고리별 차트 더보기 상태
 let currentEntryType = 'expense'; // 모달에서 지금 입력 중인 타입
 let trashOpen = false;
 const BIG_EXPENSE_THRESHOLD = 150000;
@@ -786,6 +797,37 @@ function render(){
   renderPersonalTagReport();
 }
 
+function renderOwnerDonut(data, total){
+  const r = 50, cx = 60, cy = 60, strokeWidth = 16;
+  const circumference = 2 * Math.PI * r;
+  const svg = $('ownerDonutSvg');
+
+  if(total <= 0){
+    svg.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${strokeWidth}"></circle>`;
+  } else {
+    let cumulative = 0;
+    svg.innerHTML = data.filter(d => d.amt > 0).map(d=>{
+      const fraction = d.amt / total;
+      const dash = fraction * circumference;
+      const offset = -cumulative * circumference;
+      cumulative += fraction;
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}" stroke-width="${strokeWidth}" stroke-dasharray="${dash} ${circumference}" stroke-dashoffset="${offset}"></circle>`;
+    }).join('');
+  }
+
+  $('donutCenterAmount').textContent = formatWon(total);
+
+  $('ownerLegend').innerHTML = data.map(d=>{
+    const pct = total > 0 ? Math.round((d.amt / total) * 100) : 0;
+    return `
+      <div class="donut-legend-row">
+        <span class="donut-legend-left"><span class="donut-dot" style="background:${d.color}"></span>${d.key}</span>
+        <span><span class="donut-legend-amount">${formatWon(d.amt)}</span><span class="donut-legend-pct">${pct}%</span></span>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderSummary(){
   const list = monthExpenseEntries();
   const incomeList = monthIncomeEntries();
@@ -796,9 +838,11 @@ function renderSummary(){
   const taengTotal = list.filter(e=>e.owner==='탱').reduce((s,e)=>s+e.amount, 0);
   const gongyongTotal = list.filter(e=>e.owner==='공용').reduce((s,e)=>s+e.amount, 0);
   $('summaryTotal').textContent = formatWon(total);
-  $('summaryDaeng').textContent = formatWon(daengTotal);
-  $('summaryTaeng').textContent = formatWon(taengTotal);
-  $('summaryGongyong').textContent = formatWon(gongyongTotal);
+  renderOwnerDonut([
+    { key:'공용', amt: gongyongTotal, color:'var(--amber)' },
+    { key:'탱', amt: taengTotal, color:'var(--pink)' },
+    { key:'댕', amt: daengTotal, color:'var(--blue)' }
+  ], total);
 
   $('summaryIncomeTotal').textContent = formatWon(incomeTotal);
   const netEl = $('summaryNet');
@@ -829,17 +873,31 @@ function renderSummary(){
   list.forEach(e=>{ byCat[e.category] = (byCat[e.category]||0) + e.amount; });
   const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   const maxAmt = sorted.length ? sorted[0][1] : 1;
+  const CAT_BAR_TOP_N = 5;
 
   if(sorted.length === 0){
     $('catBars').innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">아직 지출 내역이 없어요</div>';
   } else {
-    $('catBars').innerHTML = sorted.map(([cat, amt])=>`
+    const expand = catBarsExpanded || sorted.length <= CAT_BAR_TOP_N;
+    const visible = expand ? sorted : sorted.slice(0, CAT_BAR_TOP_N);
+    const rowsHtml = visible.map(([cat, amt])=>`
       <div class="cat-bar-row">
         <div class="cat-bar-label">${categoryEmoji(cat,'expense')} ${cat}</div>
         <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4, amt/maxAmt*100)}%"></div></div>
         <div class="cat-bar-amount">${amt.toLocaleString('ko-KR')}</div>
       </div>
     `).join('');
+    const toggleHtml = sorted.length > CAT_BAR_TOP_N
+      ? `<button type="button" class="cat-bar-toggle" id="catBarsToggle">${expand ? '🔼 접기' : `🔽 더보기 (${sorted.length - CAT_BAR_TOP_N})`}</button>`
+      : '';
+    $('catBars').innerHTML = rowsHtml + toggleHtml;
+    const toggleBtn = document.getElementById('catBarsToggle');
+    if(toggleBtn){
+      toggleBtn.addEventListener('click', ()=>{
+        catBarsExpanded = !catBarsExpanded;
+        renderSummary();
+      });
+    }
   }
 }
 
@@ -865,8 +923,9 @@ function renderEntryList(){
       const isIncome = entryType(e) === 'income';
       const isPending = !e.amount || e.amount === 0;
       const isBig = !isIncome && !isPending && e.amount >= BIG_EXPENSE_THRESHOLD;
+      const isPersonal = Array.isArray(e.tags) && e.tags.includes('현정용돈');
       return `
-      <div class="entry-row ${isBig?'big-expense':''} ${isIncome?'income-row':''} ${isPending?'pending-row':''}" data-id="${e.id}">
+      <div class="entry-row ${isBig?'big-expense':''} ${isIncome?'income-row':''} ${isPending?'pending-row':''} ${isPersonal?'personal-row':''}" data-id="${e.id}">
         <span class="entry-emoji">${categoryEmoji(e.category, e.type)}</span>
         <div class="entry-body">
           <div class="entry-detail">
@@ -1110,7 +1169,7 @@ async function editCustomCategory(oldKey){
 
 const OWNER_EMOJI = { '댕':'🔵', '탱':'🌸', '공용':'🟡' };
 function renderOwnerGrid(){
-  $('f-owner-grid').innerHTML = ['댕','탱','공용'].map(o=>`
+  $('f-owner-grid').innerHTML = ['공용','탱','댕'].map(o=>`
     <button type="button" class="cat-select-btn ${o===selectedOwner?'active':''}" data-owner-pick="${o}">${OWNER_EMOJI[o]} ${o}</button>
   `).join('');
   $('f-owner-grid').querySelectorAll('.cat-select-btn').forEach(btn=>{
@@ -1395,7 +1454,7 @@ function openEntryModal(id, type){
   }
   $('categorySuggestHint').style.display = 'none';
   categoryExpanded = false;
-  $('f-detail').placeholder = currentEntryType === 'income' ? '예: 미래에셋 계좌 배당금 입금' : '예: 스타벅스 코엑스점';
+  $('f-detail').placeholder = currentEntryType === 'income' ? '예: 미래에셋 계좌 배당금 입금' : '예: 점심 맥도날드';
   renderOwnerGrid();
   renderCategoryGrid();
   renderPaymentGrid();
