@@ -104,7 +104,7 @@
   .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
   .donut-center-label{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px;}
   .donut-center-amount{font-size:13px;font-weight:800;color:var(--ink);}
-  .donut-legend{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;}
+  .donut-legend{flex:0 1 230px;display:flex;flex-direction:column;gap:9px;min-width:0;}
   .donut-legend-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;}
   .donut-legend-left{display:flex;align-items:center;gap:7px;font-weight:800;color:var(--ink-soft);min-width:0;}
   .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
@@ -144,17 +144,21 @@
   .accordion-icon.icon-personal{background:#FBE0E9;}
   .accordion-title{font-size:15px;font-weight:800;color:var(--ink);}
   .accordion-body{padding:0 0 16px;}
+  .compact-section{padding:2px 14px;}
+  .compact-section .accordion-header{padding:10px 0;}
+  .compact-section .accordion-icon{width:26px;height:26px;flex:0 0 26px;font-size:13px;}
+  .compact-section .accordion-title{font-size:13px;font-weight:700;color:var(--ink-soft);}
   .scroll-bottom-btn{
-    position:fixed;left:20px;bottom:26px;width:56px;height:56px;border-radius:50%;
+    position:fixed;left:16px;bottom:22px;width:42px;height:42px;border-radius:50%;
     background:var(--accent);color:#fff;border:2px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,0.28);
-    font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;
+    font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;
     opacity:1;
   }
   .scroll-bottom-btn:active{transform:scale(0.94);}
-  .scroll-top-btn{bottom:92px;background:#fff;color:var(--accent);border:2px solid var(--accent);box-shadow:0 6px 18px rgba(0,0,0,0.16);}
+  .scroll-top-btn{bottom:70px;background:#fff;color:var(--accent);border:2px solid var(--accent);box-shadow:0 6px 18px rgba(0,0,0,0.16);}
   @media (min-width:600px){
-    .scroll-bottom-btn{width:60px;height:60px;font-size:24px;left:32px;bottom:32px;}
-    .scroll-top-btn{bottom:104px;}
+    .scroll-bottom-btn{width:48px;height:48px;font-size:18px;left:24px;bottom:26px;}
+    .scroll-top-btn{bottom:80px;}
   }
   .section-label h2{font-size:13.5px;font-weight:800;margin:0;}
   .toggle-icon{font-size:12px;color:var(--muted);transition:transform .2s ease;}
@@ -350,7 +354,7 @@
     <button class="add-btn income" id="addIncomeBtn">💰 수입 추가</button>
   </div>
 
-  <div class="shaded-section">
+  <div class="shaded-section compact-section">
     <div class="accordion-header" id="searchToggle">
       <div class="accordion-left">
         <span class="accordion-icon icon-search">🔍</span>
