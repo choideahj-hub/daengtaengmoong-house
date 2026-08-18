@@ -50,6 +50,15 @@
     display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.08em;color:var(--accent);
     text-transform:uppercase;font-weight:800;margin-bottom:8px;background:var(--accent-soft);padding:4px 11px;border-radius:100px;
   }
+  .home-link{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:12px;font-weight:700;color:var(--ink-soft);
+    text-decoration:none;margin-bottom:10px;
+    padding:6px 12px;border-radius:100px;
+    background:var(--surface);box-shadow:var(--shadow);
+    transition:all .15s ease;
+  }
+  .home-link:active{transform:scale(.96);}
   h1{font-size:23px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
   .sub{font-size:12px;color:var(--ink-soft);margin:0;line-height:1.6;}
 
@@ -188,6 +197,7 @@
 
 <div class="wrap" id="mainWrap">
   <header>
+    <a class="home-link" href="index.html">← 홈으로</a>
     <div class="eyebrow">🏠 댕탱뭉 하우스</div>
     <h1>우리집 재고조사 📦</h1>
     <p class="sub">뭐가 어디 있는지 검색 한 번으로</p>
