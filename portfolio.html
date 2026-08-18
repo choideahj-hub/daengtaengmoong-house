@@ -50,6 +50,15 @@
     display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.08em;color:var(--accent);
     text-transform:uppercase;font-weight:800;margin-bottom:8px;background:var(--accent-soft);padding:4px 11px;border-radius:100px;
   }
+  .home-link{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:12px;font-weight:700;color:var(--ink-soft);
+    text-decoration:none;margin-bottom:10px;
+    padding:6px 12px;border-radius:100px;
+    background:var(--surface);box-shadow:var(--shadow);
+    transition:all .15s ease;
+  }
+  .home-link:active{transform:scale(.96);}
   h1{font-size:23px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
   .sub{font-size:12px;color:var(--ink-soft);margin:0;line-height:1.6;}
 
@@ -201,6 +210,7 @@
 
 <div class="wrap" id="mainWrap">
   <header>
+    <a class="home-link" href="index.html">← 홈으로</a>
     <div class="eyebrow">🏠 댕탱뭉 하우스</div>
     <h1>댕탱 자산관리 📊</h1>
     <p class="sub">적금 · 주식 · 코인을 한눈에</p>
@@ -307,7 +317,7 @@
     <div class="field" id="txn-overseas-field" style="display:none;">
       <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
       <input type="text" id="txn-overseas-search" class="search-input" placeholder="🔍 예: 애플, AAPL">
-      <div id="txn-overseas-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
+      <div id="txn-overseas-results" style="margin-top:6px;display:flex;flex-dire:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <label style="margin-top:10px;">거래소코드</label>
       <select id="txn-overseas-excd">
         <option value="NAS">NAS (나스닥)</option>
