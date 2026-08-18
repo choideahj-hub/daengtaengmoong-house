@@ -44,6 +44,15 @@
     text-transform:uppercase;font-weight:800;margin-bottom:10px;
     background:var(--accent-soft);padding:4px 11px;border-radius:100px;
   }
+  .home-link{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:12px;font-weight:700;color:var(--ink-soft);
+    text-decoration:none;margin-bottom:10px;
+    padding:6px 12px;border-radius:100px;
+    background:var(--surface);box-shadow:var(--shadow);
+    transition:all .15s ease;
+  }
+  .home-link:active{transform:scale(.96);}
   h1{font-size:21px;font-weight:800;margin:0 0 4px;letter-spacing:-0.02em;}
   .sub{font-size:13px;color:var(--ink-soft);margin:0;line-height:1.6;}
 
@@ -225,6 +234,7 @@
 
 <div class="wrap">
   <header>
+    <a class="home-link" href="index.html">← 홈으로</a>
     <div class="eyebrow">🏠 댕탱뭉 하우스 · 챕터 02</div>
     <h1>성동15번 마을버스 🚌</h1>
     <p class="sub">금호대우아파트 · 금호역 정류장 시간표</p>
