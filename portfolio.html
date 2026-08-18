@@ -315,8 +315,8 @@
       <input type="text" id="txn-domestic-code" placeholder="예: 005930 (문자 섞인 ETF는 0067Y0처럼)" maxlength="6">
     </div>
     <div class="field" id="txn-gold-field" style="display:none;">
-      <label>상품명 (직접 입력)</label>
-      <input type="text" id="txn-gold-search" class="search-input" placeholder="🔍 예: 금99.99_1kg, 미니금100g">
+      <label>상품명 (현재 1종목만 지원)</label>
+      <input type="text" id="txn-gold-search" class="search-input" value="금99.99_1kg" readonly style="background:var(--gray-soft);color:var(--ink);font-weight:800;">
       <label style="margin-top:10px;">종목코드 (KRX 금시장 코드, 자동 시세 조회용 · 아직 지원여부 확인 전이라 비워둬도 돼요)</label>
       <input type="text" id="txn-gold-code" placeholder="예: 04020000">
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">코드를 안 넣으면 현재가를 수동으로 입력해서 관리하게 돼요</p>
@@ -635,6 +635,8 @@ const OVERSEAS_STOCKS = [
   {symb:'FXI', excd:'AMS', name:'아이셰어스 중국대형주(ETF)'}, {symb:'MCHI', excd:'AMS', name:'아이셰어스 MSCI China(ETF)'},
   {symb:'CQQQ', excd:'AMS', name:'인베스코 중국기술(ETF)'}, {symb:'YINN', excd:'AMS', name:'차이나불 3배 레버리지(ETF)'},
 ];
+
+const GOLD_PRODUCT_NAME = '금99.99_1kg'; // 현재 1종목만 지원, 늘어나면 검색형 UI로 교체 필요
 
 const BROKER_PRESETS = {
   domestic: ['미래에셋증권','키움증권','토스증권','NH투자증권','삼성증권','한국투자증권','KB증권','신한투자증권','대신증권','하나증권'],
@@ -1150,6 +1152,13 @@ function updateTxnMarketFields(v){
   $('txn-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('txn-usd-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('txn-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
+  if(v === 'gold'){
+    // 현재 금 종목이 1개뿐이라 선택하는 즉시 자동으로 채워줌
+    $('txn-gold-search').value = GOLD_PRODUCT_NAME;
+    $('txn-name').value = GOLD_PRODUCT_NAME;
+  } else if($('txn-name').value === GOLD_PRODUCT_NAME){
+    $('txn-name').value = '';
+  }
   renderBrokerChips(v);
 }
 
@@ -1369,6 +1378,15 @@ function updateBulkMarketFields(v){
   $('bulk-gold-field').style.display = v === 'gold' ? 'block' : 'none';
   $('bulk-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('bulk-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
+  if(v === 'gold'){
+    $('bulk-name').value = GOLD_PRODUCT_NAME;
+    $('bulk-name').readOnly = true;
+    $('bulk-name').style.background = 'var(--gray-soft)';
+  } else {
+    $('bulk-name').readOnly = false;
+    $('bulk-name').style.background = '';
+    if($('bulk-name').value === GOLD_PRODUCT_NAME) $('bulk-name').value = '';
+  }
   renderBulkBrokerChips(v);
 }
 let bulkBrokerExpanded = false;
