@@ -305,7 +305,7 @@
     </div>
     <div class="field">
       <label>자산 종류</label>
-      <div class="seg-grid" id="txn-market-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+      <div class="seg-grid" id="txn-market-grid" style="grid-template-columns:repeat(4,1fr);"></div>
     </div>
     <div class="field" id="txn-domestic-field" style="display:none;">
       <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
@@ -313,6 +313,13 @@
       <div id="txn-domestic-results" style="margin-top:6px;display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
       <label style="margin-top:10px;">종목코드 (6자리, 검색하면 자동입력 · 자동 시세 조회용)</label>
       <input type="text" id="txn-domestic-code" placeholder="예: 005930 (문자 섞인 ETF는 0067Y0처럼)" maxlength="6">
+    </div>
+    <div class="field" id="txn-gold-field" style="display:none;">
+      <label>상품명 (직접 입력)</label>
+      <input type="text" id="txn-gold-search" class="search-input" placeholder="🔍 예: 금99.99_1kg, 미니금100g">
+      <label style="margin-top:10px;">종목코드 (KRX 금시장 코드, 자동 시세 조회용 · 아직 지원여부 확인 전이라 비워둬도 돼요)</label>
+      <input type="text" id="txn-gold-code" placeholder="예: 04020000">
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">코드를 안 넣으면 현재가를 수동으로 입력해서 관리하게 돼요</p>
     </div>
     <div class="field" id="txn-overseas-field" style="display:none;">
       <label>종목명 (검색해서 선택, 없으면 직접 입력)</label>
@@ -393,15 +400,19 @@
     </div>
     <div class="field">
       <label>자산 종류</label>
-      <div class="seg-grid" id="bulk-market-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+      <div class="seg-grid" id="bulk-market-grid" style="grid-template-columns:repeat(4,1fr);"></div>
     </div>
     <div class="field">
       <label>종목명</label>
-      <input type="text" id="bulk-name" placeholder="예: 삼성전자, 비트코인">
+      <input type="text" id="bulk-name" placeholder="예: 삼성전자, 비트코인, 금99.99_1kg">
     </div>
     <div class="field" id="bulk-domestic-field" style="display:none;">
       <label>종목코드 (6자리)</label>
       <input type="text" id="bulk-domestic-code" placeholder="예: 005930" maxlength="6">
+    </div>
+    <div class="field" id="bulk-gold-field" style="display:none;">
+      <label>종목코드 (KRX 금시장 코드, 자동 시세 조회용 · 비워둬도 돼요)</label>
+      <input type="text" id="bulk-gold-code" placeholder="예: 04020000">
     </div>
     <div class="field" id="bulk-overseas-field" style="display:none;">
       <label>거래소코드</label>
@@ -628,9 +639,10 @@ const OVERSEAS_STOCKS = [
 const BROKER_PRESETS = {
   domestic: ['미래에셋증권','키움증권','토스증권','NH투자증권','삼성증권','한국투자증권','KB증권','신한투자증권','대신증권','하나증권'],
   overseas: ['미래에셋증권','키움증권','토스증권','NH투자증권','삼성증권','한국투자증권','KB증권','신한투자증권'],
-  coin: ['업비트','빗썸','코인원','코빗','고팍스']
+  coin: ['업비트','빗썸','코인원','코빗','고팍스'],
+  gold: ['키움증권','미래에셋증권','한국투자증권','NH투자증권','삼성증권','신한투자증권']
 };
-const BROKER_PRESETS_MAIN_COUNT = { domestic: 4, overseas: 4, coin: 5 }; // coin은 5개뿐이라 전부 바로 노출
+const BROKER_PRESETS_MAIN_COUNT = { domestic: 4, overseas: 4, coin: 5, gold: 4 }; // coin은 5개뿐이라 전부 바로 노출
 
 const $ = (id) => document.getElementById(id);
 
@@ -658,9 +670,10 @@ async function loadAll(){
     transactions = (data && Array.isArray(data.transactions)) ? data.transactions : [];
     savings = (data && Array.isArray(data.savings)) ? data.savings : [];
     manualPrices = (data && data.manualPrices && typeof data.manualPrices==='object') ? data.manualPrices : {};
-    autoPrices = (data && data.autoPrices && typeof data.autoPrices==='object') ? data.autoPrices : { domestic:{}, overseas:{} };
+    autoPrices = (data && data.autoPrices && typeof data.autoPrices==='object') ? data.autoPrices : { domestic:{}, overseas:{}, gold:{} };
     if(!autoPrices.domestic) autoPrices.domestic = {};
     if(!autoPrices.overseas) autoPrices.overseas = {};
+    if(!autoPrices.gold) autoPrices.gold = {};
   }catch(err){
     document.body.innerHTML = '<div style="padding:40px 20px;font-family:sans-serif;color:#C23B32;">데이터를 불러오지 못했어요.<br><br>' + String(err && err.message ? err.message : err) + '</div>';
     return;
@@ -770,6 +783,10 @@ function currentPriceFor(h){
     const auto = autoPrices.domestic && autoPrices.domestic[h.domesticCode];
     if(auto) return { price: auto.price, source:'kis', updatedAt: auto.updatedAt, stale:false };
   }
+  if(h.market === 'gold' && h.domesticCode){
+    const auto = autoPrices.gold && autoPrices.gold[h.domesticCode];
+    if(auto) return { price: auto.price, source:'kis', updatedAt: auto.updatedAt, stale:false };
+  }
   if(h.market === 'overseas' && h.excd && h.symb){
     const auto = autoPrices.overseas && autoPrices.overseas[`${h.excd}:${h.symb}`];
     if(auto) return { price: auto.price, source:'kis', updatedAt: auto.updatedAt, stale:false };
@@ -792,18 +809,19 @@ function render(){
 
 function renderAllocation(){
   const holdings = computeHoldings();
-  let domesticSum = 0, overseasSum = 0, coinSum = 0;
+  let domesticSum = 0, overseasSum = 0, coinSum = 0, goldSum = 0;
   holdings.forEach(h=>{
     const cp = currentPriceFor(h);
     const amt = h.qty * cp.price;
     if(h.market === 'domestic') domesticSum += amt;
     else if(h.market === 'overseas') overseasSum += amt;
+    else if(h.market === 'gold') goldSum += amt;
     else coinSum += amt;
   });
   const allSavings = filteredSavings();
   const savingsSum = allSavings.filter(s=>(s.kind||'installment')==='installment').reduce((s,x)=> s + savingsValueFor(x), 0);
   const pensionSum = allSavings.filter(s=>s.kind==='pension').reduce((s,x)=> s + savingsValueFor(x), 0);
-  const total = domesticSum + overseasSum + coinSum + savingsSum + pensionSum;
+  const total = domesticSum + overseasSum + coinSum + goldSum + savingsSum + pensionSum;
 
   const card = $('allocationCard');
   const divider = $('allocationDivider');
@@ -815,6 +833,7 @@ function renderAllocation(){
     { label:'국내주식', amt:domesticSum, color:'#3E5AC7' },
     { label:'해외주식', amt:overseasSum, color:'#2E8A78' },
     { label:'코인', amt:coinSum, color:'#1E2A5E' },
+    { label:'금', amt:goldSum, color:'#C08A2E' },
     { label:'적금', amt:savingsSum, color:'#E0568F' },
     { label:'퇴직연금', amt:pensionSum, color:'#8A6D4E' }
   ].filter(s => s.amt > 0);
@@ -941,7 +960,7 @@ function renderHoldings(){
     const plClass = pl >= 0 ? 'up' : 'down';
     const key = priceKeyFor(h);
     const isOpen = expandedHoldings.has(key);
-    const marketLabel = h.market === 'coin' ? '코인' : (h.market === 'overseas' ? '해외주식' : '국내주식');
+    const marketLabel = h.market === 'coin' ? '코인' : (h.market === 'overseas' ? '해외주식' : (h.market === 'gold' ? '금' : '국내주식'));
     let priceNote;
     if(h.market === 'coin'){
       priceNote = cp.source==='upbit' ? '업비트 실시간' : '시세 미조회';
@@ -1127,6 +1146,7 @@ function renderSegGrid(containerId, options, current, onPick){
 
 function updateTxnMarketFields(v){
   $('txn-domestic-field').style.display = v === 'domestic' ? 'block' : 'none';
+  $('txn-gold-field').style.display = v === 'gold' ? 'block' : 'none';
   $('txn-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('txn-usd-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('txn-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
@@ -1263,6 +1283,8 @@ function openTxnModal(id, prefill){
     txnOwner = t.owner; txnType = t.type; txnMarket = t.market;
     $('txn-name').value = t.name;
     $('txn-domestic-search').value = t.market==='domestic' ? t.name : '';
+    $('txn-gold-search').value = t.market==='gold' ? t.name : '';
+    $('txn-gold-code').value = t.market==='gold' ? (t.domesticCode || '') : '';
     $('txn-overseas-search').value = t.market==='overseas' ? t.name : '';
     $('txn-coin-search').value = '';
     $('txn-domestic-code').value = t.domesticCode || '';
@@ -1279,6 +1301,8 @@ function openTxnModal(id, prefill){
     txnOwner = prefill.owner; txnType = 'buy'; txnMarket = prefill.market;
     $('txn-name').value = prefill.name;
     $('txn-domestic-search').value = prefill.market==='domestic' ? prefill.name : '';
+    $('txn-gold-search').value = prefill.market==='gold' ? prefill.name : '';
+    $('txn-gold-code').value = prefill.market==='gold' ? (prefill.domesticCode || '') : '';
     $('txn-overseas-search').value = prefill.market==='overseas' ? prefill.name : '';
     $('txn-coin-search').value = '';
     $('txn-domestic-code').value = prefill.domesticCode || '';
@@ -1296,6 +1320,8 @@ function openTxnModal(id, prefill){
     txnType = 'buy'; txnMarket = 'domestic';
     $('txn-name').value = '';
     $('txn-domestic-search').value = '';
+    $('txn-gold-search').value = '';
+    $('txn-gold-code').value = '';
     $('txn-overseas-search').value = '';
     $('txn-coin-search').value = '';
     $('txn-domestic-code').value = '';
@@ -1317,7 +1343,7 @@ function openTxnModal(id, prefill){
 
   renderSegGrid('txn-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), txnOwner, v=>txnOwner=v);
   renderSegGrid('txn-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], txnType, v=>txnType=v);
-  renderSegGrid('txn-market-grid', [{value:'domestic',label:'국내주식'},{value:'overseas',label:'해외주식'},{value:'coin',label:'코인'}], txnMarket, v=>{
+  renderSegGrid('txn-market-grid', [{value:'domestic',label:'국내주식'},{value:'overseas',label:'해외주식'},{value:'coin',label:'코인'},{value:'gold',label:'금'}], txnMarket, v=>{
     txnMarket = v;
     updateTxnMarketFields(v);
   });
@@ -1340,6 +1366,7 @@ function openQuickBuyModal(h){
 // ---- 일괄 등록 모달 ----
 function updateBulkMarketFields(v){
   $('bulk-domestic-field').style.display = v === 'domestic' ? 'block' : 'none';
+  $('bulk-gold-field').style.display = v === 'gold' ? 'block' : 'none';
   $('bulk-overseas-field').style.display = v === 'overseas' ? 'block' : 'none';
   $('bulk-upbit-field').style.display = v === 'coin' ? 'block' : 'none';
   renderBulkBrokerChips(v);
@@ -1402,6 +1429,7 @@ function openBulkModal(){
   bulkSelectedCoin = null;
   $('bulk-name').value = '';
   $('bulk-domestic-code').value = '';
+  $('bulk-gold-code').value = '';
   $('bulk-overseas-excd').value = 'NAS';
   $('bulk-overseas-symb').value = '';
   $('bulk-upbit-code').value = '';
@@ -1414,7 +1442,7 @@ function openBulkModal(){
 
   renderSegGrid('bulk-owner-grid', OWNER_LIST.map(o=>({value:o,label:o})), bulkOwner, v=>bulkOwner=v);
   renderSegGrid('bulk-type-grid', [{value:'buy',label:'매수'},{value:'sell',label:'매도'}], bulkType, v=>bulkType=v);
-  renderSegGrid('bulk-market-grid', [{value:'domestic',label:'국내주식'},{value:'overseas',label:'해외주식'},{value:'coin',label:'코인'}], bulkMarket, v=>{
+  renderSegGrid('bulk-market-grid', [{value:'domestic',label:'국내주식'},{value:'overseas',label:'해외주식'},{value:'coin',label:'코인'},{value:'gold',label:'금'}], bulkMarket, v=>{
     bulkMarket = v;
     updateBulkMarketFields(v);
   });
@@ -1449,6 +1477,7 @@ async function saveBulk(){
   const name = $('bulk-name').value.trim();
   const broker = $('bulk-broker').value.trim();
   const domesticCode = $('bulk-domestic-code').value.trim();
+  const goldCode = $('bulk-gold-code').value.trim();
   const excd = $('bulk-overseas-excd').value;
   const symb = $('bulk-overseas-symb').value.trim().toUpperCase();
   const upbitCode = $('bulk-upbit-code').value.trim().toUpperCase();
@@ -1473,7 +1502,7 @@ async function saveBulk(){
       id: 't' + Date.now() + Math.floor(Math.random()*100000) + i,
       owner: bulkOwner, type: bulkType, market: bulkMarket, name, broker,
       date: r.date, qty: r.qty, price: r.price,
-      domesticCode: bulkMarket==='domestic' ? domesticCode : '',
+      domesticCode: bulkMarket==='domestic' ? domesticCode : (bulkMarket==='gold' ? goldCode : ''),
       excd: bulkMarket==='overseas' ? excd : '',
       symb: bulkMarket==='overseas' ? symb : '',
       upbitCode: bulkMarket==='coin' ? upbitCode : ''
@@ -1498,6 +1527,7 @@ async function saveTxn(){
   const qty = parseFloat($('txn-qty').value);
   const price = parseFloat($('txn-price').value);
   const domesticCode = $('txn-domestic-code').value.trim();
+  const goldCode = $('txn-gold-code').value.trim();
   const excd = $('txn-overseas-excd').value;
   const symb = $('txn-overseas-symb').value.trim().toUpperCase();
   const upbitCode = $('txn-upbit-code').value.trim().toUpperCase();
@@ -1513,7 +1543,7 @@ async function saveTxn(){
 
   const payload = {
     owner:txnOwner, type:txnType, market:txnMarket, name, broker, date, qty, price,
-    domesticCode: txnMarket==='domestic' ? domesticCode : '',
+    domesticCode: txnMarket==='domestic' ? domesticCode : (txnMarket==='gold' ? goldCode : ''),
     excd: txnMarket==='overseas' ? excd : '',
     symb: txnMarket==='overseas' ? symb : '',
     upbitCode: txnMarket==='coin' ? upbitCode : ''
@@ -1707,6 +1737,8 @@ function init(){
     });
     $('txn-domestic-search').addEventListener('input', (e)=> searchDomesticStock(e.target.value));
     $('txn-domestic-search').addEventListener('compositionend', (e)=> searchDomesticStock(e.target.value));
+    $('txn-gold-search').addEventListener('input', (e)=> $('txn-name').value = e.target.value);
+    $('txn-gold-search').addEventListener('compositionend', (e)=> $('txn-name').value = e.target.value);
     let usdConvertTimer = null;
     async function applyUsdConversion(){
       const usd = parseFloat($('txn-usd-price').value);
