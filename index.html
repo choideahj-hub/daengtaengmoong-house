@@ -389,9 +389,9 @@ const DEFAULT_EVENTS = [
   { id: 'a3', name: '탱 생일', owner: '탱', date: '1993-08-04', type: 'birthday', emoji: '🎂' },
   { id: 'a4', name: '뭉 생일', owner: '뭉', date: '2018-09-19', type: 'birthday', emoji: '🐾' },
   { id: 'a5', name: '댕탱 사귄 날', owner: '우리', date: '2018-12-21', type: 'dating', emoji: '💕' },
-  { id: 'a6', name: '아버지 생신', owner: '댕', date: '1963-08-26', type: 'lunar-birthday', emoji: '🎂' },
-  { id: 'a7', name: '어머니 생신', owner: '댕', date: '1968-12-04', type: 'lunar-birthday', emoji: '🎂' },
-  // 탱 부모님: 양력 생신 → 음력 자동환산 방식 대신, 음력 날짜를 직접 입력하는 방식으로 전환 (2026-08 수정)
+  // 댕/탱 부모님 4명 모두: 음력 날짜를 직접 입력하는 방식으로 통일 (2026-08 수정)
+  { id: 'a6', name: '아버지 생신', owner: '댕', type: 'lunar-direct', birthYear: 1963, lunarMonth: 8, lunarDay: 26, isLeap: false, emoji: '🎂' },
+  { id: 'a7', name: '어머니 생신', owner: '댕', type: 'lunar-direct', birthYear: 1968, lunarMonth: 11, lunarDay: 5, isLeap: false, emoji: '🎂' },
   { id: 'a8', name: '아버지 생신', owner: '탱', type: 'lunar-direct', birthYear: 1964, lunarMonth: 2, lunarDay: 5, isLeap: false, emoji: '🎂' },
   { id: 'a9', name: '어머니 생신', owner: '탱', type: 'lunar-direct', birthYear: 1970, lunarMonth: 12, lunarDay: 12, isLeap: false, emoji: '🎂' },
 ];
