@@ -388,6 +388,7 @@
 
     <hr class="summary-divider">
     <div class="section-subtitle">🗂️ 카테고리별 지출</div>
+    <div class="cat-owner-legend" id="catOwnerLegend" style="display:none;"></div>
     <div class="cat-bars" id="catBars"></div>
   </div>
 
@@ -731,6 +732,16 @@ function suggestCategoryFromDetail(detailText, type){
   return best;
 }
 
+// 상세명에 등록된 구매처 이름이 포함되어 있으면 그 구매처를 반환 (가장 긴 이름 우선)
+function suggestStoreFromDetail(detailText){
+  const query = (detailText || '').trim().toLowerCase();
+  if(query.length < 2) return null;
+  const matches = storeListAll().filter(s => query.includes(s.key.toLowerCase()));
+  if(matches.length === 0) return null;
+  matches.sort((a,b)=> b.key.length - a.key.length);
+  return matches[0].key;
+}
+
 function categoryEmoji(cat, type){
   const list = categoryListFor(type);
   const c = list.find(c => c.key === cat);
@@ -755,6 +766,7 @@ let lastOwner = localStorage.getItem(LS_LAST_OWNER_KEY) || '댕';
 let selectedTags = [];
 let selectedStore = '';
 let categoryAutoApplied = false; // 상세명 기반 자동 추천이 아직 유효한지
+let storeAutoApplied = false; // 상세명 기반 구매처 자동 매칭이 아직 유효한지
 let catBarsExpanded = false; // 대시보드 카테고리별 차트 더보기 상태
 let currentEntryType = 'expense'; // 모달에서 지금 입력 중인 타입
 let trashOpen = false;
@@ -865,8 +877,9 @@ function monthIncomeEntries(){
   return ownerFilter === 'personal' ? list : excludePersonalTag(list);
 }
 // 담당자 필터와 무관하게 이번 달 전체 지출 (비율 바용 - 항상 3명 다 보여주기 위함)
+// 댕 용돈은 순수 개인 지출이라 생활비 분담 비율을 왜곡하므로 여기서도 제외
 function monthExpenseEntriesAllOwners(){
-  return activeEntries().filter(e => monthKey(e.date) === currentMonth && entryType(e) === 'expense');
+  return excludePersonalTag(activeEntries().filter(e => monthKey(e.date) === currentMonth && entryType(e) === 'expense'));
 }
 
 // 댕 용돈 한도 = 전월 (담당자:댕, 카테고리:월급) 수입의 20%
@@ -1012,15 +1025,28 @@ function renderSummary(){
 
   const byCat = {};
   const byCatOwner = {};
-  const OWNER_COLOR = { '공용':'var(--amber)', '탱':'var(--pink)', '댕':'var(--blue)' };
+  const OWNER_COLOR = { '공용':'var(--amber)', '탱':'var(--pink)', '댕':'var(--blue)', 'personal':'var(--lime)' };
+  const OWNER_LABEL = { '공용':'공용', '탱':'탱', '댕':'댕', 'personal':'댕 용돈' };
   listWithPersonal.forEach(e=>{
     byCat[e.category] = (byCat[e.category]||0) + e.amount;
-    if(!byCatOwner[e.category]) byCatOwner[e.category] = { '공용':0, '탱':0, '댕':0 };
-    byCatOwner[e.category][e.owner] = (byCatOwner[e.category][e.owner]||0) + e.amount;
+    if(!byCatOwner[e.category]) byCatOwner[e.category] = { '공용':0, '탱':0, '댕':0, 'personal':0 };
+    const isPersonal = Array.isArray(e.tags) && e.tags.includes('현정용돈');
+    const key = isPersonal ? 'personal' : e.owner;
+    byCatOwner[e.category][key] = (byCatOwner[e.category][key]||0) + e.amount;
   });
   const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   const maxAmt = sorted.length ? sorted[0][1] : 1;
   const CAT_BAR_TOP_N = 5;
+
+  const legendEl = $('catOwnerLegend');
+  if(ownerFilter === 'personal' || sorted.length === 0){
+    legendEl.style.display = 'none';
+  } else {
+    legendEl.style.display = 'flex';
+    legendEl.innerHTML = Object.keys(OWNER_COLOR).map(k=>
+      `<span><span class="dot" style="background:${OWNER_COLOR[k]}"></span>${OWNER_LABEL[k]}</span>`
+    ).join('');
+  }
 
   if(sorted.length === 0){
     $('catBars').innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">아직 지출 내역이 없어요</div>';
@@ -1033,7 +1059,7 @@ function renderSummary(){
       if(ownerFilter === 'personal'){
         segsHtml = `<div class="cat-bar-seg" style="width:100%;background:var(--lime)"></div>`;
       } else {
-        const owners = byCatOwner[cat] || { '공용':0, '탱':0, '댕':0 };
+        const owners = byCatOwner[cat] || { '공용':0, '탱':0, '댕':0, 'personal':0 };
         segsHtml = Object.entries(owners)
           .filter(([, oAmt]) => oAmt > 0)
           .map(([owner, oAmt]) => `<div class="cat-bar-seg" style="width:${(oAmt/amt*100)}%;background:${OWNER_COLOR[owner]}"></div>`)
@@ -1474,6 +1500,7 @@ function renderStoreGrid(){
   $('f-store-grid').querySelectorAll('.cat-select-btn[data-store]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selectedStore = btn.dataset.store;
+      storeAutoApplied = false; // 사용자가 구매처를 직접 골랐으면 더 이상 자동 변경 안 함
       $('f-store-grid').querySelectorAll('.cat-select-btn[data-store]').forEach(b=>b.classList.toggle('active', b.dataset.store===selectedStore));
     });
   });
@@ -1601,6 +1628,7 @@ function openEntryModal(id, type){
     selectedStore = e.store || '';
     selectedTags = Array.isArray(e.tags) ? [...e.tags] : [];
     categoryAutoApplied = false;
+    storeAutoApplied = false; // 기존 항목을 열 때는 이미 구매처가 정해져 있으니 자동 변경 안 함
   } else {
     selectedOwner = ownerFilter === 'personal' ? '댕' : (lastOwner || '댕');
     $('f-date').value = `${currentMonth}-${String(now.getDate()).padStart(2,'0')}`;
@@ -1611,6 +1639,7 @@ function openEntryModal(id, type){
     selectedStore = '';
     selectedTags = ownerFilter === 'personal' ? ['현정용돈'] : [];
     categoryAutoApplied = true; // 상세명 입력 시 자동 추천을 적용할 준비 상태
+    storeAutoApplied = true; // 상세명 입력 시 구매처 자동 매칭을 적용할 준비 상태
   }
   $('categorySuggestHint').style.display = 'none';
   categoryExpanded = false;
@@ -2007,6 +2036,20 @@ function restoreBackup(file){
   reader.readAsText(file);
 }
 
+// 백드롭(모달 바깥 어두운 영역) 클릭 시에만 닫기.
+// mousedown이 백드롭 자체에서 시작된 경우에만 닫도록 해서,
+// 입력창 안에서 텍스트를 드래그 선택하다가 마우스업이 백드롭 위에서 발생해도 모달이 닫히지 않게 함.
+function bindBackdropClose(backdropId, closeFn){
+  const el = $(backdropId);
+  let downOnBackdrop = false;
+  el.addEventListener('mousedown', e=>{ downOnBackdrop = (e.target.id === backdropId); });
+  el.addEventListener('touchstart', e=>{ downOnBackdrop = (e.target.id === backdropId); }, { passive:true });
+  el.addEventListener('click', e=>{
+    if(downOnBackdrop && e.target.id === backdropId) closeFn();
+    downOnBackdrop = false;
+  });
+}
+
 function init(){
   try{
     const now = getKSTNow();
@@ -2025,16 +2068,29 @@ function init(){
 
     let detailSuggestTimer = null;
     $('f-detail').addEventListener('input', ()=>{
-      if(!categoryAutoApplied) return; // 사용자가 카테고리를 이미 직접 골랐으면 더 이상 자동 변경 안 함
       clearTimeout(detailSuggestTimer);
       detailSuggestTimer = setTimeout(()=>{
-        const suggested = suggestCategoryFromDetail($('f-detail').value, currentEntryType);
-        if(suggested && suggested !== selectedCategory){
-          selectedCategory = suggested;
-          renderCategoryGrid();
-          $('categorySuggestHint').style.display = 'block';
-        } else if(suggested){
-          $('categorySuggestHint').style.display = 'block';
+        if(categoryAutoApplied){ // 사용자가 카테고리를 이미 직접 골랐으면 더 이상 자동 변경 안 함
+          const suggested = suggestCategoryFromDetail($('f-detail').value, currentEntryType);
+          if(suggested && suggested !== selectedCategory){
+            selectedCategory = suggested;
+            renderCategoryGrid();
+            $('categorySuggestHint').style.display = 'block';
+          } else if(suggested){
+            $('categorySuggestHint').style.display = 'block';
+          }
+        }
+        if(storeAutoApplied){ // 사용자가 구매처를 이미 직접 골랐으면 더 이상 자동 변경 안 함
+          const suggestedStore = suggestStoreFromDetail($('f-detail').value);
+          if(suggestedStore && suggestedStore !== selectedStore){
+            selectedStore = suggestedStore;
+            renderStoreGrid();
+            // 구매처가 자동으로 채워졌으니 접혀있던 옵션 패널을 펼쳐서 보여줌
+            if($('moreOptionsPanel').style.display === 'none'){
+              $('moreOptionsPanel').style.display = 'block';
+              $('moreOptionsToggle').textContent = '🔼 옵션 접기';
+            }
+          }
         }
       }, 400);
     });
@@ -2046,12 +2102,12 @@ function init(){
     });
     $('entrySaveBtn').addEventListener('click', saveEntry);
     $('entryDeleteBtn').addEventListener('click', deleteEntry);
-    $('entryModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='entryModalBackdrop') closeEntryModal(); });
+    bindBackdropClose('entryModalBackdrop', closeEntryModal);
 
     $('ocrCancelBtn').addEventListener('click', closeOcrModal);
     $('ocrSaveBtn').addEventListener('click', saveOcrRows);
     $('ocrFileInput').addEventListener('change', e=> handleOcrFile(e.target.files[0]));
-    $('ocrModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='ocrModalBackdrop') closeOcrModal(); });
+    bindBackdropClose('ocrModalBackdrop', closeOcrModal);
 
     $('trashToggle').addEventListener('click', ()=>{ trashOpen = !trashOpen; renderTrash(); });
 
@@ -2077,7 +2133,7 @@ function init(){
       if(type === 'store') deleteCustomStore(key); else deleteCustomCategory(key);
     });
     $('catActionCancelBtn').addEventListener('click', closeCatActionModal);
-    $('catActionModalBackdrop').addEventListener('click', e=>{ if(e.target.id==='catActionModalBackdrop') closeCatActionModal(); });
+    bindBackdropClose('catActionModalBackdrop', closeCatActionModal);
 
     $('searchToggle').addEventListener('click', ()=>{
       const panel = $('searchPanel');
