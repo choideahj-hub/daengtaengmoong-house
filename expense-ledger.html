@@ -26,6 +26,8 @@
     --amber-soft:#FBF0DC;
     --lime:#A8C24A;
     --lime-soft:#EEF3DD;
+    --teal:#3FA9A9;
+    --teal-soft:#DFF1F0;
     --red:#C23B32;
     --red-soft:#FBEAE8;
     --gray-soft:#F0EFEA;
@@ -96,6 +98,16 @@
   .pill.active[data-owner="탱"]{background:var(--pink);border-color:var(--pink);}
   .pill.active[data-owner="공용"]{background:var(--amber);border-color:var(--amber);}
   .pill.active[data-owner="personal"]{background:var(--lime);border-color:var(--lime);color:#3E5A0E;}
+
+  /* 댕 개인 서브탭 (용돈/직팜) */
+  .personal-subtabs{display:none;gap:6px;margin-bottom:12px;}
+  .personal-subtab{
+    flex:1;padding:8px 4px;border-radius:12px;border:1.5px solid var(--line);
+    background:#fff;font-size:12.5px;font-weight:800;color:var(--ink-soft);
+    cursor:pointer;transition:all .15s ease;text-align:center;
+  }
+  .personal-subtab.active[data-sub="allowance"]{background:var(--lime);border-color:var(--lime);color:#3E5A0E;}
+  .personal-subtab.active[data-sub="biz"]{background:var(--teal);border-color:var(--teal);color:#fff;}
 
   /* Summary card */
   .summary-card{
@@ -340,7 +352,7 @@
     <p class="sub">우리 둘의 지출 흐름을 한눈에</p>
   </header>
 
-  <div class="month-nav">
+  <div class="month-nav" id="monthNav">
     <button id="prevMonthBtn">◀</button>
     <span class="month-label" id="monthLabel">2026년 7월</span>
     <button id="nextMonthBtn">▶</button>
@@ -351,7 +363,12 @@
     <button class="pill" data-owner="공용">🟡 공용</button>
     <button class="pill" data-owner="탱">🌸 탱</button>
     <button class="pill" data-owner="댕">🔵 댕</button>
-    <button class="pill" data-owner="personal">🟢 댕 용돈</button>
+    <button class="pill" data-owner="personal">🟢 댕 개인</button>
+  </div>
+
+  <div class="personal-subtabs" id="personalSubtabs">
+    <button class="personal-subtab" data-sub="allowance">💚 용돈</button>
+    <button class="personal-subtab" data-sub="biz">🧾 직팜</button>
   </div>
 
   <div class="summary-card">
@@ -753,6 +770,7 @@ function categoryEmoji(cat, type){
 
 let entries = [];
 let ownerFilter = 'all';
+let personalSubTab = 'allowance'; // '댕 개인' 탭 안의 서브탭: 'allowance'(용돈) | 'biz'(직팜, 전체 기간 통 지출)
 let currentMonth = '';
 let editingId = null;
 let selectedCategory = '식비';
@@ -857,6 +875,10 @@ function monthEntries(){
   return entriesForMonth(currentMonth);
 }
 function entriesForMonth(mk){
+  // '직팜' 서브탭은 월 필터 없이 전체 기간 통 지출로 보여줌 (사용자 요청)
+  if(ownerFilter === 'personal' && personalSubTab === 'biz'){
+    return activeEntries().filter(e => Array.isArray(e.tags) && e.tags.includes('개인사업자') && entryType(e) === 'expense');
+  }
   let list = activeEntries().filter(e => monthKey(e.date) === mk);
   if(ownerFilter === 'personal'){
     list = list.filter(e => Array.isArray(e.tags) && e.tags.includes('현정용돈'));
@@ -865,8 +887,10 @@ function entriesForMonth(mk){
   }
   return list;
 }
+// 댕 용돈(현정용돈)뿐 아니라 개인사업(개인사업자=직팜) 태그도 순수 개인/사업 지출이라
+// 총지출·담당자 비율 계산에서 동일하게 제외함 (2026-08-26 확장)
 function excludePersonalTag(list){
-  return list.filter(e => !(Array.isArray(e.tags) && e.tags.includes('현정용돈')));
+  return list.filter(e => !(Array.isArray(e.tags) && (e.tags.includes('현정용돈') || e.tags.includes('개인사업자'))));
 }
 function monthExpenseEntries(){
   const list = monthEntries().filter(e => entryType(e) === 'expense');
@@ -897,6 +921,15 @@ function render(){
   document.querySelectorAll('#ownerFilterPills .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.owner === ownerFilter);
   });
+
+  const isPersonalTab = ownerFilter === 'personal';
+  $('personalSubtabs').style.display = isPersonalTab ? 'flex' : 'none';
+  document.querySelectorAll('#personalSubtabs .personal-subtab').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub === personalSubTab);
+  });
+  // 직팜은 월별이 아니라 전체 기간 통 지출이라 월 이동 네비게이션 자체가 의미 없어서 숨김
+  $('monthNav').style.display = (isPersonalTab && personalSubTab === 'biz') ? 'none' : 'flex';
+
   renderSummary();
   renderEntryList();
   renderTrash();
@@ -935,23 +968,29 @@ function renderSummary(){
   const total = list.reduce((s,e)=>s+e.amount, 0);
   const incomeTotal = incomeList.reduce((s,e)=>s+e.amount, 0);
   const net = incomeTotal - total;
-  $('summaryTotalLabel').textContent = ownerFilter === 'personal' ? '이번 달 댕 용돈 지출' : '이번 달 총 지출';
+  if(ownerFilter === 'personal' && personalSubTab === 'biz'){
+    $('summaryTotalLabel').textContent = '전체 직팜 지출 (통 지출)';
+  } else if(ownerFilter === 'personal'){
+    $('summaryTotalLabel').textContent = '이번 달 댕 용돈 지출';
+  } else {
+    $('summaryTotalLabel').textContent = '이번 달 총 지출';
+  }
   $('summaryTotal').textContent = formatWon(total);
 
-  // 지출 내역 목록/카테고리 차트/담당자 비율은 댕용돈 포함해서 보여주되(색으로 구분되니까),
-  // 헤드라인 "총 지출" 숫자만 댕용돈 제외 기준을 유지하고 옆에 포함 시 금액을 괄호로 안내
+  // 지출 내역 목록/카테고리 차트/담당자 비율은 용돈·직팜 포함해서 보여주되(색으로 구분되니까),
+  // 헤드라인 "총 지출" 숫자만 용돈·직팜 제외 기준을 유지하고 옆에 포함 시 금액을 괄호로 안내
   const listWithPersonal = ownerFilter === 'personal' ? list : monthEntries().filter(e => entryType(e) === 'expense');
   const totalWithPersonal = listWithPersonal.reduce((s,e)=>s+e.amount, 0);
   const withPersonalEl = $('summaryTotalWithPersonal');
   if(ownerFilter !== 'personal' && totalWithPersonal > total){
     withPersonalEl.style.display = 'block';
-    withPersonalEl.textContent = `(댕 용돈 포함 시 총 ${formatWon(totalWithPersonal)})`;
+    withPersonalEl.textContent = `(용돈·직팜 포함 시 총 ${formatWon(totalWithPersonal)})`;
   } else {
     withPersonalEl.style.display = 'none';
   }
 
   const allowanceBox = $('allowanceBox');
-  if(ownerFilter === 'personal'){
+  if(ownerFilter === 'personal' && personalSubTab === 'allowance'){
     allowanceBox.style.display = 'block';
     const budget = daengAllowanceBudget(currentMonth);
     const used = total; // 이번 달 댕 용돈 태그 지출 합계
@@ -1002,10 +1041,15 @@ function renderSummary(){
   netEl.textContent = (net >= 0 ? '+' : '−') + formatWon(Math.abs(net));
   netEl.className = 'summary-net-amount ' + (net >= 0 ? 'plus' : 'minus');
 
+  const compareEl = $('summaryCompare');
+  if(ownerFilter === 'personal' && personalSubTab === 'biz'){
+    // 직팜은 월별이 아니라 전체 기간 통 지출이라 "지난달 대비" 비교 자체가 의미 없어서 생략
+    compareEl.textContent = '';
+    compareEl.className = 'summary-compare';
+  } else {
   const prevMonth = shiftMonth(currentMonth, -1);
   const prevMonthExpense = entriesForMonth(prevMonth).filter(e=>entryType(e)==='expense');
   const prevTotal = (ownerFilter === 'personal' ? prevMonthExpense : excludePersonalTag(prevMonthExpense)).reduce((s,e)=>s+e.amount, 0);
-  const compareEl = $('summaryCompare');
   if(prevTotal === 0){
     compareEl.textContent = total > 0 ? '지난달 기록이 없어 비교할 수 없어요' : '';
     compareEl.className = 'summary-compare';
@@ -1022,16 +1066,18 @@ function renderSummary(){
       compareEl.className = 'summary-compare';
     }
   }
+  }
 
   const byCat = {};
   const byCatOwner = {};
-  const OWNER_COLOR = { '공용':'var(--amber)', '탱':'var(--pink)', '댕':'var(--blue)', 'personal':'var(--lime)' };
-  const OWNER_LABEL = { '공용':'공용', '탱':'탱', '댕':'댕', 'personal':'댕 용돈' };
+  const OWNER_COLOR = { '공용':'var(--amber)', '탱':'var(--pink)', '댕':'var(--blue)', 'personal':'var(--lime)', 'biz':'var(--teal)' };
+  const OWNER_LABEL = { '공용':'공용', '탱':'탱', '댕':'댕', 'personal':'댕 용돈', 'biz':'직팜' };
   listWithPersonal.forEach(e=>{
     byCat[e.category] = (byCat[e.category]||0) + e.amount;
-    if(!byCatOwner[e.category]) byCatOwner[e.category] = { '공용':0, '탱':0, '댕':0, 'personal':0 };
-    const isPersonal = Array.isArray(e.tags) && e.tags.includes('현정용돈');
-    const key = isPersonal ? 'personal' : e.owner;
+    if(!byCatOwner[e.category]) byCatOwner[e.category] = { '공용':0, '탱':0, '댕':0, 'personal':0, 'biz':0 };
+    const isAllowance = Array.isArray(e.tags) && e.tags.includes('현정용돈');
+    const isBiz = Array.isArray(e.tags) && e.tags.includes('개인사업자');
+    const key = isAllowance ? 'personal' : (isBiz ? 'biz' : e.owner);
     byCatOwner[e.category][key] = (byCatOwner[e.category][key]||0) + e.amount;
   });
   const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
@@ -1057,9 +1103,10 @@ function renderSummary(){
       const totalPct = Math.max(4, amt/maxAmt*100);
       let segsHtml;
       if(ownerFilter === 'personal'){
-        segsHtml = `<div class="cat-bar-seg" style="width:100%;background:var(--lime)"></div>`;
+        const soloColor = personalSubTab === 'biz' ? 'var(--teal)' : 'var(--lime)';
+        segsHtml = `<div class="cat-bar-seg" style="width:100%;background:${soloColor}"></div>`;
       } else {
-        const owners = byCatOwner[cat] || { '공용':0, '탱':0, '댕':0, 'personal':0 };
+        const owners = byCatOwner[cat] || { '공용':0, '탱':0, '댕':0, 'personal':0, 'biz':0 };
         segsHtml = Object.entries(owners)
           .filter(([, oAmt]) => oAmt > 0)
           .map(([owner, oAmt]) => `<div class="cat-bar-seg" style="width:${(oAmt/amt*100)}%;background:${OWNER_COLOR[owner]}"></div>`)
@@ -1092,8 +1139,11 @@ function renderEntryList(){
   $('entryCountHint').textContent = list.length ? `${list.length}건` : '';
   const container = $('entryList');
 
+  const isBizTab = ownerFilter === 'personal' && personalSubTab === 'biz';
+
   if(list.length === 0){
-    container.innerHTML = `<div class="empty"><b>이번 달 내역이 없어요</b>위 버튼으로 추가해보세요.</div>`;
+    const emptyMsg = isBizTab ? '직팜 지출 내역이 아직 없어요' : '이번 달 내역이 없어요';
+    container.innerHTML = `<div class="empty"><b>${emptyMsg}</b>위 버튼으로 추가해보세요.</div>`;
     return;
   }
 
@@ -1109,7 +1159,7 @@ function renderEntryList(){
       const isIncome = entryType(e) === 'income';
       const isPending = !e.amount || e.amount === 0;
       const isBig = !isIncome && !isPending && e.amount >= BIG_EXPENSE_THRESHOLD;
-      const isPersonal = ownerFilter !== 'personal' && Array.isArray(e.tags) && e.tags.includes('현정용돈');
+      const isPersonal = ownerFilter !== 'personal' && Array.isArray(e.tags) && (e.tags.includes('현정용돈') || e.tags.includes('개인사업자'));
       return `
       <div class="entry-row ${isBig?'big-expense':''} ${isIncome?'income-row':''} ${isPending?'pending-row':''} ${isPersonal?'personal-row':''}" data-id="${e.id}">
         <span class="entry-emoji">${categoryEmoji(e.category, e.type)}</span>
@@ -1126,7 +1176,9 @@ function renderEntryList(){
       </div>
     `;
     }).join('');
-    return `<div class="date-group"><div class="date-group-label">${parseInt(m,10)}월 ${parseInt(d,10)}일</div>${rows}</div>`;
+    // 직팜(통 지출)은 여러 해에 걸칠 수 있어서 날짜 라벨에 연도까지 표시
+    const dateLabel = isBizTab ? `${y}년 ${parseInt(m,10)}월 ${parseInt(d,10)}일` : `${parseInt(m,10)}월 ${parseInt(d,10)}일`;
+    return `<div class="date-group"><div class="date-group-label">${dateLabel}</div>${rows}</div>`;
   }).join('');
 
   container.querySelectorAll('.entry-row').forEach(row=>{
@@ -1637,7 +1689,9 @@ function openEntryModal(id, type){
     $('f-detail').value = '';
     selectedPayment = lastPaymentMethod || '';
     selectedStore = '';
-    selectedTags = ownerFilter === 'personal' ? ['현정용돈'] : [];
+    selectedTags = ownerFilter === 'personal'
+      ? (personalSubTab === 'biz' ? ['개인사업자'] : ['현정용돈'])
+      : [];
     categoryAutoApplied = true; // 상세명 입력 시 자동 추천을 적용할 준비 상태
     storeAutoApplied = true; // 상세명 입력 시 구매처 자동 매칭을 적용할 준비 상태
   }
@@ -2059,7 +2113,14 @@ function init(){
     $('nextMonthBtn').addEventListener('click', ()=>{ currentMonth = shiftMonth(currentMonth, 1); render(); });
 
     document.querySelectorAll('#ownerFilterPills .pill').forEach(p=>{
-      p.addEventListener('click', ()=>{ ownerFilter = p.dataset.owner; render(); });
+      p.addEventListener('click', ()=>{
+        ownerFilter = p.dataset.owner;
+        if(ownerFilter === 'personal') personalSubTab = 'allowance'; // 탭 다시 누르면 항상 용돈부터 시작
+        render();
+      });
+    });
+    document.querySelectorAll('#personalSubtabs .personal-subtab').forEach(b=>{
+      b.addEventListener('click', ()=>{ personalSubTab = b.dataset.sub; render(); });
     });
 
     $('addExpenseBtn').addEventListener('click', ()=> openEntryModal(null, 'expense'));
