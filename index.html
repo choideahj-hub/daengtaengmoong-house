@@ -196,7 +196,52 @@
     font-size:12.5px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* 가정 메모지 (가로 스크롤, 인라인 편집) */
+  .memo-scroll{
+    display:flex;gap:12px;overflow-x:auto;padding:6px 4px 14px;margin-bottom:6px;
+    -webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;
+  }
+  .memo-scroll::-webkit-scrollbar{height:4px;}
+  .memo-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;}
+  .memo-note{
+    flex:0 0 148px;min-height:148px;border-radius:6px;padding:8px 10px 10px;
+    display:flex;flex-direction:column;
+    position:relative;scroll-snap-align:start;
+    box-shadow:0 4px 10px -3px rgba(74,59,52,.18);
+    color:#4A3B2E;
+  }
+  .memo-note.owner-댕{background:#DDF5C0;}
+  .memo-note.owner-탱{background:#FFD9E8;}
+  .memo-note.owner-미정{background:#FFF3AE;}
+  .memo-note:nth-child(3n){transform:rotate(1.2deg);}
+  .memo-note:nth-child(3n+1){transform:rotate(-1.3deg);}
+  .memo-note:nth-child(3n+2){transform:rotate(0.6deg);}
+  .memo-note-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .memo-owner-select{
+    border:none;background:transparent;font-size:10px;font-weight:800;color:inherit;
+    opacity:.6;padding:0;-webkit-appearance:none;appearance:none;cursor:pointer;
+  }
+  .memo-delete-btn{
+    border:none;background:transparent;font-size:15px;color:inherit;opacity:.4;
+    cursor:pointer;padding:0 2px;line-height:1;
+  }
+  .memo-delete-btn:active{opacity:.8;}
+  .memo-textarea{
+    flex:1;width:100%;border:none;background:transparent;resize:none;outline:none;
+    font-family:inherit;font-size:12.5px;line-height:1.55;color:inherit;
+    white-space:pre-wrap;word-break:break-word;padding:0;
+    box-sizing:border-box;overflow:hidden;min-height:80px;
+  }
+  .memo-textarea::placeholder{color:inherit;opacity:.45;}
+  .memo-add-card{
+    flex:0 0 148px;min-height:148px;border-radius:6px;
+    border:2px dashed var(--muted);display:flex;align-items:center;justify-content:center;
+    font-size:30px;color:var(--muted);cursor:pointer;flex-shrink:0;scroll-snap-align:start;
+  }
+  .memo-add-card:active{background:var(--bg);}
 </style>
+
 </head>
 <body>
 
@@ -212,6 +257,8 @@
     <h1>댕탱뭉 하우스 <span class="wag">🐾</span></h1>
     <p class="sub">우리 둘만의 살림 도구 모음</p>
   </header>
+
+  <div class="memo-scroll" id="memoScroll"></div>
 
   <div class="chapter-list">
     <a class="chapter-card" href="bus-schedule.html">
@@ -308,6 +355,14 @@
   window.firestoreLoadCalendar = async function(){
     const snap = await getDoc(doc(db, 'appdata', 'calendar'));
     return snap.exists() ? snap.data() : null;
+  };
+
+  window.firestoreLoadMemos = async function(){
+    const snap = await getDoc(doc(db, 'appdata', 'memos'));
+    return snap.exists() ? snap.data() : null;
+  };
+  window.firestoreSaveMemos = async function(notes){
+    await setDoc(doc(db, 'appdata', 'memos'), { notes }, { merge: true });
   };
 </script>
 <script src="https://unpkg.com/solarlunar/dist/solarlunar.min.js"></script>
@@ -521,8 +576,123 @@ async function renderCalendarWidget(){
   }
 }
 
+// ---- 가정 메모지 (사야할 거 / 사고 싶은 거 등 자유메모, 담당별 색상 구분) ----
+// 팝업 없이 메모지 위에서 바로 타이핑 → 포커스 아웃(blur)되면 자동 저장.
+
+let MEMOS = [];
+
+function genMemoId(){ return 'm' + Date.now() + Math.floor(Math.random()*100000); }
+
+async function loadMemos(){
+  try{
+    let tries = 0;
+    while(!window.firestoreLoadMemos && tries < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if(!window.firestoreLoadMemos) throw new Error('저장소 연결 준비가 안 됐어요');
+    const data = await window.firestoreLoadMemos();
+    MEMOS = (data && Array.isArray(data.notes)) ? data.notes : [];
+  }catch(err){
+    MEMOS = [];
+  }
+}
+
+async function saveMemosToFirestore(){
+  try{
+    await window.firestoreSaveMemos(MEMOS);
+    return true;
+  }catch(e){
+    alert('⚠️ 메모 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요.');
+    return false;
+  }
+}
+
+function autoGrow(textarea){
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function renderMemoScroll(){
+  const el = document.getElementById('memoScroll');
+  el.innerHTML = MEMOS.map(m => `
+    <div class="memo-note owner-${m.owner || '미정'}" data-id="${m.id}">
+      <div class="memo-note-top">
+        <select class="memo-owner-select" data-id="${m.id}">
+          <option value="댕"${m.owner==='댕'?' selected':''}>댕</option>
+          <option value="탱"${m.owner==='탱'?' selected':''}>탱</option>
+          <option value="미정"${(!m.owner||m.owner==='미정')?' selected':''}>미정</option>
+        </select>
+        <button class="memo-delete-btn" data-id="${m.id}">×</button>
+      </div>
+      <textarea class="memo-textarea" data-id="${m.id}" placeholder="예: 우유, 계란 사기">${escapeHtml(m.text || '')}</textarea>
+    </div>
+  `).join('') + `<div class="memo-add-card" id="memoAddBtn">+</div>`;
+
+  el.querySelectorAll('.memo-textarea').forEach(ta => {
+    autoGrow(ta);
+    ta.addEventListener('input', () => autoGrow(ta));
+    ta.addEventListener('blur', () => saveMemoField(ta.dataset.id, 'text', ta.value));
+  });
+  el.querySelectorAll('.memo-owner-select').forEach(sel => {
+    sel.addEventListener('change', () => saveMemoField(sel.dataset.id, 'owner', sel.value));
+  });
+  el.querySelectorAll('.memo-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => deleteMemo(btn.dataset.id));
+  });
+  document.getElementById('memoAddBtn').addEventListener('click', addNewMemo);
+}
+
+// 메모 하나의 한 필드(text 또는 owner)만 바꿔서 저장. 내용이 비어있는 새 메모는 저장하지 않고 그냥 지움.
+async function saveMemoField(id, field, value){
+  const idx = MEMOS.findIndex(m => m.id === id);
+  if(idx === -1) return;
+
+  const isNew = !!MEMOS[idx]._isNew;
+  MEMOS[idx] = { ...MEMOS[idx], [field]: value };
+
+  if(field === 'text' && !value.trim()){
+    if(isNew){
+      // 빈 채로 포커스 아웃된 새 메모는 저장하지 않고 그냥 취소
+      MEMOS.splice(idx, 1);
+      renderMemoScroll();
+    }
+    return;
+  }
+
+  delete MEMOS[idx]._isNew;
+  const backup = JSON.parse(JSON.stringify(MEMOS.map(m => { const c = {...m}; delete c._isNew; return c; })));
+  const ok = await saveMemosToFirestore();
+  if(!ok){
+    MEMOS = backup;
+    renderMemoScroll();
+  }
+}
+
+async function deleteMemo(id){
+  const idx = MEMOS.findIndex(m => m.id === id);
+  if(idx === -1) return;
+  if(MEMOS[idx].text && !confirm('이 메모를 삭제할까요? 되돌릴 수 없어요.')) return;
+
+  const backup = JSON.parse(JSON.stringify(MEMOS));
+  MEMOS.splice(idx, 1);
+  renderMemoScroll();
+  const ok = await saveMemosToFirestore();
+  if(!ok){ MEMOS = backup; renderMemoScroll(); }
+}
+
+function addNewMemo(){
+  MEMOS.push({ id: genMemoId(), text: '', owner: '미정', _isNew: true });
+  renderMemoScroll();
+  const el = document.getElementById('memoScroll');
+  const newTa = el.querySelector('.memo-textarea:last-of-type');
+  if(newTa) newTa.focus();
+}
+
 async function initWidgets(){
   renderCalendarWidget();
+  await loadMemos();
+  renderMemoScroll();
   document.getElementById('moreChaptersToggle').addEventListener('click', ()=>{
     const el = document.getElementById('moreChaptersList');
     const icon = document.getElementById('moreChaptersIcon');
