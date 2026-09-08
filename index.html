@@ -492,6 +492,10 @@ function calendarOccursOn(ev, dateObj){
     if(dateObj > endObj) return false;
   }
   if(ev.repeat === 'none' || !ev.repeat){
+    if(ev.endDate && ev.endDate >= ev.date){
+      const iso = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
+      return iso >= ev.date && iso <= ev.endDate;
+    }
     return dateObj.getFullYear() === sy && dateObj.getMonth() + 1 === sm && dateObj.getDate() === sd;
   }
   if(ev.repeat === 'daily'){
@@ -553,7 +557,14 @@ async function renderCalendarWidget(){
         if(calendarOccursOn(ev, d)) items.push({ ev, dateObj: d, diffDays: i });
       });
     }
-    items.sort((a, b) => a.diffDays - b.diffDays || (a.ev.time || '99:99').localeCompare(b.ev.time || '99:99'));
+    items.sort((a, b) => {
+      if(a.diffDays !== b.diffDays) return a.diffDays - b.diffDays;
+      const aHas = a.ev.time ? 1 : 0, bHas = b.ev.time ? 1 : 0;
+      if(aHas !== bHas) return aHas - bHas; // 시간 없는(하루종일) 게 먼저
+      if(a.ev.time !== b.ev.time) return (a.ev.time || '').localeCompare(b.ev.time || '');
+      const tagP = ev => ev.annivTag ? 0 : (ev.expenseTag ? 1 : 2); // 기념일 > 정기지출 > 그 외
+      return tagP(a.ev) - tagP(b.ev);
+    });
     const top = items.slice(0, 10);
     if(top.length === 0){
       el.innerHTML = '<div style="padding:16px;color:var(--ink-soft);font-size:12.5px;">이번 주엔 등록된 일정이 없어요.</div>';
