@@ -83,7 +83,7 @@
 
   .day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
   .day-cell{
-    min-height:78px;border-radius:10px;padding:5px 3px 3px;position:relative;
+    min-height:86px;border-radius:10px;padding:5px 3px 3px;position:relative;
     cursor:pointer;display:flex;flex-direction:column;align-items:stretch;
     background:transparent;
   }
@@ -94,12 +94,12 @@
   .day-cell.sat .num{color:var(--blue);}
   .day-cell.today{background:var(--accent-soft);}
   .day-cell.today .num{color:var(--accent);font-weight:900;}
-  .day-preview{display:flex;flex-direction:column;gap:1px;margin-top:3px;overflow:hidden;}
+  .day-preview{display:flex;flex-direction:column;gap:2px;margin-top:3px;overflow:hidden;}
   .day-preview-item{
-    font-size:8.5px;line-height:1.3;color:var(--ink-soft);background:var(--bg);
-    border-radius:4px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-size:10.5px;line-height:1.3;color:var(--ink-soft);background:var(--bg);
+    border-radius:4px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:clip;
   }
-  .day-preview-more{font-size:8px;color:var(--muted);font-weight:800;padding:0 3px;}
+  .day-preview-more{font-size:9px;color:var(--muted);font-weight:800;padding:0 3px;}
 
   .section-label{margin:26px 0 10px;}
   .section-label h2{font-size:14.5px;font-weight:800;margin:0;}
