@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리집 캘린더 · 댕탱뭉 하우스</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css"></noscript>
+<style>
+  :root{
+    --bg:#FFF8F3;
+    --surface:#FFFFFF;
+    --ink:#4A3B34;
+    --ink-soft:#8A776C;
+    --muted:#C4B2A6;
+    --line:#F3E4D8;
+    --accent:#FF8FA0;
+    --accent-soft:#FFE7EC;
+    --accent2:#6FCFC0;
+    --accent2-soft:#E1F7F2;
+    --blue:#6C8EEB;
+    --blue-soft:#EAF0FF;
+    --green:#1F9D64;
+    --green-soft:#E3F7EC;
+    --radius:22px;
+    --shadow:0 6px 18px -6px rgba(255,143,160,.25), 0 2px 6px -2px rgba(74,59,52,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 8% 4%, #FFEFF2 0%, transparent 40%),
+      radial-gradient(circle at 96% 12%, #E9F9F4 0%, transparent 38%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 60px 0;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:28px 16px 0;}
+
+  .top-nav{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+  .back-btn{
+    width:36px;height:36px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--ink);
+    font-size:16px;flex-shrink:0;
+  }
+  .top-nav h1{font-size:19px;font-weight:800;margin:0;letter-spacing:-0.02em;}
+
+  .month-nav{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:12px 8px;margin-bottom:14px;
+  }
+  .month-nav button.arrow{
+    width:38px;height:38px;border:none;background:none;font-size:18px;color:var(--ink-soft);
+    cursor:pointer;border-radius:50%;
+  }
+  .month-nav button.arrow:active{background:var(--line);}
+  .month-label{font-size:16.5px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  .today-btn{
+    font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-soft);
+    border:none;padding:5px 10px;border-radius:100px;cursor:pointer;
+  }
+
+  .grid-card{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:12px 8px 6px;margin-bottom:16px;
+  }
+  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+  .weekday-row span{
+    text-align:center;font-size:11px;font-weight:800;color:var(--muted);padding:4px 0;
+  }
+  .weekday-row span:first-child{color:#E0568F;}
+  .weekday-row span:last-child{color:var(--blue);}
+
+  .day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .day-cell{
+    aspect-ratio:1/1;border-radius:12px;padding:5px 3px 3px;position:relative;
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;
+    background:transparent;
+  }
+  .day-cell:active{background:var(--bg);}
+  .day-cell.other-month{opacity:.28;pointer-events:none;}
+  .day-cell .num{font-size:12.5px;font-weight:700;color:var(--ink);}
+  .day-cell.sun .num{color:#E0568F;}
+  .day-cell.sat .num{color:var(--blue);}
+  .day-cell.today{background:var(--accent-soft);}
+  .day-cell.today .num{color:var(--accent);font-weight:900;}
+  .dots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;justify-content:center;}
+  .dots span{width:5px;height:5px;border-radius:50%;background:var(--accent2);}
+  .dots .more{font-size:8.5px;color:var(--ink-soft);font-weight:800;width:auto;height:auto;background:none;}
+
+  .section-label{margin:26px 0 10px;}
+  .section-label h2{font-size:14.5px;font-weight:800;margin:0;}
+
+  .empty-note{
+    text-align:center;color:var(--ink-soft);font-size:12.5px;padding:24px 10px;
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+  }
+
+  .fab{
+    position:fixed;right:20px;bottom:26px;width:56px;height:56px;border-radius:50%;
+    background:var(--ink);color:#fff;font-size:26px;border:none;cursor:pointer;
+    box-shadow:0 8px 20px -6px rgba(74,59,52,.5);display:flex;align-items:center;justify-content:center;
+    z-index:40;
+  }
+  .fab:active{transform:scale(.94);}
+
+  /* modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(74,59,52,.45);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+    border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+    animation:slideup .2s ease;
+  }
+  @media(min-width:540px){
+    .modal-backdrop{align-items:center;}
+    .modal{border-radius:24px;}
+  }
+  @keyframes slideup{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal h3{margin:0 0 16px;font-size:16px;font-weight:800;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:11.5px;font-weight:800;color:var(--ink-soft);margin-bottom:5px;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:inherit;font-size:14px;background:#FFFCFA;color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:60px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--accent);}
+  .field-row{display:flex;gap:8px;}
+  .field-row .field{flex:1;}
+  .check-row{display:flex;align-items:center;gap:8px;margin-bottom:13px;}
+  .check-row input{width:auto;}
+  .check-row label{font-size:12.5px;color:var(--ink-soft);margin:0;}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .btn{flex:1;padding:12px;border-radius:100px;border:none;font-size:14px;font-weight:800;cursor:pointer;}
+  .btn.primary{background:var(--ink);color:#fff;}
+  .btn.ghost{background:var(--line);color:var(--ink-soft);}
+  .btn.danger{background:#FCE3E0;color:#C23B32;}
+  .btn:disabled{opacity:.5;}
+
+  .owner-tag{
+    display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;
+    border-radius:100px;flex-shrink:0;margin-right:5px;vertical-align:middle;
+  }
+  .owner-tag.o-댕{background:#EAF0FF;color:#4C6FD6;}
+  .owner-tag.o-탱{background:#FFE7F3;color:#E0568F;}
+
+  .day-event-row{
+    display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:14px;cursor:pointer;
+  }
+  .day-event-row:hover{background:var(--bg);}
+  .day-event-row:not(:last-child){border-bottom:1px dashed var(--line);}
+  .day-event-emoji{font-size:20px;flex-shrink:0;}
+  .day-event-body{flex:1;min-width:0;}
+  .day-event-title{font-size:14px;font-weight:700;}
+  .day-event-meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .day-modal-add{
+    width:100%;padding:11px;border-radius:100px;border:1.5px dashed var(--muted);
+    background:none;color:var(--ink-soft);font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;
+  }
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
+    font-size:12.5px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top-nav">
+    <a class="back-btn" href="index.html">←</a>
+    <h1>🗓️ 우리집 캘린더</h1>
+  </div>
+
+  <div class="month-nav">
+    <button class="arrow" id="prevBtn">‹</button>
+    <div class="month-label">
+      <span id="monthLabel"></span>
+      <button class="today-btn" id="todayBtn">오늘</button>
+    </div>
+    <button class="arrow" id="nextBtn">›</button>
+  </div>
+
+  <div class="grid-card">
+    <div class="weekday-row">
+      <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+    </div>
+    <div class="day-grid" id="dayGrid"></div>
+  </div>
+
+  <div class="section-label"><h2>이번 달 일정</h2></div>
+  <div id="monthList"></div>
+
+  <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:30px;">
+    반복 일정을 수정/삭제하면 전체 반복 시리즈에 적용돼요.
+  </p>
+</div>
+
+<button class="fab" id="addFab">+</button>
+
+<!-- 날짜별 상세 모달 -->
+<div class="modal-backdrop" id="dayModalBackdrop">
+  <div class="modal">
+    <h3 id="dayModalTitle">일정</h3>
+    <div id="dayModalList"></div>
+    <button class="day-modal-add" id="dayModalAddBtn">+ 이 날짜에 일정 추가</button>
+    <div class="modal-actions">
+      <button class="btn ghost" id="dayModalCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 일정 추가/수정 폼 -->
+<div class="modal-backdrop" id="formBackdrop">
+  <div class="modal">
+    <h3 id="formTitle">일정 추가</h3>
+    <div class="field">
+      <label>제목</label>
+      <input type="text" id="ef-title" placeholder="예: 침대 밑 청소, 가족 저녁 약속">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>이모지</label>
+        <input type="text" id="ef-emoji" placeholder="📌" maxlength="4">
+      </div>
+      <div class="field" style="flex:2;">
+        <label>날짜</label>
+        <input type="date" id="ef-date">
+      </div>
+    </div>
+    <div class="field">
+      <label>담당</label>
+      <select id="ef-owner">
+        <option value="공용">공용</option>
+        <option value="댕">댕</option>
+        <option value="탱">탱</option>
+      </select>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="ef-allday" checked>
+      <label for="ef-allday">시간 없이 하루 종일</label>
+    </div>
+    <div class="field" id="ef-timeField" style="display:none;">
+      <label>시간</label>
+      <input type="time" id="ef-time">
+    </div>
+    <div class="field">
+      <label>반복</label>
+      <select id="ef-repeat">
+        <option value="none">반복 없음</option>
+        <option value="daily">매일</option>
+        <option value="weekly">매주</option>
+        <option value="monthly">매월</option>
+        <option value="yearly">매년</option>
+      </select>
+    </div>
+    <div class="field" id="ef-monthlyModeField" style="display:none;">
+      <label>매월 반복 방식</label>
+      <select id="ef-monthlyMode">
+        <option value="date">매월 (날짜 기준)</option>
+        <option value="weekday">매월 (요일 기준)</option>
+      </select>
+    </div>
+    <div class="field" id="ef-repeatEndField" style="display:none;">
+      <label>반복 종료일 (비워두면 계속 반복)</label>
+      <input type="date" id="ef-repeatEnd">
+    </div>
+    <div class="field">
+      <label>메모 (선택)</label>
+      <textarea id="ef-memo" placeholder="추가 메모가 있으면 적어주세요"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="ef-cancelBtn">취소</button>
+      <button class="btn danger" id="ef-deleteBtn" style="display:none;">삭제</button>
+      <button class="btn primary" id="ef-saveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhrAS_axfkAyBV7_JTTJOQdB6szw2_BXU",
+    authDomain: "daengtaengmoonghouse.firebaseapp.com",
+    projectId: "daengtaengmoonghouse",
+    storageBucket: "daengtaengmoonghouse.firebasestorage.app",
+    messagingSenderId: "656550962777",
+    appId: "1:656550962777:web:8a9ae998f5a2c25448f348"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+
+  window.firestoreLoadCalendar = async function(){
+    const snap = await getDoc(doc(db, 'appdata', 'calendar'));
+    return snap.exists() ? snap.data() : null;
+  };
+  window.firestoreSaveCalendar = async function(events){
+    await setDoc(doc(db, 'appdata', 'calendar'), { events }, { merge: true });
+  };
+</script>
+<script>
+function $(id){ return document.getElementById(id); }
+function escapeHtml(str){
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function genId(){ return 'c' + Date.now() + Math.floor(Math.random()*100000); }
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function getKSTToday(){
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+let EVENTS = [];
+let viewYear, viewMonth; // viewMonth: 1-indexed
+let editingId = null;
+let pendingDate = null; // 폼 열 때 미리 채워줄 날짜
+let emojiManuallyEdited = false; // 사용자가 이모지 필드를 직접 건드리면 true → 자동 추천 중단
+
+const today = getKSTToday();
+viewYear = today.getFullYear();
+viewMonth = today.getMonth() + 1;
+
+function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); }
+
+// 시작일(sy,sm,sd) 기준으로 "몇째 주 무슨 요일"인지 계산.
+// 시작일이 그 달의 마지막 7일 안에 있으면 '마지막 주'로 취급해서, 매달 길이가 달라도 항상 반복이 존재하게 함.
+function getMonthlyWeekdayAnchor(sy, sm, sd){
+  const weekday = new Date(sy, sm - 1, sd).getDay();
+  const dim = daysInMonth(sy, sm);
+  const isLast = (dim - sd) < 7;
+  const position = isLast ? 'last' : Math.ceil(sd / 7);
+  return { weekday, position };
+}
+
+// 특정 연/월에서 "N째 무슨 요일" (또는 마지막 무슨 요일)에 해당하는 날짜(day)를 계산. 없으면 null.
+function getNthWeekdayDate(year, month, weekday, position){
+  if(position === 'last'){
+    let d = new Date(year, month, 0); // 그 달의 마지막 날
+    while(d.getDay() !== weekday) d.setDate(d.getDate() - 1);
+    return d.getDate();
+  }
+  let d = new Date(year, month - 1, 1);
+  while(d.getDay() !== weekday) d.setDate(d.getDate() + 1);
+  d.setDate(d.getDate() + (position - 1) * 7);
+  if(d.getMonth() !== month - 1) return null; // 그 달엔 그 순번의 요일이 없음 (예: 5째 주)
+  return d.getDate();
+}
+
+// 특정 (year, month) 안에서 이벤트가 발생하는 날짜(YYYY-MM-DD) 목록을 계산.
+// 말일 겹치는 매월(날짜기준) 반복은 정기지출 위젯과 동일하게 그 달의 마지막 날로 클램프함.
+function getOccurrencesInMonth(ev, year, month){
+  const occ = [];
+  const [sy, sm, sd] = ev.date.split('-').map(Number);
+  const startObj = new Date(sy, sm - 1, sd);
+  const endObj = ev.repeatEnd ? (() => { const [ey,em,ed]=ev.repeatEnd.split('-').map(Number); return new Date(ey,em-1,ed); })() : null;
+  const dim = daysInMonth(year, month);
+
+  let monthlyWeekdayTarget = null;
+  if(ev.repeat === 'monthly' && ev.monthlyMode === 'weekday'){
+    const anchor = getMonthlyWeekdayAnchor(sy, sm, sd);
+    monthlyWeekdayTarget = getNthWeekdayDate(year, month, anchor.weekday, anchor.position);
+  }
+
+  for(let d = 1; d <= dim; d++){
+    const cur = new Date(year, month - 1, d);
+    if(cur < startObj) continue;
+    if(endObj && cur > endObj) continue;
+    const iso = `${year}-${pad(month)}-${pad(d)}`;
+
+    if(ev.repeat === 'none'){
+      if(iso === ev.date) occ.push(iso);
+    } else if(ev.repeat === 'daily'){
+      occ.push(iso);
+    } else if(ev.repeat === 'weekly'){
+      if(cur.getDay() === startObj.getDay()) occ.push(iso);
+    } else if(ev.repeat === 'monthly'){
+      if(ev.monthlyMode === 'weekday'){
+        if(monthlyWeekdayTarget !== null && d === monthlyWeekdayTarget) occ.push(iso);
+      } else {
+        const clampedDay = Math.min(sd, dim);
+        if(d === clampedDay) occ.push(iso);
+      }
+    } else if(ev.repeat === 'yearly'){
+      if(month === sm && d === sd) occ.push(iso);
+    }
+  }
+  return occ;
+}
+
+// 현재 뷰(month) 기준, { 'YYYY-MM-DD': [event, ...] } 맵 생성
+function buildMonthMap(year, month){
+  const map = {};
+  EVENTS.forEach(ev => {
+    getOccurrencesInMonth(ev, year, month).forEach(iso => {
+      if(!map[iso]) map[iso] = [];
+      map[iso].push(ev);
+    });
+  });
+  Object.keys(map).forEach(k => {
+    map[k].sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+  });
+  return map;
+}
+
+const WEEKDAY_NAMES = ['일','월','화','수','목','금','토'];
+const POSITION_NAMES = { 1:'첫째', 2:'둘째', 3:'셋째', 4:'넷째', last:'마지막' };
+
+function repeatLabel(ev){
+  const rep = ev.repeat;
+  if(rep === 'daily') return '🔁 매일';
+  if(rep === 'weekly') return '🔁 매주';
+  if(rep === 'yearly') return '🔁 매년';
+  if(rep === 'monthly'){
+    if(ev.monthlyMode === 'weekday'){
+      const [sy, sm, sd] = ev.date.split('-').map(Number);
+      const anchor = getMonthlyWeekdayAnchor(sy, sm, sd);
+      return `🔁 매월 ${POSITION_NAMES[anchor.position]} ${WEEKDAY_NAMES[anchor.weekday]}요일`;
+    }
+    const day = ev.date.split('-')[2];
+    return `🔁 매월 ${Number(day)}일`;
+  }
+  return '';
+}
+
+function renderGrid(){
+  $('monthLabel').textContent = `${viewYear}년 ${viewMonth}월`;
+  const monthMap = buildMonthMap(viewYear, viewMonth);
+
+  const firstDow = new Date(viewYear, viewMonth - 1, 1).getDay();
+  const dim = daysInMonth(viewYear, viewMonth);
+  const prevDim = daysInMonth(viewYear, viewMonth === 1 ? 12 : viewMonth - 1);
+
+  const cells = [];
+  for(let i = 0; i < firstDow; i++){
+    cells.push({ day: prevDim - firstDow + 1 + i, other: true });
+  }
+  for(let d = 1; d <= dim; d++){
+    cells.push({ day: d, other: false });
+  }
+  let nextMonthDay = 1;
+  while(cells.length % 7 !== 0 || cells.length < 42){
+    cells.push({ day: nextMonthDay, other: true });
+    nextMonthDay++;
+    if(cells.length >= 42) break;
+  }
+
+  const grid = $('dayGrid');
+  grid.innerHTML = cells.map((c, idx) => {
+    const dow = idx % 7;
+    const iso = !c.other ? `${viewYear}-${pad(viewMonth)}-${pad(c.day)}` : '';
+    const isToday = !c.other && iso === `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+    const evs = !c.other ? (monthMap[iso] || []) : [];
+    const dotHtml = evs.slice(0,3).map(()=>'<span></span>').join('') + (evs.length > 3 ? `<span class="more">+${evs.length-3}</span>` : '');
+    const classes = ['day-cell'];
+    if(c.other) classes.push('other-month');
+    if(dow === 0) classes.push('sun');
+    if(dow === 6) classes.push('sat');
+    if(isToday) classes.push('today');
+    return `<div class="${classes.join(' ')}" data-iso="${iso}">
+      <span class="num">${c.day}</span>
+      <div class="dots">${dotHtml}</div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.day-cell:not(.other-month)').forEach(cell => {
+    cell.addEventListener('click', () => openDayModal(cell.dataset.iso));
+  });
+
+  renderMonthList(monthMap);
+}
+
+function fmtDateLabel(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dow = ['일','월','화','수','목','금','토'][new Date(y,m-1,d).getDay()];
+  return `${m}월 ${d}일 (${dow})`;
+}
+
+function ownerTagHtml(ev){
+  if(!ev.owner || ev.owner === '공용') return '';
+  return `<span class="owner-tag o-${ev.owner}">${ev.owner}</span>`;
+}
+
+function renderMonthList(monthMap){
+  const isos = Object.keys(monthMap).sort();
+  const el = $('monthList');
+  if(isos.length === 0){
+    el.innerHTML = '<div class="empty-note">이번 달엔 등록된 일정이 없어요.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="grid-card" style="padding:4px 8px;">` + isos.map(iso => {
+    return monthMap[iso].map(ev => `
+      <div class="day-event-row" data-id="${ev.id}" data-iso="${iso}">
+        <span class="day-event-emoji">${ev.emoji || '📌'}</span>
+        <div class="day-event-body">
+          <div class="day-event-title">${ownerTagHtml(ev)}${escapeHtml(ev.title)}</div>
+          <div class="day-event-meta">${fmtDateLabel(iso)}${ev.time ? ' · ' + ev.time : ''}${ev.repeat !== 'none' ? ' · ' + repeatLabel(ev) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }).join('') + `</div>`;
+
+  el.querySelectorAll('.day-event-row').forEach(row => {
+    row.addEventListener('click', () => openForm(row.dataset.id, row.dataset.iso));
+  });
+}
+
+function openDayModal(iso){
+  const monthMap = buildMonthMap(viewYear, viewMonth);
+  const evs = monthMap[iso] || [];
+  $('dayModalTitle').textContent = fmtDateLabel(iso);
+  const list = $('dayModalList');
+  if(evs.length === 0){
+    list.innerHTML = '<div style="padding:10px 4px;color:var(--ink-soft);font-size:12.5px;">등록된 일정이 없어요.</div>';
+  } else {
+    list.innerHTML = evs.map(ev => `
+      <div class="day-event-row" data-id="${ev.id}">
+        <span class="day-event-emoji">${ev.emoji || '📌'}</span>
+        <div class="day-event-body">
+          <div class="day-event-title">${ownerTagHtml(ev)}${escapeHtml(ev.title)}</div>
+          <div class="day-event-meta">${ev.time ? ev.time : '하루종일'}${ev.repeat !== 'none' ? ' · ' + repeatLabel(ev) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.day-event-row').forEach(row => {
+      row.addEventListener('click', () => { closeDayModal(); openForm(row.dataset.id, iso); });
+    });
+  }
+  $('dayModalAddBtn').onclick = () => { closeDayModal(); openForm(null, iso); };
+  $('dayModalBackdrop').classList.add('open');
+}
+function closeDayModal(){ $('dayModalBackdrop').classList.remove('open'); }
+
+// ---- 제목 키워드 기반 이모지 자동 추천 ----
+// 앞쪽에 있는 항목이 우선순위가 높음(더 구체적인 키워드를 앞에 배치).
+const EMOJI_KEYWORDS = [
+  ['생일',   '🎂'], ['생신',   '🎂'], ['기념일', '💍'], ['결혼',   '💍'],
+  ['병원',   '🏥'], ['치과',   '🦷'], ['약',     '💊'], ['건강검진','🩺'],
+  ['미용실', '💇'], ['이발',   '💇'],
+  ['여행',   '✈️'], ['캠핑',   '🏕️'], ['공항',   '✈️'],
+  ['운동',   '🏃'], ['헬스',   '🏋️'], ['요가',   '🧘'],
+  ['영화',   '🎬'], ['공연',   '🎭'], ['콘서트', '🎤'],
+  ['데이트', '💕'], ['소개팅', '💕'],
+  ['회의',   '💼'], ['출장',   '🧳'], ['면접',   '💼'], ['업무',   '💻'],
+  ['시험',   '📝'], ['공부',   '📚'], ['수업',   '📖'],
+  ['청소',   '🧹'], ['빨래',   '🧺'], ['세탁',   '🧺'], ['정리',   '🧹'],
+  ['장보기', '🛒'], ['쇼핑',   '🛍️'],
+  ['저녁',   '🍽️'], ['점심',   '🍽️'], ['식사',   '🍽️'], ['카페',   '☕'],
+  ['공과금', '🧾'], ['세금',   '🧾'], ['월세',   '🏠'], ['관리비', '🧾'],
+  ['이사',   '📦'], ['수리',   '🔧'], ['배송',   '📦'],
+  ['뭉',     '🐾'], ['강아지', '🐕'], ['산책',   '🐕'], ['동물병원','🐾'],
+  ['파티',   '🎉'], ['축하',   '🎉'],
+];
+
+function guessEmoji(title){
+  const found = EMOJI_KEYWORDS.find(([kw]) => title.includes(kw));
+  return found ? found[1] : '📌';
+}
+
+// ---- 매월 반복 서브옵션("날짜 기준" / "요일 기준") 라벨을, 현재 폼에 입력된 날짜로 다시 계산 ----
+function updateMonthlyModeLabels(){
+  const dateVal = $('ef-date').value;
+  if(!dateVal) return;
+  const [sy, sm, sd] = dateVal.split('-').map(Number);
+  const anchor = getMonthlyWeekdayAnchor(sy, sm, sd);
+  const sel = $('ef-monthlyMode');
+  sel.options[0].textContent = `매월 ${sd}일`;
+  sel.options[1].textContent = `매월 ${POSITION_NAMES[anchor.position]} ${WEEKDAY_NAMES[anchor.weekday]}요일`;
+}
+
+function updateFormFields(){
+  const isAllday = $('ef-allday').checked;
+  $('ef-timeField').style.display = isAllday ? 'none' : 'block';
+  const rep = $('ef-repeat').value;
+  $('ef-repeatEndField').style.display = rep === 'none' ? 'none' : 'block';
+  const isMonthly = rep === 'monthly';
+  $('ef-monthlyModeField').style.display = isMonthly ? 'block' : 'none';
+  if(isMonthly) updateMonthlyModeLabels();
+}
+
+function openForm(id, presetIso){
+  editingId = id || null;
+  $('formTitle').textContent = id ? '일정 수정' : '일정 추가';
+  $('ef-deleteBtn').style.display = id ? 'block' : 'none';
+  if(id){
+    const ev = EVENTS.find(e => e.id === id);
+    $('ef-title').value = ev.title || '';
+    $('ef-emoji').value = ev.emoji || '';
+    $('ef-date').value = ev.date || '';
+    $('ef-owner').value = ev.owner || '공용';
+    $('ef-allday').checked = !ev.time;
+    $('ef-time').value = ev.time || '';
+    $('ef-repeat').value = ev.repeat || 'none';
+    $('ef-monthlyMode').value = ev.monthlyMode || 'date';
+    $('ef-repeatEnd').value = ev.repeatEnd || '';
+    $('ef-memo').value = ev.memo || '';
+    emojiManuallyEdited = true; // 기존 일정은 이미 정해진 이모지가 있으니 제목 수정해도 자동으로 안 바꿈
+  } else {
+    $('ef-title').value = '';
+    $('ef-emoji').value = '📌';
+    $('ef-date').value = presetIso || `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+    $('ef-owner').value = '공용';
+    $('ef-allday').checked = true;
+    $('ef-time').value = '';
+    $('ef-repeat').value = 'none';
+    $('ef-monthlyMode').value = 'date';
+    $('ef-repeatEnd').value = '';
+    $('ef-memo').value = '';
+    emojiManuallyEdited = false; // 새 일정은 제목 입력하는 대로 이모지 자동 추천
+  }
+  updateFormFields();
+  $('formBackdrop').classList.add('open');
+}
+function closeForm(){
+  $('formBackdrop').classList.remove('open');
+  editingId = null;
+}
+
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+async function saveToFirestore(){
+  try{
+    await window.firestoreSaveCalendar(EVENTS);
+    return true;
+  }catch(e){
+    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요.');
+    return false;
+  }
+}
+
+async function saveEvent(){
+  const title = $('ef-title').value.trim();
+  const date = $('ef-date').value;
+  if(!title){ alert('제목을 입력해주세요'); return; }
+  if(!date){ alert('날짜를 입력해주세요'); return; }
+
+  const isAllday = $('ef-allday').checked;
+  const evData = {
+    title,
+    emoji: $('ef-emoji').value.trim() || '📌',
+    owner: $('ef-owner').value,
+    date,
+    time: isAllday ? '' : $('ef-time').value,
+    repeat: $('ef-repeat').value,
+    monthlyMode: $('ef-repeat').value === 'monthly' ? $('ef-monthlyMode').value : '',
+    repeatEnd: $('ef-repeat').value === 'none' ? '' : $('ef-repeatEnd').value,
+    memo: $('ef-memo').value.trim()
+  };
+
+  const backup = JSON.parse(JSON.stringify(EVENTS));
+  if(editingId){
+    const idx = EVENTS.findIndex(e => e.id === editingId);
+    EVENTS[idx] = { ...EVENTS[idx], ...evData };
+  } else {
+    EVENTS.push({ id: genId(), ...evData });
+  }
+
+  const btn = $('ef-saveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  const ok = await saveToFirestore();
+  btn.disabled = false;
+  btn.textContent = '저장';
+
+  if(!ok){ EVENTS = backup; return; }
+  closeForm();
+  renderGrid();
+  showToast('저장했어요');
+}
+
+async function deleteEvent(){
+  if(!editingId) return;
+  const ev = EVENTS.find(e => e.id === editingId);
+  const msg = ev.repeat !== 'none'
+    ? `'${ev.title}' 일정을 삭제할까요?\n반복 일정이라 전체 시리즈가 함께 삭제돼요. 되돌릴 수 없어요.`
+    : `'${ev.title}' 일정을 삭제할까요? 되돌릴 수 없어요.`;
+  if(!confirm(msg)) return;
+
+  const backup = JSON.parse(JSON.stringify(EVENTS));
+  EVENTS = EVENTS.filter(e => e.id !== editingId);
+  const ok = await saveToFirestore();
+  if(!ok){ EVENTS = backup; return; }
+
+  closeForm();
+  renderGrid();
+  showToast('삭제했어요');
+}
+
+function bindBackdropClose(backdropId, closeFn){
+  const el = $(backdropId);
+  let downOnBackdrop = false;
+  el.addEventListener('mousedown', e=>{ downOnBackdrop = (e.target.id === backdropId); });
+  el.addEventListener('touchstart', e=>{ downOnBackdrop = (e.target.id === backdropId); }, { passive:true });
+  el.addEventListener('click', e=>{
+    if(downOnBackdrop && e.target.id === backdropId) closeFn();
+    downOnBackdrop = false;
+  });
+}
+
+async function loadEvents(){
+  try{
+    let tries = 0;
+    while(!window.firestoreLoadCalendar && tries < 50){
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if(!window.firestoreLoadCalendar) throw new Error('저장소 연결 준비가 안 됐어요');
+    const data = await window.firestoreLoadCalendar();
+    EVENTS = (data && Array.isArray(data.events)) ? data.events : [];
+  }catch(err){
+    EVENTS = [];
+    $('monthList').innerHTML = '<div class="empty-note" style="color:#C23B32;">일정을 불러오지 못했어요.<br>' + (err.message || '') + '</div>';
+  }
+}
+
+function init(){
+  $('prevBtn').addEventListener('click', () => {
+    viewMonth--; if(viewMonth < 1){ viewMonth = 12; viewYear--; }
+    renderGrid();
+  });
+  $('nextBtn').addEventListener('click', () => {
+    viewMonth++; if(viewMonth > 12){ viewMonth = 1; viewYear++; }
+    renderGrid();
+  });
+  $('todayBtn').addEventListener('click', () => {
+    viewYear = today.getFullYear(); viewMonth = today.getMonth() + 1;
+    renderGrid();
+  });
+  $('addFab').addEventListener('click', () => openForm(null, null));
+  $('ef-cancelBtn').addEventListener('click', closeForm);
+  $('ef-saveBtn').addEventListener('click', saveEvent);
+  $('ef-deleteBtn').addEventListener('click', deleteEvent);
+  $('ef-allday').addEventListener('change', updateFormFields);
+  $('ef-repeat').addEventListener('change', updateFormFields);
+  $('ef-date').addEventListener('change', () => { if($('ef-repeat').value === 'monthly') updateMonthlyModeLabels(); });
+  $('ef-title').addEventListener('input', () => {
+    if(emojiManuallyEdited) return;
+    const v = $('ef-title').value.trim();
+    $('ef-emoji').value = v ? guessEmoji(v) : '📌';
+  });
+  $('ef-emoji').addEventListener('input', () => { emojiManuallyEdited = true; });
+  $('dayModalCloseBtn').addEventListener('click', closeDayModal);
+  bindBackdropClose('formBackdrop', closeForm);
+  bindBackdropClose('dayModalBackdrop', closeDayModal);
+}
+
+async function main(){
+  init();
+  renderGrid(); // 일정 데이터 없이도 계산 가능한 달력 틀/숫자를 우선 즉시 그림
+  await loadEvents();
+  renderGrid(); // 일정 데이터가 도착하면 점 표시와 목록을 반영해서 다시 그림
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', main);
+} else {
+  main();
+}
+</script>
+
+</body>
+</html>
