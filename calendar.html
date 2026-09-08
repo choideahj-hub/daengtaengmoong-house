@@ -83,20 +83,23 @@
 
   .day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
   .day-cell{
-    aspect-ratio:1/1;border-radius:12px;padding:5px 3px 3px;position:relative;
-    cursor:pointer;display:flex;flex-direction:column;align-items:center;
+    min-height:78px;border-radius:10px;padding:5px 3px 3px;position:relative;
+    cursor:pointer;display:flex;flex-direction:column;align-items:stretch;
     background:transparent;
   }
   .day-cell:active{background:var(--bg);}
   .day-cell.other-month{opacity:.28;pointer-events:none;}
-  .day-cell .num{font-size:12.5px;font-weight:700;color:var(--ink);}
+  .day-cell .num{font-size:12px;font-weight:700;color:var(--ink);text-align:center;}
   .day-cell.sun .num{color:#E0568F;}
   .day-cell.sat .num{color:var(--blue);}
   .day-cell.today{background:var(--accent-soft);}
   .day-cell.today .num{color:var(--accent);font-weight:900;}
-  .dots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;justify-content:center;}
-  .dots span{width:5px;height:5px;border-radius:50%;background:var(--accent2);}
-  .dots .more{font-size:8.5px;color:var(--ink-soft);font-weight:800;width:auto;height:auto;background:none;}
+  .day-preview{display:flex;flex-direction:column;gap:1px;margin-top:3px;overflow:hidden;}
+  .day-preview-item{
+    font-size:8.5px;line-height:1.3;color:var(--ink-soft);background:var(--bg);
+    border-radius:4px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .day-preview-more{font-size:8px;color:var(--muted);font-weight:800;padding:0 3px;}
 
   .section-label{margin:26px 0 10px;}
   .section-label h2{font-size:14.5px;font-weight:800;margin:0;}
@@ -284,6 +287,10 @@
         <option value="counter">카운터 (D+N, 예: 연애 며칠째)</option>
       </select>
     </div>
+    <div class="field" id="ef-endDateField" style="display:none;">
+      <label>종료일 (1박2일 등 여러 날짜에 걸치면 입력)</label>
+      <input type="date" id="ef-endDate">
+    </div>
     <div class="field" id="ef-lunarHintField" style="display:none;">
       <p style="font-size:11.5px;color:var(--ink-soft);margin:0;line-height:1.5;">
         위 날짜(양력)를 음력으로 환산해서 매년 그 음력 날짜에 반복돼요. 예: 실제 생신이 양력 몇 월 며칠인지 아무 해나 골라서 입력하면 돼요.
@@ -434,7 +441,11 @@ function getOccurrencesInMonth(ev, year, month){
     const iso = `${year}-${pad(month)}-${pad(d)}`;
 
     if(ev.repeat === 'none'){
-      if(iso === ev.date) occ.push(iso);
+      if(ev.endDate && ev.endDate >= ev.date){
+        if(iso >= ev.date && iso <= ev.endDate) occ.push(iso);
+      } else if(iso === ev.date){
+        occ.push(iso);
+      }
     } else if(ev.repeat === 'daily' || ev.repeat === 'counter'){
       occ.push(iso);
     } else if(ev.repeat === 'weekly'){
@@ -456,6 +467,13 @@ function getOccurrencesInMonth(ev, year, month){
 }
 
 // 현재 뷰(month) 기준, { 'YYYY-MM-DD': [event, ...] } 맵 생성
+// 정렬 우선순위용: 기념일 > 정기지출 > 그 외
+function tagPriority(ev){
+  if(ev.annivTag) return 0;
+  if(ev.expenseTag) return 1;
+  return 2;
+}
+
 function buildMonthMap(year, month){
   const map = {};
   EVENTS.forEach(ev => {
@@ -465,7 +483,12 @@ function buildMonthMap(year, month){
     });
   });
   Object.keys(map).forEach(k => {
-    map[k].sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+    map[k].sort((a, b) => {
+      const aHas = a.time ? 1 : 0, bHas = b.time ? 1 : 0;
+      if(aHas !== bHas) return aHas - bHas; // 시간 없는(하루종일) 게 먼저
+      if(a.time !== b.time) return (a.time || '').localeCompare(b.time || '');
+      return tagPriority(a) - tagPriority(b); // 기념일 > 정기지출 > 그 외
+    });
   });
   return map;
 }
@@ -502,6 +525,15 @@ const POSITION_NAMES = { 1:'첫째', 2:'둘째', 3:'셋째', 4:'넷째', last:'�
 
 function repeatLabel(ev){
   const rep = ev.repeat;
+  if(rep === 'none'){
+    if(ev.endDate && ev.endDate > ev.date){
+      const [sy, sm, sd] = ev.date.split('-').map(Number);
+      const [ey, em, ed] = ev.endDate.split('-').map(Number);
+      const days = Math.round((new Date(ey, em-1, ed) - new Date(sy, sm-1, sd)) / 86400000) + 1;
+      return `📅 ${days - 1}박 ${days}일`;
+    }
+    return '';
+  }
   if(rep === 'daily') return '🔁 매일';
   if(rep === 'weekly') return '🔁 매주';
   if(rep === 'yearly') return '🔁 매년';
@@ -561,7 +593,9 @@ function renderGrid(){
     const iso = !c.other ? `${viewYear}-${pad(viewMonth)}-${pad(c.day)}` : '';
     const isToday = !c.other && iso === `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
     const evs = !c.other ? (monthMap[iso] || []) : [];
-    const dotHtml = evs.slice(0,3).map(()=>'<span></span>').join('') + (evs.length > 3 ? `<span class="more">+${evs.length-3}</span>` : '');
+    const previewHtml = evs.slice(0, 2).map(ev =>
+      `<div class="day-preview-item">${ev.time ? ev.time + ' ' : ''}${ev.emoji || '📌'} ${escapeHtml(ev.title)}</div>`
+    ).join('') + (evs.length > 2 ? `<div class="day-preview-more">+${evs.length - 2}개</div>` : '');
     const classes = ['day-cell'];
     if(c.other) classes.push('other-month');
     if(dow === 0) classes.push('sun');
@@ -569,7 +603,7 @@ function renderGrid(){
     if(isToday) classes.push('today');
     return `<div class="${classes.join(' ')}" data-iso="${iso}">
       <span class="num">${c.day}</span>
-      <div class="dots">${dotHtml}</div>
+      <div class="day-preview">${previewHtml}</div>
     </div>`;
   }).join('');
 
@@ -614,7 +648,7 @@ function renderMonthList(monthMap){
         <span class="day-event-emoji">${ev.emoji || '📌'}</span>
         <div class="day-event-body">
           <div class="day-event-title">${ownerTagHtml(ev)}${expenseTagHtml(ev)}${annivTagHtml(ev)}${escapeHtml(ev.title)}</div>
-          <div class="day-event-meta">${fmtDateLabel(iso)}${ev.time ? ' · ' + ev.time : ''}${ev.repeat !== 'none' ? ' · ' + repeatLabel(ev) : ''}${counterSuffix(ev, iso)}</div>
+          <div class="day-event-meta">${fmtDateLabel(iso)}${ev.time ? ' · ' + ev.time : ''}${(ev.repeat !== 'none' || ev.endDate) ? ' · ' + repeatLabel(ev) : ''}${counterSuffix(ev, iso)}</div>
         </div>
       </div>
     `).join('');
@@ -638,7 +672,7 @@ function openDayModal(iso){
         <span class="day-event-emoji">${ev.emoji || '📌'}</span>
         <div class="day-event-body">
           <div class="day-event-title">${ownerTagHtml(ev)}${expenseTagHtml(ev)}${annivTagHtml(ev)}${escapeHtml(ev.title)}</div>
-          <div class="day-event-meta">${ev.time ? ev.time : '하루종일'}${ev.repeat !== 'none' ? ' · ' + repeatLabel(ev) : ''}${counterSuffix(ev, iso)}</div>
+          <div class="day-event-meta">${ev.time ? ev.time : '하루종일'}${(ev.repeat !== 'none' || ev.endDate) ? ' · ' + repeatLabel(ev) : ''}${counterSuffix(ev, iso)}</div>
         </div>
       </div>
     `).join('');
@@ -756,6 +790,7 @@ function updateFormFields(){
   $('ef-timeField').style.display = isAllday ? 'none' : 'block';
   const rep = $('ef-repeat').value;
   $('ef-repeatEndField').style.display = rep === 'none' ? 'none' : 'block';
+  $('ef-endDateField').style.display = rep === 'none' ? 'block' : 'none';
   const isMonthly = rep === 'monthly';
   $('ef-monthlyModeField').style.display = isMonthly ? 'block' : 'none';
   if(isMonthly) updateMonthlyModeLabels();
@@ -780,6 +815,7 @@ function openForm(id, presetIso){
     $('ef-repeat').value = ev.repeat || 'none';
     $('ef-monthlyMode').value = ev.monthlyMode || 'date';
     $('ef-repeatEnd').value = ev.repeatEnd || '';
+    $('ef-endDate').value = ev.endDate || '';
     $('ef-memo').value = ev.memo || '';
     emojiManuallyEdited = true; // 기존 일정은 이미 정해진 이모지가 있으니 제목 수정해도 자동으로 안 바꿈
   } else {
@@ -795,6 +831,7 @@ function openForm(id, presetIso){
     $('ef-repeat').value = 'none';
     $('ef-monthlyMode').value = 'date';
     $('ef-repeatEnd').value = '';
+    $('ef-endDate').value = '';
     $('ef-memo').value = '';
     emojiManuallyEdited = false; // 새 일정은 제목 입력하는 대로 이모지 자동 추천
   }
@@ -831,6 +868,11 @@ async function saveEvent(){
 
   const isAllday = $('ef-allday').checked;
   const repeatVal = $('ef-repeat').value;
+  const endDateVal = repeatVal === 'none' ? $('ef-endDate').value : '';
+  if(endDateVal && endDateVal < date){
+    alert('종료일은 시작일보다 빠를 수 없어요.');
+    return;
+  }
   const evData = {
     title,
     emoji: $('ef-emoji').value.trim() || '📌',
@@ -838,6 +880,7 @@ async function saveEvent(){
     expenseTag: $('ef-expenseTag').checked,
     annivTag: $('ef-annivTag').checked,
     date,
+    endDate: endDateVal,
     time: isAllday ? '' : $('ef-time').value,
     repeat: repeatVal,
     monthlyMode: repeatVal === 'monthly' ? $('ef-monthlyMode').value : '',
