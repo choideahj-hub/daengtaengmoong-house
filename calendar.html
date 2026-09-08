@@ -208,7 +208,7 @@
     <div class="day-grid" id="dayGrid"></div>
   </div>
 
-  <div class="section-label"><h2>이번 달 일정</h2></div>
+  <div class="section-label"><h2>향후 일정 (2주)</h2></div>
   <div id="monthList"></div>
 
   <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:30px;">
@@ -470,6 +470,33 @@ function buildMonthMap(year, month){
   return map;
 }
 
+// 달력이 어느 달을 보여주고 있든 상관없이, 오늘부터 14일간의 일정을 모아주는 함수.
+// (하단 "향후 일정" 리스트 전용 — 월 그리드/점 표시와는 별개)
+function buildUpcoming14DaysMap(){
+  const monthsNeeded = new Set();
+  for(let i = 0; i < 14; i++){
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    monthsNeeded.add(`${d.getFullYear()}-${d.getMonth() + 1}`);
+  }
+  const merged = {};
+  monthsNeeded.forEach(key => {
+    const [y, m] = key.split('-').map(Number);
+    Object.assign(merged, buildMonthMap(y, m));
+  });
+
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + 13);
+  const startIso = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  const endIso = `${endDate.getFullYear()}-${pad(endDate.getMonth()+1)}-${pad(endDate.getDate())}`;
+
+  const filtered = {};
+  Object.keys(merged).filter(iso => iso >= startIso && iso <= endIso).forEach(iso => {
+    filtered[iso] = merged[iso];
+  });
+  return filtered;
+}
+
 const WEEKDAY_NAMES = ['일','월','화','수','목','금','토'];
 const POSITION_NAMES = { 1:'첫째', 2:'둘째', 3:'셋째', 4:'넷째', last:'마지막' };
 
@@ -550,7 +577,7 @@ function renderGrid(){
     cell.addEventListener('click', () => openDayModal(cell.dataset.iso));
   });
 
-  renderMonthList(monthMap);
+  renderMonthList(buildUpcoming14DaysMap());
 }
 
 function fmtDateLabel(iso){
@@ -578,7 +605,7 @@ function renderMonthList(monthMap){
   const isos = Object.keys(monthMap).sort();
   const el = $('monthList');
   if(isos.length === 0){
-    el.innerHTML = '<div class="empty-note">이번 달엔 등록된 일정이 없어요.</div>';
+    el.innerHTML = '<div class="empty-note">앞으로 2주간 등록된 일정이 없어요.</div>';
     return;
   }
   el.innerHTML = `<div class="grid-card" style="padding:4px 8px;">` + isos.map(iso => {
@@ -627,27 +654,90 @@ function closeDayModal(){ $('dayModalBackdrop').classList.remove('open'); }
 // ---- 제목 키워드 기반 이모지 자동 추천 ----
 // 앞쪽에 있는 항목이 우선순위가 높음(더 구체적인 키워드를 앞에 배치).
 const EMOJI_KEYWORDS = [
+  // 경조사
+  ['결혼식', '💒'], ['상견례', '🤝'], ['프러포즈', '💍'], ['돌잔치', '🎂'],
+  ['장례식', '🕯️'], ['문상',   '🕯️'], ['부고',   '🕯️'], ['제사',   '🙏'],
+  ['명절',   '🏮'], ['설날',   '🏮'], ['추석',   '🏮'], ['차례',   '🙏'],
   ['생일',   '🎂'], ['생신',   '🎂'], ['기념일', '💍'], ['결혼',   '💍'],
-  ['병원',   '🏥'], ['치과',   '🦷'], ['약',     '💊'], ['건강검진','🩺'],
-  ['미용실', '💇'], ['이발',   '💇'],
-  ['여행',   '✈️'], ['캠핑',   '🏕️'], ['공항',   '✈️'],
+  // 병원/건강
+  ['한의원', '🏥'], ['산부인과','🏥'], ['정형외과','🏥'], ['피부과', '🏥'],
+  ['안과',   '👁️'], ['이비인후과','🏥'], ['재활',   '🏥'], ['물리치료','🏥'],
+  ['예방접종','💉'], ['건강검진','🩺'], ['병원',   '🏥'], ['치과',   '🦷'],
+  ['약속',   '🤝'], ['예약',   '📅'], ['계약',   '📄'], ['약',     '💊'],
+  // 미용
+  ['피부관리','💆'], ['네일',   '💅'], ['왁싱',   '💇'], ['미용실', '💇'], ['이발',   '💇'],
+  // 이동/여행
+  ['해외여행','✈️'], ['국내여행','🚗'], ['렌트카', '🚗'], ['숙소',   '🏨'], ['호텔',   '🏨'], ['펜션',   '🏡'],
+  ['여행',   '✈️'], ['캠핑',   '🏕️'], ['공항',   '✈️'], ['기차',   '🚄'], ['고속버스','🚌'],
+  // 자동차
+  ['세차',   '🚗'], ['정비',   '🔧'], ['타이어', '🚗'], ['주유',   '⛽'], ['운전면허','🚗'],
+  // 운동
+  ['필라테스','🧘'], ['수영',   '🏊'], ['골프',   '⛳'], ['등산',   '🥾'], ['러닝',   '🏃'], ['자전거', '🚴'],
   ['운동',   '🏃'], ['헬스',   '🏋️'], ['요가',   '🧘'],
+  // 문화생활
+  ['뮤지컬', '🎭'], ['연극',   '🎭'], ['전시',   '🖼️'], ['박물관', '🏛️'], ['미술관', '🖼️'],
   ['영화',   '🎬'], ['공연',   '🎭'], ['콘서트', '🎤'],
-  ['데이트', '💕'], ['소개팅', '💕'],
+  // 연애/관계
+  ['데이트', '💕'], ['소개팅', '💕'], ['동창회', '🍻'], ['모임',   '🍻'], ['회식',   '🍻'],
+  // 업무/학업
+  ['워크샵', '💼'], ['발표',   '💼'], ['마감',   '⏰'], ['재택',   '💻'], ['출근',   '💼'], ['퇴근',   '🏠'],
   ['회의',   '💼'], ['출장',   '🧳'], ['면접',   '💼'], ['업무',   '💻'],
-  ['시험',   '📝'], ['공부',   '📚'], ['수업',   '📖'],
+  ['자격증', '📝'], ['학원',   '📖'], ['시험',   '📝'], ['공부',   '📚'], ['수업',   '📖'],
+  // 집안일
+  ['분리수거','🧹'], ['대청소', '🧹'], ['정기점검','🔧'], ['방역',   '🧴'], ['소독',   '🧴'],
   ['청소',   '🧹'], ['빨래',   '🧺'], ['세탁',   '🧺'], ['정리',   '🧹'],
-  ['장보기', '🛒'], ['쇼핑',   '🛍️'],
-  ['저녁',   '🍽️'], ['점심',   '🍽️'], ['식사',   '🍽️'], ['카페',   '☕'],
-  ['공과금', '🧾'], ['세금',   '🧾'], ['월세',   '🏠'], ['관리비', '🧾'],
-  ['이사',   '📦'], ['수리',   '🔧'], ['배송',   '📦'],
-  ['뭉',     '🐾'], ['강아지', '🐕'], ['산책',   '🐕'], ['동물병원','🐾'],
-  ['파티',   '🎉'], ['축하',   '🎉'],
+  // 쇼핑/장보기
+  ['장보기', '🛒'], ['쇼핑',   '🛍️'], ['반품',   '📦'], ['교환',   '📦'],
+  // 식사
+  ['브런치', '🍳'], ['배달',   '🛵'], ['저녁',   '🍽️'], ['점심',   '🍽️'], ['아침',   '🍳'], ['식사',   '🍽️'], ['카페',   '☕'],
+  // 금전/행정
+  ['연말정산','🧾'], ['공과금', '🧾'], ['세금',   '🧾'], ['월세',   '🏠'], ['관리비', '🧾'],
+  ['대출',   '🏦'], ['이자',   '🏦'], ['보험',   '🛡️'], ['정산',   '🧾'], ['송금',   '🏦'],
+  ['계좌',   '🏦'], ['은행',   '🏦'], ['환전',   '💱'], ['등기',   '📄'],
+  // 이사/집
+  ['인테리어','🛋️'], ['도배',   '🛋️'], ['입주',   '📦'], ['이사',   '📦'], ['수리',   '🔧'], ['설치',   '🔧'], ['배송',   '📦'],
+  // 이동/방문 (지명이 뭐든 "내려가는/올라가는/가는 날" 같은 구절로 잡음)
+  ['내려가', '🚗'], ['올라가', '🚗'], ['내려오', '🚗'], ['올라오', '🚗'],
+  ['다녀오', '🚗'], ['다녀가', '🚗'], ['돌아오는','🚗'], ['떠나는', '🧳'],
+  ['가는 날', '🚗'], ['오는 날', '🚗'], ['출국',   '✈️'], ['귀국',   '✈️'], ['방문',   '🚪'],
+  // 가족/본가/친척
+  ['부모님', '👨‍👩‍👧'], ['시부모님','👨‍👩‍👧'], ['처부모님','👨‍👩‍👧'],
+  ['본가',   '🏠'], ['친정',   '🏠'], ['시댁',   '🏠'], ['처가',   '🏠'], ['집들이', '🏠'],
+  ['할머니', '👵'], ['할아버지','👴'], ['이모',   '👨‍👩‍👧'], ['고모',   '👨‍👩‍👧'], ['삼촌',   '👨‍👩‍👧'],
+  ['조카',   '👨‍👩‍👧'], ['사촌',   '👨‍👩‍👧'], ['언니',   '🤝'], ['오빠',   '🤝'], ['동생',   '🤝'], ['친구',   '🤝'],
+  // 가구/침구
+  ['침대',   '🛏️'], ['매트리스','🛏️'], ['이불',   '🛏️'],
+  // 살림 디테일
+  ['정수기', '🔧'], ['필터',   '🔧'], ['보일러', '🔧'], ['에어컨', '❄️'],
+  ['세탁소', '🧺'], ['드라이', '🧺'], ['수선',   '🧺'], ['김장',   '🥬'],
+  ['택배',   '📦'], ['찾으러', '📦'],
+  // 금전 (반복지출과 별개로, 캘린더 메모용 일반 표현)
+  ['월급',   '💰'], ['적금',   '💰'], ['펀드',   '💰'], ['주식',   '📈'], ['코인',   '📈'],
+  // 뭉 케어
+  ['목욕',   '🐾'], ['발톱',   '🐾'],
+  // 휴가/연차
+  ['연차',   '🌴'], ['휴가',   '🌴'],
+  // 술자리
+  ['술자리', '🍻'], ['술약속', '🍻'],
+  // 반려동물
+  ['뭉',     '🐾'], ['강아지', '🐕'], ['산책',   '🐕'], ['동물병원','🐾'], ['접종',   '💉'], ['사료',   '🐾'],
+  // 파티/축하
+  ['생일파티','🎉'], ['이벤트', '🎉'], ['선물',   '🎁'], ['파티',   '🎉'], ['축하',   '🎉'],
 ];
 
+// 키워드가 하나도 안 걸릴 때 쓸 범용 이모지들. 폼을 열 때 한 번만 랜덤으로 고정해서
+// 타이핑 도중에 계속 바뀌지 않게 함 (currentFallbackEmoji).
+const FALLBACK_EMOJIS = ['📌', '✨', '📅', '🔖', '⭐', '🎯', '🗒️', '💫'];
+let currentFallbackEmoji = '📌';
+
+// 제목에 여러 키워드가 동시에 걸릴 경우(예: "약속" 안에 "약"이 포함됨),
+// 짧고 뭉뚱그린 키워드가 아니라 더 길고 구체적인 키워드가 우선하도록 함.
+// (단순 글자 매칭이라 문장의 진짜 의미까지 이해하지는 못함 — 사전을 넓혀서 놓치는 경우를 줄이는 정도)
 function guessEmoji(title){
-  const found = EMOJI_KEYWORDS.find(([kw]) => title.includes(kw));
-  return found ? found[1] : '📌';
+  const matches = EMOJI_KEYWORDS.filter(([kw]) => title.includes(kw));
+  if(matches.length === 0) return currentFallbackEmoji;
+  matches.sort((a, b) => b[0].length - a[0].length);
+  return matches[0][1];
 }
 
 // ---- 매월 반복 서브옵션("날짜 기준" / "요일 기준") 라벨을, 현재 폼에 입력된 날짜로 다시 계산 ----
@@ -680,6 +770,7 @@ function openForm(id, presetIso){
     const ev = EVENTS.find(e => e.id === id);
     $('ef-title').value = ev.title || '';
     $('ef-emoji').value = ev.emoji || '';
+    currentFallbackEmoji = ev.emoji || FALLBACK_EMOJIS[Math.floor(Math.random() * FALLBACK_EMOJIS.length)];
     $('ef-date').value = ev.date || '';
     $('ef-owner').value = ev.owner || '공용';
     $('ef-expenseTag').checked = !!ev.expenseTag;
@@ -692,8 +783,9 @@ function openForm(id, presetIso){
     $('ef-memo').value = ev.memo || '';
     emojiManuallyEdited = true; // 기존 일정은 이미 정해진 이모지가 있으니 제목 수정해도 자동으로 안 바꿈
   } else {
+    currentFallbackEmoji = FALLBACK_EMOJIS[Math.floor(Math.random() * FALLBACK_EMOJIS.length)];
     $('ef-title').value = '';
-    $('ef-emoji').value = '📌';
+    $('ef-emoji').value = currentFallbackEmoji;
     $('ef-date').value = presetIso || `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
     $('ef-owner').value = '공용';
     $('ef-expenseTag').checked = false;
@@ -856,7 +948,7 @@ function init(){
   $('ef-title').addEventListener('input', () => {
     if(emojiManuallyEdited) return;
     const v = $('ef-title').value.trim();
-    $('ef-emoji').value = v ? guessEmoji(v) : '📌';
+    $('ef-emoji').value = v ? guessEmoji(v) : currentFallbackEmoji;
   });
   $('ef-emoji').addEventListener('input', () => { emojiManuallyEdited = true; });
   $('dayModalCloseBtn').addEventListener('click', closeDayModal);
