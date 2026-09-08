@@ -620,14 +620,22 @@ async function loadMemos(){
   }
 }
 
+// 메모 저장 요청을 한 줄로 세워서 순서대로 처리 (동시에 여러 저장이 나가면 늦게 도착한 게
+// 먼저 도착한 최신 내용을 덮어써버리는 문제가 있었음 — 이걸 막기 위한 큐).
+let memoSaveChain = Promise.resolve();
+
 async function saveMemosToFirestore(){
-  try{
-    await window.firestoreSaveMemos(MEMOS);
-    return true;
-  }catch(e){
-    alert('⚠️ 메모 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요.');
-    return false;
-  }
+  const task = memoSaveChain.then(async () => {
+    try{
+      await window.firestoreSaveMemos(MEMOS); // 실행 시점의 최신 MEMOS를 보냄
+      return true;
+    }catch(e){
+      alert('⚠️ 메모 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요.');
+      return false;
+    }
+  });
+  memoSaveChain = task.catch(() => {}); // 실패해도 큐 자체는 계속 이어지게
+  return task;
 }
 
 // 예전 방식(순수 텍스트, 줄바꿈 문자)으로 저장된 메모를 표시용 HTML로 변환.
