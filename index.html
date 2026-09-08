@@ -91,6 +91,27 @@
     text-align:center;font-size:11.5px;color:var(--muted);margin-top:36px;line-height:1.7;
   }
 
+  .calendar-combined{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    margin:18px 0 22px;overflow:hidden;
+  }
+  .calendar-banner{
+    display:flex;align-items:center;gap:16px;
+    padding:20px;text-decoration:none;color:inherit;
+  }
+  .calendar-banner:active{background:var(--bg);}
+  .calendar-banner-icon{
+    width:56px;height:56px;border-radius:18px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:28px;
+    background:linear-gradient(135deg, #FF8FA0 0%, #FFB199 55%, #6FCFC0 100%);
+  }
+  .calendar-banner-body{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .calendar-banner-title{font-size:16.5px;font-weight:800;margin:0 0 4px;color:var(--ink);}
+  .calendar-banner-desc{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.5;}
+  .calendar-banner-arrow{font-size:18px;color:var(--muted);flex-shrink:0;}
+  .calendar-combined-divider{height:1px;background:var(--line);margin:0 20px;}
+  .calendar-combined-list{padding:8px;display:flex;flex-direction:column;gap:2px;}
+
   .section-label{margin:26px 0 12px;}
   .section-label h2{font-size:14.5px;font-weight:800;margin:0;color:var(--ink);}
   .toggle-icon{font-size:12px;color:var(--muted);transition:transform .2s ease;}
@@ -123,6 +144,8 @@
   .anniv-owner.o-탱{background:#FFE7F3;color:#E0568F;}
   .anniv-owner.o-뭉{background:#F1EAE3;color:#8A6D4E;}
   .anniv-owner.o-우리{background:#FBF0DC;color:#D9A441;}
+  .anniv-owner.tag-expense{background:#EFEAE4;color:#8A776C;}
+  .anniv-owner.tag-anniv{background:#FFF3D6;color:#C98A1B;}
   .anniv-dday{
     font-size:13.5px;font-weight:800;color:var(--accent);flex-shrink:0;
     background:var(--accent-soft);padding:6px 11px;border-radius:100px;
@@ -137,7 +160,7 @@
   }
   .manage-btn:hover{color:var(--ink-soft);}
 
-  /* Modals (기념일 관리) */
+  /* Modals */
   .modal-backdrop{
     position:fixed;inset:0;background:rgba(74,59,52,.45);
     display:none;align-items:flex-end;justify-content:center;z-index:50;
@@ -154,8 +177,6 @@
   }
   @keyframes slideup{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
   .modal h3{margin:0 0 16px;font-size:16px;font-weight:800;}
-  .anniv-manage-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;max-height:50vh;overflow-y:auto;}
-  .anniv-manage-list .anniv-row:hover{background:var(--bg);}
   .field{margin-bottom:13px;}
   .field label{display:block;font-size:11.5px;font-weight:800;color:var(--ink-soft);margin-bottom:5px;}
   .field input, .field select{
@@ -219,7 +240,27 @@
       </div>
       <div class="chapter-arrow">→</div>
     </a>
+  </div>
 
+  <div class="calendar-combined">
+    <a class="calendar-banner" href="calendar.html">
+      <span class="calendar-banner-icon">🗓️</span>
+      <span class="calendar-banner-body">
+        <span class="calendar-banner-title">댕탱 캘린더</span>
+        <span class="calendar-banner-desc">우리집 일정 모아보기 · 반복 일정 관리</span>
+      </span>
+      <span class="calendar-banner-arrow">→</span>
+    </a>
+    <div class="calendar-combined-divider"></div>
+    <div class="calendar-combined-list" id="calendarWidget"></div>
+  </div>
+
+  <hr class="page-divider">
+  <div class="section-label" id="moreChaptersToggle" style="cursor:pointer;">
+    <h2 style="font-size:12.5px;color:var(--muted);">더보기</h2>
+    <span class="toggle-icon" id="moreChaptersIcon">▾</span>
+  </div>
+  <div class="chapter-list" id="moreChaptersList" style="display:none;margin-top:10px;">
     <a class="chapter-card" href="gifticon.html">
       <div class="chapter-icon c1">🎁</div>
       <div class="chapter-body">
@@ -239,124 +280,7 @@
     </a>
   </div>
 
-  <hr class="page-divider">
-  <div class="section-label anniv-label-row">
-    <h2>다가오는 기념일</h2>
-    <button class="manage-btn" id="annivManageBtn">⚙️ 관리</button>
-  </div>
-  <div class="anniv-widget" id="annivWidget"></div>
-
-  <hr class="page-divider">
-  <div class="section-label ledger-label"><h2>다가오는 정기지출</h2></div>
-  <div class="anniv-widget" id="ledgerWidget"></div>
-
-  <hr class="page-divider">
-  <div class="section-label anniv-label-row">
-    <h2>다가오는 일정</h2>
-    <a class="manage-btn" href="calendar.html" style="text-decoration:none;">🗓️ 전체보기</a>
-  </div>
-  <div class="anniv-widget" id="calendarWidget"></div>
-
-  <hr class="page-divider">
-  <div class="section-label" id="moreChaptersToggle" style="cursor:pointer;">
-    <h2 style="font-size:12.5px;color:var(--muted);">더보기</h2>
-    <span class="toggle-icon" id="moreChaptersIcon">▾</span>
-  </div>
-  <div class="chapter-list" id="moreChaptersList" style="display:none;margin-top:10px;">
-    <a class="chapter-card" href="card-ledger.html">
-      <div class="chapter-icon c2">💳</div>
-      <div class="chapter-body">
-        <p class="chapter-title">정기지출 캘린더</p>
-        <p class="chapter-desc">카드별 출금일 · D-day · 완료 히스토리</p>
-      </div>
-      <div class="chapter-arrow">→</div>
-    </a>
-
-    <a class="chapter-card" href="calendar.html">
-      <div class="chapter-icon c3">🗓️</div>
-      <div class="chapter-body">
-        <p class="chapter-title">우리집 캘린더</p>
-        <p class="chapter-desc">월간 일정 · 매주/매월/매년 반복 관리</p>
-      </div>
-      <div class="chapter-arrow">→</div>
-    </a>
-  </div>
-
   <p class="footer-note">챕터는 계속 추가될 예정이에요 🐾</p>
-</div>
-
-<div class="modal-backdrop" id="annivManageBackdrop">
-  <div class="modal">
-    <h3>기념일 관리</h3>
-    <div class="anniv-manage-list" id="annivManageList"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="annivManageCloseBtn">닫기</button>
-      <button class="btn primary" id="annivAddBtn">+ 새 기념일 추가</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="annivFormBackdrop">
-  <div class="modal">
-    <h3 id="annivFormTitle">기념일 추가</h3>
-    <div class="field">
-      <label>이름</label>
-      <input type="text" id="af-name" placeholder="예: 아버지, 결혼기념일">
-    </div>
-    <div class="field">
-      <label>담당</label>
-      <select id="af-owner">
-        <option value="댕">댕</option>
-        <option value="탱">탱</option>
-        <option value="뭉">뭉</option>
-        <option value="우리">우리</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>이모지</label>
-      <input type="text" id="af-emoji" placeholder="🎂" maxlength="4">
-    </div>
-    <div class="field">
-      <label>종류</label>
-      <select id="af-type">
-        <option value="birthday">생일 (양력)</option>
-        <option value="anniversary">기념일 (양력)</option>
-        <option value="dating">사귄 날 (양력)</option>
-        <option value="lunar-birthday">생신 (양력 생신 → 음력 자동환산)</option>
-        <option value="lunar-direct">생신 (음력 날짜 직접 입력)</option>
-        <option value="other">기타 (양력, 횟수 표시 안 함)</option>
-      </select>
-    </div>
-    <div class="field" id="af-solarDateField">
-      <label id="af-solarDateLabel">날짜</label>
-      <input type="date" id="af-date">
-    </div>
-    <div id="af-lunarFields" style="display:none;">
-      <div class="field">
-        <label>출생연도 (N번째 생신 계산용)</label>
-        <input type="number" id="af-birthYear" placeholder="예: 1964">
-      </div>
-      <div class="field" style="display:flex;gap:8px;">
-        <div style="flex:1;">
-          <label>음력 월</label>
-          <input type="number" id="af-lunarMonth" min="1" max="12" placeholder="예: 2">
-        </div>
-        <div style="flex:1;">
-          <label>음력 일</label>
-          <input type="number" id="af-lunarDay" min="1" max="30" placeholder="예: 5">
-        </div>
-      </div>
-      <div class="field" style="display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="af-isLeap" style="width:auto;">
-        <label style="margin:0;" for="af-isLeap">윤달(윤월)이에요</label>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="af-cancelBtn">취소</button>
-      <button class="btn danger" id="af-deleteBtn" style="display:none;">삭제</button>
-      <button class="btn primary" id="af-saveBtn">저장</button>
-    </div>
-  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -385,14 +309,6 @@
     const snap = await getDoc(doc(db, 'appdata', 'calendar'));
     return snap.exists() ? snap.data() : null;
   };
-
-  window.firestoreLoadAnniv = async function(){
-    const snap = await getDoc(doc(db, 'appdata', 'anniversaries'));
-    return snap.exists() ? snap.data() : null;
-  };
-  window.firestoreSaveAnniv = async function(events){
-    await setDoc(doc(db, 'appdata', 'anniversaries'), { events }, { merge: true });
-  };
 </script>
 <script src="https://unpkg.com/solarlunar/dist/solarlunar.min.js"></script>
 <script>
@@ -400,171 +316,11 @@ function $(id){ return document.getElementById(id); }
 function escapeHtml(str){
   return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function genAnnivId(){ return 'a' + Date.now() + Math.floor(Math.random()*100000); }
-
-// 최초 실행(또는 Firestore에 아직 데이터가 없을 때) 채워 넣는 기본값.
-// 이후로는 Firestore('appdata/anniversaries')가 진짜 데이터 소스이고, 관리(⚙️) 화면에서 추가/수정/삭제함.
-const DEFAULT_EVENTS = [
-  { id: 'a1', name: '결혼기념일', owner: '우리', date: '2025-05-25', type: 'anniversary', emoji: '💍' },
-  { id: 'a2', name: '댕 생일', owner: '댕', date: '1994-03-01', type: 'birthday', emoji: '🎂' },
-  { id: 'a3', name: '탱 생일', owner: '탱', date: '1993-08-04', type: 'birthday', emoji: '🎂' },
-  { id: 'a4', name: '뭉 생일', owner: '뭉', date: '2018-09-19', type: 'birthday', emoji: '🐾' },
-  { id: 'a5', name: '댕탱 사귄 날', owner: '우리', date: '2018-12-21', type: 'dating', emoji: '💕' },
-  // 댕/탱 부모님 4명 모두: 음력 날짜를 직접 입력하는 방식으로 통일 (2026-08 수정)
-  { id: 'a6', name: '아버지 생신', owner: '댕', type: 'lunar-direct', birthYear: 1963, lunarMonth: 8, lunarDay: 26, isLeap: false, emoji: '🎂' },
-  { id: 'a7', name: '어머니 생신', owner: '댕', type: 'lunar-direct', birthYear: 1968, lunarMonth: 11, lunarDay: 5, isLeap: false, emoji: '🎂' },
-  { id: 'a8', name: '아버지 생신', owner: '탱', type: 'lunar-direct', birthYear: 1964, lunarMonth: 2, lunarDay: 5, isLeap: false, emoji: '🎂' },
-  { id: 'a9', name: '어머니 생신', owner: '탱', type: 'lunar-direct', birthYear: 1970, lunarMonth: 12, lunarDay: 12, isLeap: false, emoji: '🎂' },
-];
-
-let EVENTS = [];
-let editingAnnivId = null;
 
 function getKSTToday(){
   const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   d.setHours(0,0,0,0);
   return d;
-}
-
-function computeEvent(ev, today){
-  if(ev.type === 'lunar-birthday'){
-    return computeLunarBirthday(ev, today);
-  }
-  if(ev.type === 'lunar-direct'){
-    return computeLunarDirectBirthday(ev, today);
-  }
-  const [origY, origM, origD] = ev.date.split('-').map(Number);
-  let year = today.getFullYear();
-  let next = new Date(year, origM - 1, origD);
-  next.setHours(0,0,0,0);
-  if(next < today){
-    year += 1;
-    next = new Date(year, origM - 1, origD);
-    next.setHours(0,0,0,0);
-  }
-  const diffDays = Math.round((next - today) / (1000*60*60*24));
-  const count = year - origY;
-
-  let countLabel = '';
-  if(ev.type === 'birthday') countLabel = `${count}번째 생일`;
-  else if(ev.type === 'anniversary') countLabel = `${count}주년`;
-  else if(ev.type === 'dating') countLabel = `사귄 지 ${count}년`;
-  // 'other'는 카운트 라벨 없이 D-day만 표시
-
-  return { ...ev, diffDays, countLabel, dateLabel: `${next.getMonth()+1}월 ${next.getDate()}일` };
-}
-
-function computeLunarBirthday(ev, today){
-  const SL = (typeof solarLunar !== 'undefined' && solarLunar.solar2lunar) ? solarLunar : solarLunar.default;
-  const [origY, origM, origD] = ev.date.split('-').map(Number);
-  // 생신(양력)을 음력으로 한 번 환산 - 평생 고정값
-  const birthLunar = SL.solar2lunar(origY, origM, origD);
-  const lMonth = birthLunar.lMonth;
-  const lDay = birthLunar.lDay;
-  const isLeap = !!birthLunar.isLeap;
-
-  function solarForYear(y){
-    let r = SL.lunar2solar(y, lMonth, lDay, isLeap);
-    if((!r || r === -1) && isLeap){
-      // 그 해에 윤달이 없으면 평달로 대체
-      r = SL.lunar2solar(y, lMonth, lDay, false);
-    }
-    return r;
-  }
-
-  let year = today.getFullYear();
-  let s = solarForYear(year);
-  let next = new Date(s.cYear, s.cMonth - 1, s.cDay);
-  next.setHours(0,0,0,0);
-  if(next < today){
-    year += 1;
-    s = solarForYear(year);
-    next = new Date(s.cYear, s.cMonth - 1, s.cDay);
-    next.setHours(0,0,0,0);
-  }
-  const diffDays = Math.round((next - today) / (1000*60*60*24));
-  // count는 반복 루프에 쓰인 lunar-year 값(year)이 아니라, 실제 환산된 양력 연도(s.cYear)를 기준으로 계산해야 함.
-  // 음력 12월처럼 양력으로 넘기면 1월로 넘어가는 날짜는 year와 s.cYear가 어긋나서 "N번째 생신"이 1씩 밀리는 오차가 생김.
-  const count = s.cYear - origY;
-  const solarBirthLabel = `양력생일 ${origY}.${String(origM).padStart(2,'0')}.${String(origD).padStart(2,'0')}`;
-  const lunarLabel = `음력 ${lMonth}월 ${lDay}일${isLeap ? '(윤달)' : ''} · ${solarBirthLabel}`;
-
-  return {
-    ...ev,
-    diffDays,
-    countLabel: `${count}번째 생신`,
-    dateLabel: `${next.getMonth()+1}월 ${next.getDate()}일`,
-    lunarLabel
-  };
-}
-
-// 음력 날짜를 (양력 생일에서 환산하지 않고) 직접 입력받아 계산하는 방식
-function computeLunarDirectBirthday(ev, today){
-  const SL = (typeof solarLunar !== 'undefined' && solarLunar.solar2lunar) ? solarLunar : solarLunar.default;
-  const lMonth = ev.lunarMonth;
-  const lDay = ev.lunarDay;
-  const isLeap = !!ev.isLeap;
-  const origY = ev.birthYear;
-
-  function solarForYear(y){
-    let r = SL.lunar2solar(y, lMonth, lDay, isLeap);
-    if((!r || r === -1) && isLeap){
-      // 그 해에 윤달이 없으면 평달로 대체
-      r = SL.lunar2solar(y, lMonth, lDay, false);
-    }
-    return r;
-  }
-
-  let year = today.getFullYear();
-  let s = solarForYear(year);
-  let next = new Date(s.cYear, s.cMonth - 1, s.cDay);
-  next.setHours(0,0,0,0);
-  if(next < today){
-    year += 1;
-    s = solarForYear(year);
-    next = new Date(s.cYear, s.cMonth - 1, s.cDay);
-    next.setHours(0,0,0,0);
-  }
-  const diffDays = Math.round((next - today) / (1000*60*60*24));
-  // count는 반복 루프에 쓰인 lunar-year 값(year)이 아니라, 실제 환산된 양력 연도(s.cYear)를 기준으로 계산해야 함.
-  // 음력 12월처럼 양력으로 넘기면 1월로 넘어가는 날짜는 year와 s.cYear가 어긋나서 "N번째 생신"이 1씩 밀리는 오차가 생김.
-  const count = s.cYear - origY;
-  const lunarLabel = `음력 ${lMonth}월 ${lDay}일${isLeap ? '(윤달)' : ''}`;
-
-  return {
-    ...ev,
-    diffDays,
-    countLabel: `${count}번째 생신`,
-    dateLabel: `${next.getMonth()+1}월 ${next.getDate()}일`,
-    lunarLabel
-  };
-}
-
-function ddayLabel(diff){
-  return diff === 0 ? 'D-DAY' : 'D-' + diff;
-}
-
-function renderAnnivWidget(){
-  try{
-    const today = getKSTToday();
-    const computed = EVENTS.map(ev => computeEvent(ev, today)).sort((a,b)=> a.diffDays - b.diffDays);
-    const top = computed.slice(0, 3);
-    document.getElementById('annivWidget').innerHTML = top.map(ev => `
-      <div class="anniv-row">
-        <span class="anniv-emoji">${ev.emoji}</span>
-        <div class="anniv-body">
-          <div class="anniv-name">
-            <span class="anniv-owner o-${ev.owner}">${ev.owner}</span>
-            ${escapeHtml(ev.name)}
-          </div>
-          <div class="anniv-meta">${ev.dateLabel}${ev.lunarLabel ? ' (' + ev.lunarLabel + ')' : ''}${ev.countLabel ? ' · ' + ev.countLabel : ''}</div>
-        </div>
-        <span class="anniv-dday ${ev.diffDays===0?'today':''}">${ddayLabel(ev.diffDays)}</span>
-      </div>
-    `).join('');
-  }catch(err){
-    document.getElementById('annivWidget').innerHTML = '<div style="padding:16px;color:#C23B32;font-size:12.5px;">기념일을 불러오지 못했어요.</div>';
-  }
 }
 
 // ---- 정기지출 캘린더 위젯 (읽기 전용, Firestore에서 조회) ----
@@ -638,7 +394,7 @@ async function renderLedgerWidget(){
   }
 }
 
-// ---- 우리집 캘린더 위젯 (읽기 전용, 등록/수정은 calendar.html에서) ----
+// ---- 댕탱 캘린더 위젯 (읽기 전용, 등록/수정은 calendar.html에서) ----
 
 // 시작일 기준 "몇째 주 무슨 요일"인지 계산 (calendar.html과 동일한 규칙: 마지막 7일 이내면 '마지막 주'로 취급)
 function calWidgetMonthlyAnchor(sy, sm, sd){
@@ -690,6 +446,24 @@ function calendarOccursOn(ev, dateObj){
   if(ev.repeat === 'yearly'){
     return dateObj.getMonth() + 1 === sm && dateObj.getDate() === sd;
   }
+  if(ev.repeat === 'counter'){
+    return true; // 카운터는 매일 표시됨 (D+N 라벨로 구분)
+  }
+  if(ev.repeat === 'yearly-lunar'){
+    if(typeof solarLunar === 'undefined' || !ev.lunarMonth || !ev.lunarDay) return false;
+    const SL = solarLunar.lunar2solar ? solarLunar : solarLunar.default;
+    const lMonth = ev.lunarMonth, lDay = ev.lunarDay, isLeap = !!ev.lunarIsLeap;
+    function solarFor(y){
+      let r = SL.lunar2solar(y, lMonth, lDay, isLeap);
+      if((!r || r === -1) && isLeap) r = SL.lunar2solar(y, lMonth, lDay, false);
+      return r;
+    }
+    for(const guessYear of [dateObj.getFullYear() - 1, dateObj.getFullYear()]){
+      const r = solarFor(guessYear);
+      if(r && r.cYear === dateObj.getFullYear() && r.cMonth === dateObj.getMonth() + 1 && r.cDay === dateObj.getDate()) return true;
+    }
+    return false;
+  }
   return false;
 }
 
@@ -714,7 +488,7 @@ async function renderCalendarWidget(){
       });
     }
     items.sort((a, b) => a.diffDays - b.diffDays || (a.ev.time || '99:99').localeCompare(b.ev.time || '99:99'));
-    const top = items.slice(0, 3);
+    const top = items.slice(0, 8);
     if(top.length === 0){
       el.innerHTML = '<div style="padding:16px;color:var(--ink-soft);font-size:12.5px;">이번 주엔 등록된 일정이 없어요.</div>';
       return;
@@ -723,12 +497,21 @@ async function renderCalendarWidget(){
       const label = it.diffDays === 0 ? 'D-DAY' : 'D-' + it.diffDays;
       const dateLabel = `${it.dateObj.getMonth()+1}월 ${it.dateObj.getDate()}일`;
       const ownerTag = (it.ev.owner && it.ev.owner !== '공용') ? `<span class="anniv-owner o-${it.ev.owner}">${it.ev.owner}</span> ` : '';
+      const expenseTag = it.ev.expenseTag ? `<span class="anniv-owner tag-expense">💳 정기지출</span> ` : '';
+      const annivTag = it.ev.annivTag ? `<span class="anniv-owner tag-anniv">🎉 기념일</span> ` : '';
+      let counterLabel = '';
+      if(it.ev.repeat === 'counter'){
+        const [sy, sm, sd] = it.ev.date.split('-').map(Number);
+        const startObj = new Date(sy, sm - 1, sd);
+        const diff = Math.round((it.dateObj - startObj) / 86400000) + 1;
+        counterLabel = ` · D+${diff}`;
+      }
       return `
       <div class="anniv-row">
         <span class="anniv-emoji">${it.ev.emoji || '📌'}</span>
         <div class="anniv-body">
-          <div class="anniv-name">${ownerTag}${escapeHtml(it.ev.title)}</div>
-          <div class="anniv-meta">${dateLabel}${it.ev.time ? ' · ' + it.ev.time : ''}</div>
+          <div class="anniv-name">${ownerTag}${expenseTag}${annivTag}${escapeHtml(it.ev.title)}</div>
+          <div class="anniv-meta">${dateLabel}${it.ev.time ? ' · ' + it.ev.time : ''}${counterLabel}</div>
         </div>
         <span class="anniv-dday ${it.diffDays===0?'today':''}">${label}</span>
       </div>`;
@@ -738,209 +521,8 @@ async function renderCalendarWidget(){
   }
 }
 
-// ---- 기념일 데이터 로드 (Firestore가 진짜 데이터 소스, 최초 1회만 기본값으로 시딩) ----
-async function loadEvents(){
-  try{
-    let tries = 0;
-    while(!window.firestoreLoadAnniv && tries < 50){
-      await new Promise(r => setTimeout(r, 100));
-      tries++;
-    }
-    if(!window.firestoreLoadAnniv) throw new Error('저장소 연결 준비가 안 됐어요');
-    const data = await window.firestoreLoadAnniv();
-    if(data && Array.isArray(data.events) && data.events.length > 0){
-      EVENTS = data.events;
-    } else {
-      // 문서가 아직 없음(최초 실행) → 기본값으로 채워서 저장
-      EVENTS = DEFAULT_EVENTS.map(e => ({ ...e }));
-      await window.firestoreSaveAnniv(EVENTS);
-    }
-  }catch(err){
-    // 네트워크 문제 등으로 못 불러오면 최소한 기본값이라도 화면에 보여줌 (저장은 안 함)
-    EVENTS = DEFAULT_EVENTS.map(e => ({ ...e }));
-  }
-}
-
-function showToast(msg){
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1800);
-}
-
-async function saveEvents(){
-  try{
-    await window.firestoreSaveAnniv(EVENTS);
-    return true;
-  }catch(e){
-    alert('⚠️ 저장에 실패했어요!\n\n' + (e.message || '') + '\n\n방금 한 작업은 저장되지 않았어요.');
-    return false;
-  }
-}
-
-// ---- 기념일 관리 모달 ----
-function openAnnivManage(){
-  renderAnnivManageList();
-  $('annivManageBackdrop').classList.add('open');
-}
-function closeAnnivManage(){
-  $('annivManageBackdrop').classList.remove('open');
-}
-
-function renderAnnivManageList(){
-  const today = getKSTToday();
-  const list = $('annivManageList');
-  if(EVENTS.length === 0){
-    list.innerHTML = '<div style="padding:16px;color:var(--ink-soft);font-size:12.5px;">등록된 기념일이 없어요.</div>';
-    return;
-  }
-  const computed = EVENTS.map(ev => computeEvent(ev, today)).sort((a,b)=> a.diffDays - b.diffDays);
-  list.innerHTML = computed.map(ev => `
-    <div class="anniv-row" style="cursor:pointer;" data-id="${ev.id}">
-      <span class="anniv-emoji">${ev.emoji}</span>
-      <div class="anniv-body">
-        <div class="anniv-name">
-          <span class="anniv-owner o-${ev.owner}">${ev.owner}</span>
-          ${escapeHtml(ev.name)}
-        </div>
-        <div class="anniv-meta">${ev.dateLabel}${ev.lunarLabel ? ' (' + ev.lunarLabel + ')' : ''}${ev.countLabel ? ' · ' + ev.countLabel : ''}</div>
-      </div>
-      <span class="anniv-dday ${ev.diffDays===0?'today':''}">${ddayLabel(ev.diffDays)}</span>
-    </div>
-  `).join('');
-  list.querySelectorAll('.anniv-row').forEach(row=>{
-    row.addEventListener('click', ()=> openAnnivForm(row.dataset.id));
-  });
-}
-
-// ---- 기념일 추가/수정 폼 ----
-function updateAnnivFormFields(){
-  const type = $('af-type').value;
-  const isLunarDirect = type === 'lunar-direct';
-  $('af-solarDateField').style.display = isLunarDirect ? 'none' : 'block';
-  $('af-lunarFields').style.display = isLunarDirect ? 'block' : 'none';
-  $('af-solarDateLabel').textContent = (type === 'lunar-birthday')
-    ? '양력 생신 날짜 (음력으로 자동 환산돼요)'
-    : '날짜';
-}
-
-function openAnnivForm(id){
-  editingAnnivId = id || null;
-  $('annivFormTitle').textContent = id ? '기념일 수정' : '기념일 추가';
-  $('af-deleteBtn').style.display = id ? 'block' : 'none';
-  if(id){
-    const ev = EVENTS.find(e => e.id === id);
-    $('af-name').value = ev.name || '';
-    $('af-owner').value = ev.owner || '댕';
-    $('af-emoji').value = ev.emoji || '';
-    $('af-type').value = ev.type || 'birthday';
-    $('af-date').value = ev.date || '';
-    $('af-birthYear').value = ev.birthYear || '';
-    $('af-lunarMonth').value = ev.lunarMonth || '';
-    $('af-lunarDay').value = ev.lunarDay || '';
-    $('af-isLeap').checked = !!ev.isLeap;
-  } else {
-    $('af-name').value = '';
-    $('af-owner').value = '댕';
-    $('af-emoji').value = '🎂';
-    $('af-type').value = 'birthday';
-    $('af-date').value = '';
-    $('af-birthYear').value = '';
-    $('af-lunarMonth').value = '';
-    $('af-lunarDay').value = '';
-    $('af-isLeap').checked = false;
-  }
-  updateAnnivFormFields();
-  $('annivFormBackdrop').classList.add('open');
-}
-function closeAnnivForm(){
-  $('annivFormBackdrop').classList.remove('open');
-  editingAnnivId = null;
-}
-
-async function saveAnniv(){
-  const name = $('af-name').value.trim();
-  const owner = $('af-owner').value;
-  const emoji = $('af-emoji').value.trim() || '🎉';
-  const type = $('af-type').value;
-
-  if(!name){ alert('이름을 입력해주세요'); return; }
-
-  let evData = { name, owner, emoji, type };
-  if(type === 'lunar-direct'){
-    const birthYear = parseInt($('af-birthYear').value, 10);
-    const lunarMonth = parseInt($('af-lunarMonth').value, 10);
-    const lunarDay = parseInt($('af-lunarDay').value, 10);
-    if(!birthYear || !lunarMonth || !lunarDay){
-      alert('출생연도 / 음력 월 / 음력 일을 모두 입력해주세요');
-      return;
-    }
-    evData = { ...evData, birthYear, lunarMonth, lunarDay, isLeap: $('af-isLeap').checked };
-  } else {
-    const date = $('af-date').value;
-    if(!date){ alert('날짜를 입력해주세요'); return; }
-    evData = { ...evData, date };
-  }
-
-  const backup = JSON.parse(JSON.stringify(EVENTS));
-  if(editingAnnivId){
-    const idx = EVENTS.findIndex(e => e.id === editingAnnivId);
-    EVENTS[idx] = { ...EVENTS[idx], ...evData };
-  } else {
-    EVENTS.push({ id: genAnnivId(), ...evData });
-  }
-
-  const saveBtn = $('af-saveBtn');
-  saveBtn.disabled = true;
-  saveBtn.textContent = '저장 중...';
-  const ok = await saveEvents();
-  saveBtn.disabled = false;
-  saveBtn.textContent = '저장';
-
-  if(!ok){
-    EVENTS = backup; // 저장 실패 → 이전 상태로 복구, 모달은 열어둔 채 재시도 가능
-    return;
-  }
-  closeAnnivForm();
-  renderAnnivWidget();
-  renderAnnivManageList();
-  showToast('저장했어요');
-}
-
-async function deleteAnniv(){
-  if(!editingAnnivId) return;
-  const ev = EVENTS.find(e => e.id === editingAnnivId);
-  if(!ev || !confirm(`'${ev.name}' 기념일을 삭제할까요? 되돌릴 수 없어요.`)) return;
-
-  const backup = JSON.parse(JSON.stringify(EVENTS));
-  EVENTS = EVENTS.filter(e => e.id !== editingAnnivId);
-  const ok = await saveEvents();
-  if(!ok){ EVENTS = backup; return; }
-
-  closeAnnivForm();
-  renderAnnivWidget();
-  renderAnnivManageList();
-  showToast('삭제했어요');
-}
-
-function initAnnivManage(){
-  $('annivManageBtn').addEventListener('click', openAnnivManage);
-  $('annivManageCloseBtn').addEventListener('click', closeAnnivManage);
-  $('annivAddBtn').addEventListener('click', ()=> openAnnivForm(null));
-  $('af-cancelBtn').addEventListener('click', closeAnnivForm);
-  $('af-saveBtn').addEventListener('click', saveAnniv);
-  $('af-deleteBtn').addEventListener('click', deleteAnniv);
-  $('af-type').addEventListener('change', updateAnnivFormFields);
-  $('annivManageBackdrop').addEventListener('click', e=>{ if(e.target.id==='annivManageBackdrop') closeAnnivManage(); });
-  $('annivFormBackdrop').addEventListener('click', e=>{ if(e.target.id==='annivFormBackdrop') closeAnnivForm(); });
-}
-
 async function initWidgets(){
-  renderLedgerWidget();
   renderCalendarWidget();
-  await loadEvents();
-  renderAnnivWidget();
-  initAnnivManage();
   document.getElementById('moreChaptersToggle').addEventListener('click', ()=>{
     const el = document.getElementById('moreChaptersList');
     const icon = document.getElementById('moreChaptersIcon');
