@@ -217,23 +217,34 @@
   .memo-note:nth-child(3n){transform:rotate(1.2deg);}
   .memo-note:nth-child(3n+1){transform:rotate(-1.3deg);}
   .memo-note:nth-child(3n+2){transform:rotate(0.6deg);}
-  .memo-note-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-  .memo-owner-select{
-    border:none;background:transparent;font-size:10px;font-weight:800;color:inherit;
-    opacity:.6;padding:0;-webkit-appearance:none;appearance:none;cursor:pointer;
+  .memo-note-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .memo-owner-picker{display:flex;gap:5px;align-items:center;}
+  .owner-dot{
+    width:14px;height:14px;border-radius:50%;padding:0;cursor:pointer;
+    border:2px solid transparent;opacity:.4;flex-shrink:0;
   }
+  .owner-dot.active{opacity:1;border-color:rgba(74,59,52,.4);}
+  .owner-dot.dot-댕{background:#7CB342;}
+  .owner-dot.dot-탱{background:#F06292;}
+  .owner-dot.dot-미정{background:#D4AF1F;}
+  .memo-note-actions{display:flex;align-items:center;gap:2px;}
+  .memo-bold-btn{
+    border:none;background:rgba(74,59,52,.1);color:inherit;font-weight:900;
+    font-size:10.5px;width:18px;height:18px;border-radius:4px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;opacity:.7;padding:0;
+  }
+  .memo-bold-btn:active{opacity:1;background:rgba(74,59,52,.2);}
   .memo-delete-btn{
     border:none;background:transparent;font-size:15px;color:inherit;opacity:.4;
     cursor:pointer;padding:0 2px;line-height:1;
   }
   .memo-delete-btn:active{opacity:.8;}
   .memo-textarea{
-    flex:1;width:100%;border:none;background:transparent;resize:none;outline:none;
+    flex:1;width:100%;outline:none;
     font-family:inherit;font-size:12.5px;line-height:1.55;color:inherit;
-    white-space:pre-wrap;word-break:break-word;padding:0;
-    box-sizing:border-box;overflow:hidden;min-height:80px;
+    white-space:pre-wrap;word-break:break-word;min-height:80px;
   }
-  .memo-textarea::placeholder{color:inherit;opacity:.45;}
+  .memo-textarea[contenteditable]:empty:before{content:attr(data-placeholder);opacity:.45;}
   .memo-add-card{
     flex:0 0 148px;min-height:148px;border-radius:6px;
     border:2px dashed var(--muted);display:flex;align-items:center;justify-content:center;
@@ -535,7 +546,7 @@ async function renderCalendarWidget(){
     const events = (data && Array.isArray(data.events)) ? data.events : [];
     const today = getKSTToday();
     const items = [];
-    for(let i = 0; i < 7; i++){
+    for(let i = 0; i < 14; i++){
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       events.forEach(ev => {
@@ -543,7 +554,7 @@ async function renderCalendarWidget(){
       });
     }
     items.sort((a, b) => a.diffDays - b.diffDays || (a.ev.time || '99:99').localeCompare(b.ev.time || '99:99'));
-    const top = items.slice(0, 8);
+    const top = items.slice(0, 10);
     if(top.length === 0){
       el.innerHTML = '<div style="padding:16px;color:var(--ink-soft);font-size:12.5px;">이번 주엔 등록된 일정이 없어요.</div>';
       return;
@@ -608,34 +619,52 @@ async function saveMemosToFirestore(){
   }
 }
 
-function autoGrow(textarea){
-  textarea.style.height = 'auto';
-  textarea.style.height = textarea.scrollHeight + 'px';
+// 예전 방식(순수 텍스트, 줄바꿈 문자)으로 저장된 메모를 표시용 HTML로 변환.
+// richText:true로 저장된 메모는 이미 HTML이라 그대로 씀 (이중 이스케이프 방지).
+function textToHtml(text){
+  return escapeHtml(text || '').replace(/\n/g, '<br>');
 }
 
 function renderMemoScroll(){
   const el = document.getElementById('memoScroll');
-  el.innerHTML = MEMOS.map(m => `
-    <div class="memo-note owner-${m.owner || '미정'}" data-id="${m.id}">
+  const OWNERS = ['댕', '탱', '미정'];
+  el.innerHTML = MEMOS.map(m => {
+    const owner = m.owner || '미정';
+    const displayHtml = m.richText ? (m.text || '') : textToHtml(m.text || '');
+    const dotsHtml = OWNERS.map(o => `<button class="owner-dot dot-${o}${o===owner?' active':''}" data-id="${m.id}" data-owner="${o}" title="${o}"></button>`).join('');
+    return `
+    <div class="memo-note owner-${owner}" data-id="${m.id}">
       <div class="memo-note-top">
-        <select class="memo-owner-select" data-id="${m.id}">
-          <option value="댕"${m.owner==='댕'?' selected':''}>댕</option>
-          <option value="탱"${m.owner==='탱'?' selected':''}>탱</option>
-          <option value="미정"${(!m.owner||m.owner==='미정')?' selected':''}>미정</option>
-        </select>
-        <button class="memo-delete-btn" data-id="${m.id}">×</button>
+        <div class="memo-owner-picker">${dotsHtml}</div>
+        <div class="memo-note-actions">
+          <button class="memo-bold-btn" data-id="${m.id}">B</button>
+          <button class="memo-delete-btn" data-id="${m.id}">×</button>
+        </div>
       </div>
-      <textarea class="memo-textarea" data-id="${m.id}" placeholder="예: 우유, 계란 사기">${escapeHtml(m.text || '')}</textarea>
+      <div class="memo-textarea" contenteditable="true" data-id="${m.id}" data-placeholder="예: 우유, 계란 사기">${displayHtml}</div>
     </div>
-  `).join('') + `<div class="memo-add-card" id="memoAddBtn">+</div>`;
+  `;
+  }).join('') + `<div class="memo-add-card" id="memoAddBtn">+</div>`;
 
-  el.querySelectorAll('.memo-textarea').forEach(ta => {
-    autoGrow(ta);
-    ta.addEventListener('input', () => autoGrow(ta));
-    ta.addEventListener('blur', () => saveMemoField(ta.dataset.id, 'text', ta.value));
+  el.querySelectorAll('.memo-textarea').forEach(box => {
+    box.addEventListener('blur', () => saveMemoText(box.dataset.id, box.innerHTML));
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
   });
-  el.querySelectorAll('.memo-owner-select').forEach(sel => {
-    sel.addEventListener('change', () => saveMemoField(sel.dataset.id, 'owner', sel.value));
+  el.querySelectorAll('.owner-dot').forEach(dot => {
+    dot.addEventListener('click', () => saveMemoField(dot.dataset.id, 'owner', dot.dataset.owner));
+  });
+  el.querySelectorAll('.memo-bold-btn').forEach(btn => {
+    // mousedown에서 미리 막아둬야 contenteditable의 선택 영역이 풀리지 않고 볼드가 먹음
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => {
+      const box = el.querySelector(`.memo-textarea[data-id="${btn.dataset.id}"]`);
+      box.focus();
+      document.execCommand('bold');
+    });
   });
   el.querySelectorAll('.memo-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => deleteMemo(btn.dataset.id));
@@ -643,23 +672,35 @@ function renderMemoScroll(){
   document.getElementById('memoAddBtn').addEventListener('click', addNewMemo);
 }
 
-// 메모 하나의 한 필드(text 또는 owner)만 바꿔서 저장. 내용이 비어있는 새 메모는 저장하지 않고 그냥 지움.
+// 담당(owner)만 바꿔서 저장 — 항상 값이 있으므로 비어있는지 검사할 필요 없음.
 async function saveMemoField(id, field, value){
   const idx = MEMOS.findIndex(m => m.id === id);
   if(idx === -1) return;
 
-  const isNew = !!MEMOS[idx]._isNew;
+  const backup = JSON.parse(JSON.stringify(MEMOS));
   MEMOS[idx] = { ...MEMOS[idx], [field]: value };
+  renderMemoScroll();
+  const ok = await saveMemosToFirestore();
+  if(!ok){ MEMOS = backup; renderMemoScroll(); }
+}
 
-  if(field === 'text' && !value.trim()){
+// 서식(볼드 등) 포함 내용을 저장. 내용이 비어있는 새 메모는 저장하지 않고 그냥 지움.
+async function saveMemoText(id, html){
+  const idx = MEMOS.findIndex(m => m.id === id);
+  if(idx === -1) return;
+
+  const isNew = !!MEMOS[idx]._isNew;
+  const plainCheck = html.replace(/<[^>]*>/g, '').trim();
+
+  if(!plainCheck){
     if(isNew){
-      // 빈 채로 포커스 아웃된 새 메모는 저장하지 않고 그냥 취소
       MEMOS.splice(idx, 1);
       renderMemoScroll();
     }
     return;
   }
 
+  MEMOS[idx] = { ...MEMOS[idx], text: html, richText: true };
   delete MEMOS[idx]._isNew;
   const backup = JSON.parse(JSON.stringify(MEMOS.map(m => { const c = {...m}; delete c._isNew; return c; })));
   const ok = await saveMemosToFirestore();
