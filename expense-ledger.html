@@ -86,7 +86,7 @@
   .month-nav .month-label{font-size:15px;font-weight:800;}
 
   /* Filter pills */
-  .pill-row{display:grid;grid-template-columns:repeat(5, 1fr);gap:4px;margin-top:10px;}
+  .pill-row{display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;margin-top:10px;}
   .pill{
     padding:8px 2px;border-radius:100px;border:1.5px solid var(--line);
     background:#fff;font-size:10.5px;font-weight:700;color:var(--ink-soft);
@@ -100,7 +100,7 @@
   .pill.active[data-owner="personal"]{background:var(--lime);border-color:var(--lime);color:#3E5A0E;}
 
   /* 댕 개인 서브탭 (용돈/직팜) */
-  .personal-subtabs{display:none;gap:6px;margin-bottom:12px;}
+  .personal-subtabs{display:none;gap:8px;margin-bottom:12px;}
   .personal-subtab{
     flex:1;padding:8px 4px;border-radius:12px;border:1.5px solid var(--line);
     background:#fff;font-size:12.5px;font-weight:800;color:var(--ink-soft);
@@ -906,13 +906,13 @@ function monthExpenseEntriesAllOwners(){
   return excludePersonalTag(activeEntries().filter(e => monthKey(e.date) === currentMonth && entryType(e) === 'expense'));
 }
 
-// 댕 용돈 한도 = 전월 (담당자:댕, 카테고리:월급) 수입의 20%
+// 댕 용돈 한도 = 전월 (담당자:댕, 카테고리:월급) 수입의 5%
 function daengAllowanceBudget(mk){
   const prevMk = shiftMonth(mk, -1);
   const prevSalary = activeEntries()
     .filter(e => monthKey(e.date) === prevMk && entryType(e) === 'income' && e.owner === '댕' && e.category === '월급')
     .reduce((s,e)=>s+e.amount, 0);
-  return Math.round(prevSalary * 0.2);
+  return Math.round(prevSalary * 0.05);
 }
 
 // ---- Render ----
@@ -1006,7 +1006,7 @@ function renderSummary(){
     $('allowanceBarFill').classList.toggle('over', remain < 0);
     $('allowanceBarFill').classList.toggle('low', remain >= 0 && budget > 0 && remainPct <= 20);
     $('allowanceNote').textContent = budget > 0
-      ? `${monthLabel(prevMk)} 댕 월급의 20% 기준이에요`
+      ? `${monthLabel(prevMk)} 댕 월급의 5% 기준이에요`
       : `${monthLabel(prevMk)}에 댕 월급 기록이 없어서 한도가 0원으로 계산돼요`;
   } else {
     allowanceBox.style.display = 'none';
@@ -2234,6 +2234,14 @@ if(document.readyState === 'loading'){
 } else {
   init();
 }
+
+// 숫자 입력창에 포커스된 채로 마우스 휠 스크롤하면 브라우저가 값을 증감시키는 문제 방지
+// (동적으로 생성되는 OCR 수정 입력창까지 포함하도록 document 전체에 위임)
+document.addEventListener('wheel', function(e){
+  if(document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'number'){
+    document.activeElement.blur();
+  }
+}, { passive: true });
 </script>
 </body>
 </html>
