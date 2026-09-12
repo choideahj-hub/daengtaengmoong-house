@@ -1004,7 +1004,7 @@ function renderSummary(){
     $('allowanceUsed').textContent = formatWon(used);
     $('allowanceRemain').textContent = (remain < 0 ? '−' : '') + formatWon(Math.abs(remain));
     document.querySelector('.allowance-remain').classList.toggle('over', remain < 0);
-    $('allowanceBarFill').style.width = `${remainPct}%`;
+    $('allowanceBarFill').style.width = `${usedPct}%`;
     $('allowanceBarFill').classList.toggle('over', remain < 0);
     $('allowanceBarFill').classList.toggle('low', remain >= 0 && budget > 0 && remainPct <= 20);
     $('allowanceNote').textContent = budget > 0
