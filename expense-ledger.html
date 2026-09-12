@@ -30,6 +30,8 @@
     --teal-soft:#DFF1F0;
     --red:#C23B32;
     --red-soft:#FBEAE8;
+    --warn-coral:#F2836B;
+    --warn-coral-soft:#FDEBE6;
     --gray-soft:#F0EFEA;
     --radius:20px;
     --shadow:0 6px 18px -6px rgba(255,143,160,.22), 0 2px 6px -2px rgba(74,59,52,.06);
@@ -86,7 +88,7 @@
   .month-nav .month-label{font-size:15px;font-weight:800;}
 
   /* Filter pills */
-  .pill-row{display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;margin-top:10px;}
+  .pill-row{display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-top:10px;}
   .pill{
     padding:8px 2px;border-radius:100px;border:1.5px solid var(--line);
     background:#fff;font-size:10.5px;font-weight:700;color:var(--ink-soft);
@@ -100,7 +102,7 @@
   .pill.active[data-owner="personal"]{background:var(--lime);border-color:var(--lime);color:#3E5A0E;}
 
   /* 댕 개인 서브탭 (용돈/직팜) */
-  .personal-subtabs{display:none;gap:8px;margin-bottom:12px;}
+  .personal-subtabs{display:none;gap:12px;margin-bottom:12px;}
   .personal-subtab{
     flex:1;padding:8px 4px;border-radius:12px;border:1.5px solid var(--line);
     background:#fff;font-size:12.5px;font-weight:800;color:var(--ink-soft);
@@ -137,7 +139,7 @@
   .allowance-row.allowance-remain.over span:last-child{color:var(--red);}
   .allowance-bar-track{height:10px;background:#fff;border-radius:100px;overflow:hidden;margin:2px 0;}
   .allowance-bar-fill{height:100%;background:var(--lime);border-radius:100px;transition:width .3s ease;}
-  .allowance-bar-fill.low{background:var(--amber);}
+  .allowance-bar-fill.low{background:var(--warn-coral);}
   .allowance-bar-fill.over{background:var(--red);}
   .allowance-note{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5;}
   .ratio-bar{display:flex;width:100%;height:26px;border-radius:9px;overflow:hidden;background:var(--gray-soft);}
